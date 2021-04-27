@@ -1,14 +1,17 @@
 Package: vibr
 Title: Variable Importance in Black-Box Regression
-Version: 0.0.0.9000
+Version: 0.0.1
 Authors@R: 
     person(given = "Alexander",
            family = "Keil",
            role = c("aut", "cre"),
-           email = "alex.keil@gmail.com",
+           email = "akeil@unc.edu",
            comment = c(ORCID = "0000-0002-0955-6107"))
+Author: Alexander Keil [aut, cre]
+Maintainer: Alexander Keil <akeil@unc.edu>
 Description: This package implements two variable importance estimators for prediction of binary or continuous target variables. Namely, based on a black-box prediction/regression model fit to the data, this approach yields g-computation and augmented inverse probability weighted estimates of variable importance, both described by Diaz et al (2014). This package relies on black-box prediction from the \code{sl3} package, which, among other things, uses super learning (stacking) to make predictions.
-Depends:  mvtnorm, sl3, glmnet, earth, qgcomp, randomForest, nnls, Rsolnp
+Depends:  R (>= 3.5), sl3
+Imports:  mvtnorm, glmnet, earth, qgcomp, randomForest, nnls, Rsolnp
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true

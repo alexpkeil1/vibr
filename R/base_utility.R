@@ -63,7 +63,7 @@
 
 #' @import sl3 glmnet earth
 #' @export
-.default_continuous_learners <- function(){
+.default_continuous_learners_big <- function(){
   continuous_learners=list(
     Lrnr_glm$new(name="OLS"),
     Lrnr_glmnet$new(name="Lasso", alpha=1.0),
@@ -74,9 +74,19 @@
   continuous_learners
 }
 
+#' @import sl3 glmnet earth
+#' @export
+.default_continuous_learners <- function(){
+  continuous_learners=list(
+    Lrnr_glm$new(name="OLS"),
+    Lrnr_earth$new(name="MARS", alpha=1.0)
+  )
+  continuous_learners
+}
+
 #' @import sl3 glmnet earth stats
 #' @export
-.default_binary_learners <- function(){
+.default_binary_learners_big <- function(){
   bin_learners=list(
     Lrnr_glm$new(name="LOGIT"),
     Lrnr_glmnet$new(name="Lasso", alpha=1.0),
@@ -87,25 +97,35 @@
   bin_learners
 }
 
+#' @import sl3 glmnet earth stats
+#' @export
+.default_binary_learners <- function(){
+  bin_learners=list(
+    Lrnr_glm$new(name="LOGIT"),
+    Lrnr_earth$new(name="MARS", alpha=1.0)
+  )
+  bin_learners
+}
+
 ################################
 # training functions
 ################################
 
 
 
-#  train all SL model on continuous covariate
-#' .train_superlearner
+
+#' Train super learner
 #'
-#' @param datatask
-#' @param learners
-#' @param type
+#' @param datatask sl3 task
+#' @param learners R list of learners
+#' @param type type of fit ("density", "probability", or "expectation")
 #'
 #' @description Train a super learner fit, given some data held in an sl3 task object and a list of learners
 #'
-#' @return
+#' @return a trained super learner fit (output from sl3::make_learner)
 #' @export
+#' @import sl3
 #'
-#' @examples
 .train_superlearner <- function(datatask, learners, type=c("density", "probability", "expectation")){
   #sl3_Task$new()
   # train learners
@@ -117,8 +137,8 @@
   cv_task <- cv_fit$chain()
   # train super learner
   metalearner <- switch(substr(type[1],1,1),
-                        d = make_learner(Lrnr_solnp_density),
-                        h = make_learner(Lrnr_solnp_density),
+                        d = make_learner(Lrnr_solnp_density, trace=0),
+                        h = make_learner(Lrnr_solnp_density, trace=0),
                         e = make_learner(Lrnr_nnls),
                         p = make_learner(Lrnr_nnls)
   )
@@ -128,6 +148,7 @@
 }
 
 
+#' @import sl3
 .train_Y <- function(X,Y, learners, verbose=TRUE, isbin=FALSE){
   df = data.frame(X, Y)
   pp1 <- ncol(df)
@@ -142,6 +163,7 @@
 }
 
 
+#' @import sl3
 .train_allX <- function(X, tasks, bin_learners, density_learners, verbose=TRUE){
   # TODO: check for data frame X
   vartype = ifelse(apply(X, 2, function(x) length(unique(x))==2), "b", "c")
@@ -163,12 +185,14 @@
 
 
 # now create some functions that can automate density prediction for every variable
-.gfunction <- function(X=NULL,Acol,gfits=sl.gfits){
-  if(!is.null(X)){
+#.gfunction <- function(X=NULL,Acol=1,gfits=sl.gfits, ...){
+.gfunction <- function(X=NULL,Acol=1,gfits=NULL, ...){
+    if(!is.null(X)){
     XX <- sl3_Task$new(
       data=data.frame(X),
       covariates=names(X)[-Acol],
-      outcome=names(X)[Acol]
+      outcome=names(X)[Acol],
+      ...
     )
     pred <- gfits[[Acol]]$predict(XX)
   }
@@ -180,11 +204,13 @@
 }
 
 # outcome prediction
-.qfunction <- function(X=NULL,Acol,qfit=sl.qfit){
-  if(!is.null(X)){
+#.qfunction <- function(X=NULL,Acol=1,qfit=sl.qfit, ...){
+.qfunction <- function(X=NULL,Acol=1,qfit=NULL, ...){
+    if(!is.null(X)){
     XX <- sl3_Task$new(
       data=data.frame(X),
-      covariates=names(X)
+      covariates=names(X),
+      ...
     )
     pred <- qfit$predict(XX)
   }

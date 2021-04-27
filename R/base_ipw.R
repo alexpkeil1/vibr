@@ -1,8 +1,8 @@
 ################################
 ## efficient influence functions - based on 2014 paper (same representation in binary and continuous exposures)
 ################################
-
 .Dcw <- function(n,X,Y,Acol,delta,qfun,gfun,qfit=NULL,gfits, ...){
+  # cf vanderlaan 2006, p 10
   Xb <- Xa <- X
   Xa[,Acol] <- X[,Acol]-delta
   #Xb[,Acol] <- X[,Acol]+delta
@@ -25,9 +25,9 @@
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
-      dphi <- .Dbw(n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits)
+      dphi <- .Dbw(n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits, ...)
     } else{
-      dphi <- .Dcw( n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits)
+      dphi <- .Dcw( n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits, ...)
     }
     tm <- .EstEq(dphi)
     resmat[Acol,] <- tm
@@ -51,7 +51,8 @@
 # Y_learners = .default_continuous_learners()
 # Xbinary_learners = .default_binary_learners()
 # Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
-# vi3 <- .varimp_ipw(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners[1:4],Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners[1:2] )
+# vi3 <- .varimp_ipw(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners[1:4],
+#  Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners[1:2] )
 # vi3
 # }
 # coef(summary(lm(XYlist$Y~as.matrix(XYlist$X))))[-1,]
@@ -61,6 +62,21 @@
 # - (0.1 + ph*0.1)*lead*cadmium*arsenic
 # - (0.1 + ph*0.1)*chromium*mercury,
 
+#' Variable importance using inverse probability weighting
+#' @description Not usually called by users
+#'
+#' @param X data frame of predictors
+#' @param Y outcome
+#' @param delta change in each column of X corresponding to
+#' @param Y_learners list of sl3 learners used to predict the outcome, conditional on all predictors in X
+#' @param Xdensity_learners list of sl3 learners used to estimate the density of continuous predictors, conditional on all other predictors in X
+#' @param Xbinary_learners list of sl3 learners used to estimate the probability mass of continuous predictors, conditional on all other predictors in X
+#' @param verbose (logical) print extra information
+#' @param ... passed to sl3::base_predict (rare)
+#'
+#' @return vi object
+#' @export
+#'
 .varimp_ipw <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbinary_learners=NULL, verbose=TRUE, ...){
   tasklist = .create_tasks(X,Y,delta)
   n = length(Y)
@@ -68,8 +84,17 @@
 
   isbin <- as.character((length(unique(Y))==2))
   #sl.qfit <- .train_Y(X,Y, Y_learners, verbose=TRUE, isbin)
-  sl.gfits <- .train_allX(X, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=TRUE)
+  sl.gfits <- .train_allX(X, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)
   #.gfunction(X=NULL,Acol,gfits=sl.gfits)
   #.qfunction(X=NULL,Acol,qfit=sl.qfit)
-  .EstEqIPW(n,X,Y,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=sl.gfits)
+  fittable <- .EstEqIPW(n,X,Y,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=sl.gfits, ...)
+  res <- list(
+    res = fittable,
+    qfit = NULL,
+    gfits = sl.gfits,
+    binomial = isbin,
+    type = "IPW"
+  )
+  class(res) <- c("vibr.fit", class(res))
+  res
 }

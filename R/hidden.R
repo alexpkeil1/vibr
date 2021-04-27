@@ -1,14 +1,5 @@
-#' Title
-#'
-#' @param n sample size
-#' @param p number of predictors (with random correlation matrix)
-#' @param ncat number of dichotomous predictors (must be <= p)
-#'
-#' @return
-#' @export
+
 #' @importFrom mvtnorm rmvnorm
-#'
-#' @examples
 .dgm <- function(n,p,ncat){
   if(p<ncat) stop("p must be >= ncat")
   # continuous

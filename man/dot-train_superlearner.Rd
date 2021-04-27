@@ -2,7 +2,7 @@
 % Please edit documentation in R/base_utility.R
 \name{.train_superlearner}
 \alias{.train_superlearner}
-\title{.train_superlearner}
+\title{Train super learner}
 \usage{
 .train_superlearner(
   datatask,
@@ -11,10 +11,14 @@
 )
 }
 \arguments{
-\item{type}{}
+\item{datatask}{sl3 task}
+
+\item{learners}{R list of learners}
+
+\item{type}{type of fit ("density", "probability", or "expectation")}
 }
 \value{
-
+a trained super learner fit (output from sl3::make_learner)
 }
 \description{
 Train a super learner fit, given some data held in an sl3 task object and a list of learners

@@ -3,7 +3,16 @@
 ################################
 
 # continuous
-.gcc <- function(n,X,Y,Acol,delta,qfun,gfun=NULL,qfit,gfits=NULL, ...){
+.gcc <- function(n,
+                 X,
+                 Y,
+                 Acol,
+                 delta,
+                 qfun,
+                 gfun=NULL,
+                 qfit,
+                 gfits=NULL,
+                 ...){
   #cat(paste0("column ", names(X)[Acol], ": continuous\n"))
   Xa <- X
   Xa[,Acol] <- X[,Acol]+delta
@@ -12,7 +21,16 @@
 }
 
 # binary
-.gcb <- function(n,X,Y,Acol,delta,qfun,gfun=NULL,qfit,gfits=NULL, ...){
+.gcb <- function(n,
+                 X,
+                 Y,
+                 Acol,
+                 delta,
+                 qfun,
+                 gfun=NULL,
+                 qfit,
+                 gfits=NULL,
+                 ...){
   #cat(paste0("column ", names(X)[Acol], ": binary\n"))
   X1 <- X0 <- X
   X1[,Acol] <- 1
@@ -30,14 +48,22 @@
   c(est=est, se = NA, z=NA)
 }
 
-.EstimatorGcomp <- function(n,X,Y,delta,qfun,gfun,qfit,gfits,...){
+.EstimatorGcomp <- function(n,
+                            X,
+                            Y,
+                            delta,
+                            qfun,
+                            gfun,
+                            qfit,
+                            gfits,
+                            ...){
   isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
-      est <- .gcb(n,X,Y,Acol,delta,qfun,gfun=NULL,qfit,gfits=NULL)
+      est <- .gcb(n,X,Y,Acol,delta,qfun,gfun=NULL,qfit,gfits=NULL, ...)
     } else{
-      est <- .gcc( n,X,Y,Acol,delta,qfun,gfun=NULL,qfit,gfits=NULL)
+      est <- .gcc( n,X,Y,Acol,delta,qfun,gfun=NULL,qfit,gfits=NULL, ...)
     }
     tm <- .EstGcomp(est)
     resmat[Acol,] <- tm
@@ -70,12 +96,44 @@
 # + 1*(calcium>mean(calcium))
 # - (0.1 + ph*0.1)*lead*cadmium*arsenic
 # - (0.1 + ph*0.1)*chromium*mercury,
-.varimp_gcomp <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbinary_learners=NULL, verbose=TRUE, ...){
+
+#' Variable importance using g-computation
+#' @description Not usually called by users
+#'
+#' @param X data frame of predictors
+#' @param Y outcome
+#' @param delta change in each column of X corresponding to
+#' @param Y_learners list of sl3 learners used to predict the outcome, conditional on all predictors in X
+#' @param Xdensity_learners list of sl3 learners used to estimate the density of continuous predictors, conditional on all other predictors in X
+#' @param Xbinary_learners list of sl3 learners used to estimate the probability mass of continuous predictors, conditional on all other predictors in X
+#' @param verbose (logical) print extra information
+#' @param ... passed to sl3::base_predict (rare)
+#'
+#' @return vi object
+#' @export
+#'
+.varimp_gcomp <- function(X,
+                          Y,
+                          delta=0.1,
+                          Y_learners=NULL,
+                          Xdensity_learners=NULL,
+                          Xbinary_learners=NULL,
+                          verbose=TRUE,
+                          ...){
   tasklist = .create_tasks(X,Y,delta)
   n = length(Y)
   if(verbose) cat(paste0("Default delta = ", delta, "\n")) # TODO: better interpretation
 
   isbin <- as.character((length(unique(Y))==2))
-  sl.qfit <- .train_Y(X,Y, Y_learners, verbose=TRUE, isbin)
-  .EstimatorGcomp(n,X,Y,delta,qfun=.qfunction,gfun,qfit=sl.qfit,gfits,...)
+  sl.qfit <- .train_Y(X,Y, Y_learners, verbose=verbose, isbin)
+  fittable <- .EstimatorGcomp(n,X,Y,delta,qfun=.qfunction,gfun=NULL,qfit=sl.qfit,gfits=NULL,...)
+  res <- list(
+    res = fittable,
+    qfit = sl.qfit,
+    gfits = NULL,
+    binomial = isbin,
+    type = "GCOMP"
+  )
+  class(res) <- c("vibr.fit", class(res))
+  res
 }
