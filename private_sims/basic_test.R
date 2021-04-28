@@ -72,39 +72,44 @@ testtxshift <- function(){
     metalearner <- make_learner(Lrnr_nnls)
     sl_fit <- metalearner$train(cv_task)
     sl_pipeline <- make_learner(Pipeline, learner_fit, sl_fit)
-    sl_pipeline
+    list(sl_pipeline, metalearner)
   }
   res1 <- f1()
-
+  sl_learner = res1[[2]]
 
   A = X[,"z", drop=TRUE]
   W = as.matrix((X[,"x", drop=FALSE]))
-  data.table::as.data.table(cbind(A, W))
-  txshift:::est_g_exp(
-    A = A,
-    W = W,
-    delta = .1,
-    fit_type = "sl",
-    sl_learners_density = Stack$new(.dl)
-  )
 
-  learner_stack <- Stack$new(density_learners())
+  learner_stack <- Stack$new()
   learner_fit <- learner_stack$train(.tsk)
-
-  tmle <- txshift(W = dat$X[,"x"], A = dat$X[,"z"], Y = dat$y, delta =0.1,
+  set.seed(123123)
+  (tmle <- txshift(W = dat$X[,"x"], A = dat$X[,"z"], Y = dat$y, delta =0.00,
           estimator="tmle",
           g_exp_fit_args = list(fit_type = "sl",
-                                sl_learners_density = learner_stack
+                                sl_learners_density = f1(density_learners()[c(2,4,6,8)], .tsk)[[2]]
           ),
           Q_fit_args = list(fit_type = "glm",
                             glm_formula = "Y ~ .")
-          )
-  (vimp <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=continuous_learners(),
-                  Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
+          ))
+  (tmle2 <- txshift(W = dat$X[,"z"], A = dat$X[,"x"], Y = dat$y, delta =0.1,
+                   estimator="tmle",
+                   g_exp_fit_args = list(fit_type = "sl",
+                                           sl_learners_ = f1(density_learners()[c(2,4,6,8)], .tsk)[[2]]
+                   ),
+                   Q_fit_args = list(fit_type = "glm",
+                                     glm_formula = "Y ~ .")
+  ))
+  set.seed(123123)
+  (vimp <- varimp(data.frame(dat$X),dat$y, delta=1.0, Y_learners=continuous_learners()[1],
+                  Xdensity_learners=density_learners()[c(2,4,6,8)], Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="AIPW"))
+  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1],
+                  Xdensity_learners=density_learners()[c(2,4,6,8)], Xbinary_learners=binary_learners(),
+                  verbose=FALSE, estimator="GCOMP"))
 
   print(tmle)
   print(vimp)
+  lm(y ~ I(z/.1) + x, data = data.frame(y=dat$y, dat$X))
 
 }
 

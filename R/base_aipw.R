@@ -58,11 +58,12 @@
 #: estimating equations
 ################################
 
-.MakeiAipwEst <- function(dphi){
+.MakeiAipwEst <- function(dphi, n){
   #summary(fit <- lm(dphi~1))
   est <- mean(dphi)
   D <- dphi-est
-  se = sqrt(mean(D^2)/length(D))
+  avar = mean(D^2) # asymptotic variance
+  se = sqrt(avar)/sqrt(n)
   c(est=est, se = se, z=est/se)
 }
 
@@ -83,7 +84,7 @@
     } else{
       dphi <- .Dc( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,...)
     }
-    tm <- .MakeiAipwEst(dphi)
+    tm <- .MakeiAipwEst(dphi, n)
     resmat[Acol,] <- tm
   }
   colnames(resmat) <- names(tm)
