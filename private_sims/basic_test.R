@@ -1,5 +1,7 @@
 library(mvtnorm)
 library(vibr)
+library(txshift)
+library(sl3)
 
 options(mc.cores=12)
 dgm <- function(n, delta, beta){
@@ -15,9 +17,9 @@ density_learners <- function(n_bins=c(10, 20), histtypes=c("equal.mass", "equal.
   idx = 1
   for(nb in n_bins){
     for(histtype in histtypes){
-      #nm <- paste0("hist_xgb_", nb, histtype)
-      #density_learners[[idx]] <- Lrnr_density_discretize$new(name=nm, categorical_learner = Lrnr_xgboost$new(), n_bins = nb, bin_method=histtype)
-      #idx  = idx+1
+      nm <- paste0("hist_xgb_", nb, histtype)
+      density_learners[[idx]] <- Lrnr_density_discretize$new(name=nm, categorical_learner = Lrnr_xgboost$new(), n_bins = nb, bin_method=histtype)
+      idx  = idx+1
       nm = paste0("hist_Unadj_", nb, histtype)
       density_learners[[idx]] <- Lrnr_density_discretize$new(name=nm, categorical_learner = Lrnr_mean$new(), n_bins = nb, bin_method=histtype)
       idx  = idx+1
@@ -46,9 +48,71 @@ binary_learners <- function(){
 
 
 
+testtxshift <- function(){
+  set.seed(12312)
+  dat = dgm( n=100, delta = 0.1, beta = c(2,1, .3))
+  X = dat$X
+  A = X[,"z", drop=TRUE]
+  W = X[,"x", drop=FALSE]
+  ####
+  .dl <- continuous_learners()[1:2]
+  .tsk <- sl3_Task$new(data = data.frame(dat$X, y=dat$y),
+                      covariates=c("x", "z"),
+                      outcome="y")
+
+  f1 <- function(dl=.dl,tsk=.tsk){
+    learner_stack <- Stack$new(dl)
+    learner_fit <- learner_stack$train(.tsk)
+    #cross validation
+    cv_stack <- Lrnr_cv$new(learner_stack)
+    cv_fit <- cv_stack$train(tsk)
+    cv_task <- cv_fit$chain()
+    # train super learner
+    type = "cont"
+    metalearner <- make_learner(Lrnr_nnls)
+    sl_fit <- metalearner$train(cv_task)
+    sl_pipeline <- make_learner(Pipeline, learner_fit, sl_fit)
+    sl_pipeline
+  }
+  res1 <- f1()
+
+
+  A = X[,"z", drop=TRUE]
+  W = as.matrix((X[,"x", drop=FALSE]))
+  data.table::as.data.table(cbind(A, W))
+  txshift:::est_g_exp(
+    A = A,
+    W = W,
+    delta = .1,
+    fit_type = "sl",
+    sl_learners_density = Stack$new(.dl)
+  )
+
+  learner_stack <- Stack$new(density_learners())
+  learner_fit <- learner_stack$train(.tsk)
+
+  tmle <- txshift(W = dat$X[,"x"], A = dat$X[,"z"], Y = dat$y, delta =0.1,
+          estimator="tmle",
+          g_exp_fit_args = list(fit_type = "sl",
+                                sl_learners_density = learner_stack
+          ),
+          Q_fit_args = list(fit_type = "glm",
+                            glm_formula = "Y ~ .")
+          )
+  (vimp <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=continuous_learners(),
+                  Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
+                  verbose=FALSE, estimator="AIPW"))
+
+  print(tmle)
+  print(vimp)
+
+}
+
+
+
 analyze <- function(i, ...){
   dat = dgm(...)
-  #dat = dgm( n=1000, delta = 0.1, beta = c(2,1, .3))
+  #set.seed(12312); dat = dgm( n=1000, delta = 0.1, beta = c(2,1, .3))
   (vimp <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=continuous_learners(),
          Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
          verbose=FALSE, estimator="AIPW"))

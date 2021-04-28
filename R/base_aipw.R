@@ -15,10 +15,11 @@
   Xb <- Xa <- X
   Xa[,Acol] <- X[,Acol]-delta
   Xb[,Acol] <- X[,Acol]+delta
+  Hk <- gfun(Xa,Acol,gfits=gfits,...)/gfun(X,Acol,gfits=gfits,...)
   qfb = qfun(Xb, Acol,qfit=qfit,...)
   #eqfb = predict(lm(y~., data.frame(y=qfb, X=X[,-Acol])))   # simple linear regression on W to get E_g[Q | W]
   eqfb <- 0 # cancels out
-  dc1 <- gfun(Xa,Acol,gfits=gfits,...)/gfun(X,Acol,gfits=gfits,...)*(Y - qfun(qfit=qfit,...))
+  dc1 <- Hk*(Y - qfun(qfit=qfit,...))
   dc2 <- qfb - eqfb
   dc3 <- eqfb - Y                # Y doesn't show up in Diaz,vdl 2012
   as.vector(dc1 + dc2 + dc3)
@@ -38,12 +39,14 @@
   X1 <- X0 <- X
   X1[,Acol] <- 1
   X0[,Acol] <- 0
+  #Hk <- gfun(Xa,Acol,gfits=gfits,...)/gfun(X,Acol,gfits=gfits,...) # unsure why this one is not used
+  Hk <- (delta*(2*X[,Acol] - 1)/gfun(X,Acol,gfits=gfits,...) + 1)
   qa <- qfun(qfit=qfit,...)
   #eqa <- predict(lm(y~., data.frame(y=qfb, X=X[,-Acol])))   # simple linear regression on W to get E_g[Q | W]
   eqa <- 0 # cancels out
   q1 <- qfun(X1,Acol,qfit=qfit,...)
   q0 <- qfun(X0,Acol,qfit=qfit,...)
-  db1 <- (delta*(2*X[,Acol] - 1)/gfun(X,Acol,gfits=gfits,...) + 1)*(Y - qa)
+  db1 <- Hk*(Y - qa)
   db2 <- qa - eqa
   db3 <- delta*(q1-q0) + eqa - Y # Y doesn't show up in Diaz,vdl 2012
   as.vector(db1 + db2 + db3)

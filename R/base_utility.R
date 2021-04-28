@@ -132,6 +132,7 @@
   learner_stack <- Stack$new(learners)
   learner_fit <- learner_stack$train(datatask)
   #cross validation
+  #cv_stack <- Lrnr_cv$new(learner_stack, full_fit = TRUE) # seems like it should be needed, but makes no difference
   cv_stack <- Lrnr_cv$new(learner_stack)
   cv_fit <- cv_stack$train(datatask)
   cv_task <- cv_fit$chain()
@@ -146,6 +147,44 @@
   sl_pipeline <- make_learner(Pipeline, learner_fit, sl_fit)
   sl_pipeline
 }
+
+.train_cvsuperlearner <- function(datatask, learners, type=c("density", "probability", "expectation")){
+  #sl3_Task$new()
+  # train learners
+  learner_stack <- Stack$new(learners) # alt is do.call(Stack.new, learners)
+  learner_fit <- learner_stack$train(datatask)
+  #cross validation
+  cv_stack <- Lrnr_cv$new(learner_stack, full_fit=TRUE)
+  cv_fit <- cv_stack$train(datatask)
+  # train super learner
+  metalearner <- switch(substr(type[1],1,1),
+                        d = make_learner(Lrnr_solnp_density, trace=0),
+                        h = make_learner(Lrnr_solnp_density, trace=0),
+                        e = make_learner(Lrnr_nnls),
+                        p = make_learner(Lrnr_nnls)
+  )
+  cv_meta_task <- cv_fit$chain(datatask)
+  #cv_meta_fit <- cv_meta_task$train()
+  sl_fit <- metalearner$train(cv_meta_task) # trained sublearners
+
+  full_stack_fit <- cv_fit$fit_object$full_fit
+  #sl_pipeline <- make_learner(Pipeline, learner_fit, sl)fit
+
+  sl_pipeline <- make_learner(Pipeline, full_stack_fit, sl_fit)
+  sl_pipeline$train(datatask)
+  sl_pipeline
+}
+
+.train_cvsuperlearner_delayed <- function(datatask, learners, type=c("density", "probability", "expectation")){
+  sl <- Lrnr_sl$new(learners=learners,
+                    metalearner = make_learner(Lrnr_nnls),
+  )
+  obj <- delayed_learner_train(sl, datatask)
+  cvsl_pipeline <- obj$compute()
+  cvsl_pipeline
+}
+
+
 
 
 #' @import sl3
