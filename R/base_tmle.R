@@ -107,7 +107,7 @@
   eqfb <- 0 # cancels out
   dc1 <- Haw*(Y - Qupdate)
   dc2 <- Qdawupdate - eqfb
-  dc3 <- eqfb - Y*(est != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  dc3 <- eqfb - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
   as.vector(dc1 + dc2 + dc3)
 }
 
@@ -151,7 +151,7 @@
   eqfb <- 0 # cancels out
   dc1 <- Haw*(Y - Qupdate)
   dc2 <- Qdawupdate - eqfb
-  dc3 <- eqfb - Y*(est != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  dc3 <- eqfb - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
   as.vector(dc1 + dc2 + dc3)
 }
 

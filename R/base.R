@@ -61,7 +61,7 @@ print.vibr.bootfit <- function(x, ...){
   est = asest$res$est
   sds <- apply(x$boots,2,sd)
   zz <- est/sds
-  xr2 <- as.data.frame(cbind(est,xr$Estimate, sds, zz, pnorm(-abs(zz))*2))
+  xr2 <- as.data.frame(cbind(est, sds, zz, pnorm(-abs(zz))*2))
   names(xr2) <- c("Estimate", "Std. Error (bootstrap)", "z value", "Pr(>|z|)")
   printCoefmat(xr2, P.values=TRUE, has.Pvalue=TRUE, signif.stars=FALSE, cs.ind=c(1,2))
   invisible(x)

@@ -15,9 +15,9 @@
                  estimand,
                  ...){
   #cat(paste0("column ", names(X)[Acol], ": continuous\n"))
-  Xa <- X
-  Xa[,Acol] <- X[,Acol]+delta
-  p2 <- qfun(Xa,Acol,qfit=qfit,...)
+  Xb <- X
+  Xb[,Acol] <- X[,Acol]+delta
+  p2 <- qfun(Xb,Acol,qfit=qfit,...)
   sum(p2 - Y*(estimand != "mean"))/n
 }
 

@@ -1,3 +1,4 @@
+# estimators obtained by using updated TMLE algorithm (Diaz and vdl 2018, and setting all Q=0)
 ################################
 ## efficient influence functions
 ################################
@@ -26,7 +27,6 @@
   as.vector(dc1 + dc2 + dc3)
 }
 
-
 .DbAIPW <- function(n,
                 X,
                 Y,
@@ -38,6 +38,21 @@
                 gfits,
                 estimand,
                 ...){
+  # define shifts
+  Xa <- .shift(X,Acol, -delta)
+  Xb <- .shift(X,Acol,  delta)
+  Xbb <- .shift(X,Acol,2*delta)
+  #
+  gn <- gfun(X,Acol,gfits=gfits)
+  gb <- gfun(Xb,Acol,gfits=gfits)
+  #
+
+  Haw = .Hawb(gn, delta, X, Acol)
+  dc1 <- Haw*(Y - 0)
+  dc2 <- 0
+  dc3 <-  - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  as.vector(dc1 + dc2 + dc3)
+
   X1 <- X0 <- X
   X1[,Acol] <- 1
   X0[,Acol] <- 0

@@ -3,40 +3,45 @@
 ################################
 
 .DcIPW <- function(n,
-                    X,
-                    Y,
-                    Acol,
-                    delta,
-                    qfun,
-                    gfun,
-                    qfit,
-                    gfits,
+                   X,
+                   Y,
+                   Acol,
+                   delta,
+                   qfun,
+                   gfun,
+                   qfit,
+                   gfits,
                    estimand,
                     ...){
   # define shifts
   Xa <- .shift(X,Acol, -delta)
   Xb <- .shift(X,Acol,  delta)
-  Hk <- gfun(Xa,Acol,gfits=gfits,...)/gfun(X,Acol,gfits=gfits,...)
-  #eqfb = predict(lm(y~., data.frame(y=qfb, X=X[,-Acol])))   # simple linear regression on W to get E_g[Q | W]
-  eqfb <- 0 # cancels out
-  dc1 <- Hk*(Y - 0)
-  dc2 <- 0 - eqfb
-  dc3 <- 0 - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  #
+  gn <- gfun(X,Acol,gfits=gfits)
+  ga <- gfun(Xa,Acol,gfits=gfits)
+  gb <- gfun(Xb,Acol,gfits=gfits)
+  #
+  #
+  #ga = .enforce_min_dens(ga,eps=1e-8)
+  Haw = .Haw(gn, ga, gb)  # evaluated at A_i
+  dc1 <- Haw*(Y - 0)
+  dc2 <- 0
+  dc3 <- - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
   as.vector(dc1 + dc2 + dc3)
 }
 
 
 .DbIPW <- function(n,
-                    X,
-                    Y,
-                    Acol,
-                    delta,
-                    qfun,
-                    gfun,
-                    qfit,
-                    gfits,
-                    est,
-                    ...){
+                   X,
+                   Y,
+                   Acol,
+                   delta,
+                   qfun,
+                   gfun,
+                   qfit,
+                   gfits,
+                   estimand,
+                   ...){
   X1 <- X0 <- X
   X1[,Acol] <- 1
   X0[,Acol] <- 0

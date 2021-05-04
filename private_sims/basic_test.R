@@ -150,16 +150,25 @@ testtxshift <- function(){
                   verbose=FALSE, estimator="TMLE", estimand="diff"))
   (vimp2 <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:2],
                   Xdensity_learners=density_learners()[[1]], Xbinary_learners=binary_learners(),
-                  verbose=TRUE, estimator="TMLE", estimand="diff", B=100))
-  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1],
+                  verbose=TRUE, estimator="TMLE", estimand="diff", B=5))
+  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:2],
                   Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="AIPW", estimand="diff"))
-  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1],
+  (vimp2 <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:2],
+                  Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
+                  verbose=FALSE, estimator="AIPW", estimand="diff", B=5))
+  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:2],
                   Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="GCOMP", estimand="diff"))
-  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1],
+  (vimp2 <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:2],
+                  Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
+                  verbose=FALSE, estimator="GCOMP", estimand="diff", B=5))
+  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:2],
                   Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="IPW", estimand="diff"))
+  (vimp2 <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:2],
+                  Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
+                  verbose=FALSE, estimator="IPW", estimand="diff", B=5))
 
   print(tmle)
   print(vimp)
