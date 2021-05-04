@@ -55,7 +55,7 @@
 ################################
 
 
-.EstEqIPW <- function(n,X,Y,delta,qfun=NULL,gfun,qfit=NULL,gfits,estimand,...){
+.EstEqIPW <- function(n,X,Y,delta,qfun=NULL,gfun,qfit=NULL,gfits,estimand, bounded=FALSE,...){
   isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
@@ -112,7 +112,7 @@
 #' @return vi object
 #' @export
 #'
-.varimp_ipw <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbinary_learners=NULL, verbose=TRUE,estimand, ...){
+.varimp_ipw <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbinary_learners=NULL, verbose=TRUE,estimand, bounded=FALSE, ...){
   tasklist = .create_tasks(X,Y,delta)
   n = length(Y)
   if(verbose) cat(paste0("Default delta = ", delta, "\n")) # TODO: better interpretation
@@ -122,7 +122,7 @@
   sl.gfits <- .train_allX(X, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)
   #.gfunction(X=NULL,Acol,gfits=sl.gfits)
   #.qfunction(X=NULL,Acol,qfit=sl.qfit)
-  fittable <- .EstEqIPW(n,X,Y,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=sl.gfits,estimand, ...)
+  fittable <- .EstEqIPW(n,X,Y,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=sl.gfits,estimand, bounded=FALSE, ...)
   res <- list(
     res = fittable,
     qfit = NULL,
@@ -131,5 +131,47 @@
     type = "IPW"
   )
   class(res) <- c("vibr.fit", class(res))
+  res
+}
+
+
+.varimp_ipw_boot <- function(X,
+                              Y,
+                              delta=0.1,
+                              Y_learners=NULL,
+                              Xdensity_learners=NULL,
+                              Xbinary_learners=NULL,
+                              verbose=TRUE,
+                              estimand="diff",
+                              bounded=FALSE,
+                              B=100,
+                              ...){
+  est <- .varimp_ipw(X,Y,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,...)
+  rn <- rownames(est$res)
+  bootests <- matrix(NA, nrow=B, ncol = length(rn))
+  n = length(Y)
+  isbin <- as.character((length(unique(Y))==2))
+  for(b in 1:B){
+    if(verbose) cat(".") # TODO: better interpretation
+    ridx <- sample(seq_len(n), n, replace=TRUE)
+    Xi = X[ridx,,drop=FALSE]
+    Yi = Y[ridx]
+    tasklist = .create_tasks(Xi,Yi,delta)
+    yb = .bound_zero_one(Yi)
+    Ybound = yb[[1]]
+    sl.qfit <- .train_Y(Xi,Yi, Y_learners, verbose=FALSE, isbin)
+    sl.gfits <- .train_allX(Xi, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=FALSE)
+    fittable <- .EstEqIPW(n,Xi,Yi,delta,qfun=.qfunction,gfun=.gfunction,qfit=sl.qfit,gfits=sl.gfits, estimand,bounded, ...)
+    bootests[b,] <- fittable$est
+  }
+  colnames(bootests) <- rn
+  if(verbose) cat("\n")
+  res <- list(
+    est = est,
+    boots = bootests,
+    binomial = isbin,
+    type = "IPW"
+  )
+  class(res) <- c("vibr.bootfit", class(res))
   res
 }

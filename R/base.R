@@ -17,23 +17,23 @@
 #' @return vi object
 #' @export
 #'
-varimp <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbinary_learners=NULL, verbose=TRUE, estimator="AIPW", estimand="diff", B=NULL, ...){
+varimp <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbinary_learners=NULL, verbose=TRUE, estimator="AIPW", bounded=FALSE, estimand="diff", B=NULL, ...){
   if(is.null(Y_learners)) Y_learners = .default_continuous_learners()
   if(is.null(Xbinary_learners)) Xbinary_learners = .default_binary_learners()
   if(is.null(Xdensity_learners)) Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
   if(is.null(B)){
     res = switch(estimator,
-                 AIPW=.varimp_aipw(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand,...),
-                 GCOMP=.varimp_gcomp(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand,...),
-                 IPW=.varimp_ipw(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand,...),
-                 TMLE=.varimp_tmle(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand,...)
+                 AIPW=.varimp_aipw(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded,...),
+                 GCOMP=.varimp_gcomp(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded,...),
+                 IPW=.varimp_ipw(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded,...),
+                 TMLE=.varimp_tmle(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded,...)
     )
   } else{
     res = switch(estimator,
-                 #AIPW=.varimp_aipw(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand,...),
-                 #GCOMP=.varimp_gcomp(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand,...),
-                 #IPW=.varimp_ipw(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand,...),
-                 TMLE=.varimp_tmle_boot(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, B=B,...)
+                 AIPW=.varimp_aipw_boot(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, B=B,...),
+                 GCOMP=.varimp_gcomp_boot(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, B=B,...),
+                 IPW=.varimp_ipw_boot(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, B=B,...),
+                 TMLE=.varimp_tmle_boot(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, B=B,...)
     )
   }
   res
