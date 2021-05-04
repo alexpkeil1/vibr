@@ -1,3 +1,11 @@
+.logit <- function(p) log(p) - log1p(-p)
+.expit <- function(mu) 1/(1+exp(-mu))
+
+.shift <- function(X,Acol,shift){
+  X[,Acol] = X[,Acol] + shift
+  X
+}
+
 ################################
 # Data handlers
 ################################
@@ -47,6 +55,10 @@
 #' @export
 .default_density_learners <- function(n_bins=c(10, 20, 30), histtypes=c("equal.mass", "equal.length", "dhist")){
   density_learners=list()
+  idx  = idx+1
+  nm <- paste0("dens_sp_mean_")
+  # uniform marginal with kernel density estimator
+  density_learners[[idx]] <- Lrnr_density_semiparametric$new(name=nm, mean_learner = Lrnr_mean$new(), var_learner = NULL)
   idx = 1
   for(nb in n_bins){
     for(histtype in histtypes){
@@ -65,11 +77,11 @@
 #' @export
 .default_continuous_learners_big <- function(){
   continuous_learners=list(
-    Lrnr_glm$new(name="OLS"),
+    Lrnr_glm$new(name="OLS", family="gaussian"),
     Lrnr_glmnet$new(name="Lasso", alpha=1.0),
     Lrnr_glmnet$new(name="Enet", alpha=0.0),
     Lrnr_earth$new(name="MARS", alpha=1.0),
-    Pipeline$new(Lrnr_pca$new(name="PCA"), Lrnr_glm$new(name="OLS")) # PCA plus glm
+    Pipeline$new(Lrnr_pca$new(name="PCA"), Lrnr_glm$new(name="OLS", family="gaussian")) # PCA plus glm
   )
   continuous_learners
 }
@@ -107,6 +119,19 @@
   bin_learners
 }
 
+#' @import sl3 glmnet earth stats
+#' @export
+.default_metalearner <- function(type){
+  switch(substr(type[1],1,1),
+                        d = Lrnr_solnp_density_quiet$new(trace=0),
+                        h = Lrnr_solnp_density_quiet$new(trace=0),
+                        e = Lrnr_nnls$new(convex=TRUE),
+                        p = Lrnr_nnls$new(convex=TRUE)
+  )
+}
+
+
+
 ################################
 # training functions
 ################################
@@ -126,7 +151,7 @@
 #' @export
 #' @import sl3
 #'
-.train_superlearner <- function(datatask, learners, type=c("density", "probability", "expectation")){
+.train_superlearner <- function(datatask, learners, metalearner=NULL, type=c("density", "probability", "expectation")){
   #sl3_Task$new()
   # train learners
   learner_stack <- Stack$new(learners)
@@ -137,18 +162,13 @@
   cv_fit <- cv_stack$train(datatask)
   cv_task <- cv_fit$chain()
   # train super learner
-  metalearner <- switch(substr(type[1],1,1),
-                        d = make_learner(Lrnr_solnp_density, trace=0),
-                        h = make_learner(Lrnr_solnp_density, trace=0),
-                        e = make_learner(Lrnr_nnls),
-                        p = make_learner(Lrnr_nnls)
-  )
+  if(is.null(metalearner)) metalearner <- .default_metalearner(type)
   sl_fit <- metalearner$train(cv_task)
   sl_pipeline <- make_learner(Pipeline, learner_fit, sl_fit)
   sl_pipeline
 }
 
-.train_cvsuperlearner <- function(datatask, learners, type=c("density", "probability", "expectation")){
+.train_cvsuperlearner <- function(datatask, learners, metalearner=NULL, type=c("density", "probability", "expectation")){
   #sl3_Task$new()
   # train learners
   learner_stack <- Stack$new(learners) # alt is do.call(Stack.new, learners)
@@ -157,12 +177,7 @@
   cv_stack <- Lrnr_cv$new(learner_stack, full_fit=TRUE)
   cv_fit <- cv_stack$train(datatask)
   # train super learner
-  metalearner <- switch(substr(type[1],1,1),
-                        d = make_learner(Lrnr_solnp_density, trace=0),
-                        h = make_learner(Lrnr_solnp_density, trace=0),
-                        e = make_learner(Lrnr_nnls),
-                        p = make_learner(Lrnr_nnls)
-  )
+  if(is.null(metalearner)) metalearner <- .default_metalearner(type)
   cv_meta_task <- cv_fit$chain(datatask)
   #cv_meta_fit <- cv_meta_task$train()
   sl_fit <- metalearner$train(cv_meta_task) # trained sublearners
@@ -175,9 +190,10 @@
   sl_pipeline
 }
 
-.train_cvsuperlearner_delayed <- function(datatask, learners, type=c("density", "probability", "expectation")){
+.train_cvsuperlearner_delayed <- function(datatask, learners, metalearner=NULL, type=c("density", "probability", "expectation")){
+  if(is.null(metalearner)) metalearner <- .default_metalearner(type)
   sl <- Lrnr_sl$new(learners=learners,
-                    metalearner = make_learner(Lrnr_nnls),
+                    metalearner = metalearner,
   )
   obj <- delayed_learner_train(sl, datatask)
   cvsl_pipeline <- obj$compute()
@@ -188,7 +204,7 @@
 
 
 #' @import sl3
-.train_Y <- function(X,Y, learners, verbose=TRUE, isbin=FALSE){
+.train_Y <- function(X,Y, learners, metalearner=NULL, verbose=TRUE, isbin=FALSE){
   df = data.frame(X, Y)
   pp1 <- ncol(df)
   isbin <- length(unique(Y))==2
@@ -198,12 +214,12 @@
                      outcome=names(df)[pp1]
   )
   if(verbose) cat(paste0("Training: ", names(df)[pp1], "(", ifelse(isbin, "binomial", "continuous, predicted"), ")\n"))
-  .train_superlearner(XY,learners, type="expectation")
+  .train_superlearner(XY, learners, metalearner=NULL, type="expectation")
 }
 
 
 #' @import sl3
-.train_allX <- function(X, tasks, bin_learners, density_learners, verbose=TRUE){
+.train_allX <- function(X, tasks, bin_learners, density_learners, metalearner=NULL, verbose=TRUE){
   # TODO: check for data frame X
   vartype = ifelse(apply(X, 2, function(x) length(unique(x))==2), "b", "c")
   p = ncol(X)
@@ -211,8 +227,8 @@
   for(j in 1:p){
     if(verbose) cat(paste0("Training: ", names(X)[j], "(", ifelse(vartype[j]=="b", "binomial", "continuous, density"), ")\n"))
     trained_models[[j]] <- switch(vartype[j],
-                                  b = .train_superlearner( tasks[[j]],bin_learners, type="prob"),
-                                  c = .train_superlearner( tasks[[j]],density_learners, type="density")
+                                  b = .train_superlearner( tasks[[j]],bin_learners, metalearner=metalearner[[bin_learners]], type="prob"),
+                                  c = .train_superlearner( tasks[[j]],density_learners, metalearner=metalearner[[density_learners]], type="density")
     )
   }
   trained_models
@@ -225,7 +241,7 @@
 
 # now create some functions that can automate density prediction for every variable
 #.gfunction <- function(X=NULL,Acol=1,gfits=sl.gfits, ...){
-.gfunction <- function(X=NULL,Acol=1,gfits=NULL, ...){
+.gfunction_sl <- function(X=NULL,Acol=1,gfits=NULL, ...){
     if(!is.null(X)){
     XX <- sl3_Task$new(
       data=data.frame(X),
@@ -242,9 +258,42 @@
   pred
 }
 
+.gfunction_glm_density <- function(X=NULL,Acol=1,gfits=NULL, ...){
+  # assume normal model
+  yy = X[,-Acol,drop=TRUE]
+  if(!is.null(X)){
+    if(!is.data.frame(X)){
+      X = as.data.frame(X[,-Acol, drop=FALSE])
+    }
+    preds <- predict(gfits[[Acol]], newdata = X)
+  }
+  if(is.null(X)){
+    preds <- predict(gfits[[Acol]])
+  }
+  if(typeof(preds)=="list") preds <- preds[[1]]
+  err <- y - preds
+  sderr <- sd(err)
+  dens <- dnorm(err, 0, sderr)
+  dens
+}
+
+.gfunction_glm <- function(X=NULL,Acol=1,gfits=NULL, ...){
+  if(!is.null(X)){
+    if(!is.data.frame(XX)){
+      X = as.data.frame(X[,-Acol, drop=FALSE])
+    }
+    pred <- predict(gfits[[Acol]], newdata = X)
+  }
+  if(is.null(X)){
+    pred <- predict(gfits[[Acol]])
+  }
+  if(typeof(pred)=="list") pred <- pred[[1]]
+  pred
+}
+
 # outcome prediction
 #.qfunction <- function(X=NULL,Acol=1,qfit=sl.qfit, ...){
-.qfunction <- function(X=NULL,Acol=1,qfit=NULL, ...){
+.qfunction_sl <- function(X=NULL,Acol=1,qfit=NULL, ...){
     if(!is.null(X)){
     XX <- sl3_Task$new(
       data=data.frame(X),
@@ -258,3 +307,28 @@
   pred
 }
 
+
+.qfunction_glm <- function(X=NULL,Acol=1,gfits=NULL, ...){
+  if(!is.null(X)){
+    if(!is.data.frame(XX)){
+      X = as.data.frame(X[,, drop=FALSE])
+    }
+    pred <- predict(gfits[[Acol]], newdata = X)
+  }
+  if(is.null(X)){
+    pred <- predict(gfits[[Acol]])
+  }
+  if(typeof(pred)=="list") pred <- pred[[1]]
+  pred
+}
+
+.gfunction <- function(X=NULL,Acol=1,gfits=NULL, ...){
+  #.gfunction_glm(X,Acol,gfits, ...)
+  #.gfunction_glm_density(X,Acol,gfits, ...)
+  .gfunction_sl(X,Acol,gfits, ...)
+}
+
+.qfunction <- function(X=NULL,Acol=1,qfit=NULL, ...){
+  #.qfunction_glm(X,1,qfit, ...)
+  .qfunction_sl(X,1,qfit, ...)
+}

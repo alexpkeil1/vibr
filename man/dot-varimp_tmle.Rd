@@ -12,6 +12,8 @@
   Xdensity_learners = NULL,
   Xbinary_learners = NULL,
   verbose = TRUE,
+  est = "diff",
+  bounded = FALSE,
   ...
 )
 }

@@ -13,6 +13,8 @@ varimp(
   Xbinary_learners = NULL,
   verbose = TRUE,
   estimator = "AIPW",
+  est = "diff",
+  B = NULL,
   ...
 )
 }

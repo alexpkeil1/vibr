@@ -15,6 +15,7 @@
 #' @import sl3
 #' @importFrom R6 R6Class
 #' @importFrom stats runif
+#' @importFrom data.table setnames
 #'
 #' @export
 #'
@@ -51,6 +52,7 @@ Lrnr_solnp_density_quiet <- R6Class(
     .properties = "density",
 
     .train = function(task) {
+      requireNamespace("sl3", quietly = TRUE)
       verbose <- getOption("sl3.verbose")
       params <- self$params
       eval_fun_loss <- function(alphas) {
@@ -76,6 +78,8 @@ Lrnr_solnp_density_quiet <- R6Class(
     },
 
     .predict = function(task = NULL) {
+      requireNamespace("sl3", quietly = TRUE)
+      requireNamespace("data.table", quietly = TRUE)
       verbose <- getOption("sl3.verbose")
       X <- task$X
       predictions <- rep.int(NA, nrow(X))
@@ -91,7 +95,7 @@ Lrnr_solnp_density_quiet <- R6Class(
         } else {
           stop("all SL model coefficients are NA.")
         }
-        setnames(predictions, "likelihood")
+        data.table::setnames(predictions, "likelihood")
       }
       return(predictions)
     },

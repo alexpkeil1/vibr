@@ -10,21 +10,32 @@
 #' @param Xbinary_learners list of sl3 learners used to estimate the probability mass of continuous predictors, conditional on all other predictors in X
 #' @param verbose (logical) print extra information
 #' @param estimator (character) "AIPW" (default), "GCOMP", "IPW"
+#' @param estimand (character) "diff" (default, estimate mean difference comparing Y under intervention with observed Y), "mean" (estimate mean Y under intervention)
+#' @param B (NULL or integer) Numer of bootstrap iterations (NULL = asymptotic variance only)
 #' @param ... passed to sl3::make_sl3_Task (e.g. weights)
 #'
 #' @return vi object
 #' @export
 #'
-varimp <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbinary_learners=NULL, verbose=TRUE, estimator="AIPW", ...){
+varimp <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbinary_learners=NULL, verbose=TRUE, estimator="AIPW", estimand="diff", B=NULL, ...){
   if(is.null(Y_learners)) Y_learners = .default_continuous_learners()
   if(is.null(Xbinary_learners)) Xbinary_learners = .default_binary_learners()
   if(is.null(Xdensity_learners)) Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
-
-  res = switch(estimator,
-    AIPW=.varimp_aipw(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose,...),
-    GCOMP=.varimp_gcomp(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose,...),
-    IPW=.varimp_ipw(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose,...)
-  )
+  if(is.null(B)){
+    res = switch(estimator,
+                 AIPW=.varimp_aipw(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand,...),
+                 GCOMP=.varimp_gcomp(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand,...),
+                 IPW=.varimp_ipw(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand,...),
+                 TMLE=.varimp_tmle(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand,...)
+    )
+  } else{
+    res = switch(estimator,
+                 #AIPW=.varimp_aipw(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand,...),
+                 #GCOMP=.varimp_gcomp(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand,...),
+                 #IPW=.varimp_ipw(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand,...),
+                 TMLE=.varimp_tmle_boot(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, B=B,...)
+    )
+  }
   res
 }
 
@@ -33,9 +44,26 @@ varimp <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbin
 #' @export
 print.vibr.fit <- function(x, ...){
   xr = x$res
-  names(xr) <- c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
   cat(paste0("Variable importance estimates (", x$type, "): \n"))
+  names(xr) <- c("Estimate", "Std. Error (asymptotic)", "z value", "Pr(>|z|)")
   printCoefmat(xr, P.values=TRUE, has.Pvalue=TRUE, signif.stars=FALSE, cs.ind=c(1,2))
+  invisible(x)
+}
+
+
+#' @importFrom stats printCoefmat
+#' @export
+print.vibr.bootfit <- function(x, ...){
+  asest = x$est
+  print(asest)
+  cat("\n")
+  #
+  est = asest$res$est
+  sds <- apply(x$boots,2,sd)
+  zz <- est/sds
+  xr2 <- as.data.frame(cbind(est,xr$Estimate, sds, zz, pnorm(-abs(zz))*2))
+  names(xr2) <- c("Estimate", "Std. Error (bootstrap)", "z value", "Pr(>|z|)")
+  printCoefmat(xr2, P.values=TRUE, has.Pvalue=TRUE, signif.stars=FALSE, cs.ind=c(1,2))
   invisible(x)
 }
 

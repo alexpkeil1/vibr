@@ -66,6 +66,7 @@ Lrnr_solnp_quiet <- R6Class(
     ),
 
     .train = function(task) {
+      requireNamespace("sl3", quietly = TRUE)
       verbose <- getOption("sl3.verbose")
       params <- self$params
       learner_function <- params$learner_function
@@ -84,6 +85,7 @@ Lrnr_solnp_quiet <- R6Class(
 
       weights <- task$weights
       risk <- function(alphas) {
+        requireNamespace("sl3", quietly = TRUE)
         if (!is.null(offset)) {
           preds <- learner_function(alphas, X, offset)
         } else {
@@ -133,6 +135,7 @@ Lrnr_solnp_quiet <- R6Class(
     },
 
     .predict = function(task = NULL) {
+      requireNamespace("sl3", quietly = TRUE)
       verbose <- getOption("sl3.verbose")
       X <- as.matrix(task$X)
       alphas <- self$fit_object$coefficients
