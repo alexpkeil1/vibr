@@ -17,7 +17,18 @@
 #'
 #' @return vi object
 #' @export
-#'
+#' @examples
+#' \dontrun{
+#' data(metals, package="qgcomp")
+#' XYlist = list(X=metals[,1:23], Y=metals$y)
+#' Y_learners = .default_continuous_learners_big()
+#' Xbinary_learners = .default_binary_learners()
+#' Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
+#' vi <- varimp(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners,
+#'        Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
+#'        estimator="TMLE")
+#' vi
+#' }
 varimp <- function(X,
                    Y,
                    delta=0.1,

@@ -115,34 +115,7 @@
 ################################
 # expert wrappers
 ################################
-#' Variable importance using estimating equations
-#' @description Not usually called by users
-#'
-#' @param X data frame of predictors
-#' @param Y outcome
-#' @param delta change in each column of X corresponding to
-#' @param Y_learners list of sl3 learners used to predict the outcome, conditional on all predictors in X
-#' @param Xdensity_learners list of sl3 learners used to estimand the density of continuous predictors, conditional on all other predictors in X
-#' @param Xbinary_learners list of sl3 learners used to estimand the probability mass of continuous predictors, conditional on all other predictors in X
-#' @param verbose (logical) print extra information
-#' @param estimand (character) "diff" (default, estimate mean difference comparing Y under intervention with observed Y), "mean" (estimate mean Y under intervention)
-#' @param ... passed to sl3::base_predict (rare)
-#'
-#' @return vi object
 #' @export
-#'
-#' @examples
-#' \dontrun{
-#' XYlist = .dgm(n=100,p=4,ncat=3)
-#' data(metals, package="qgcomp")
-#' XYlist = list(X=metals[,1:23], Y=metals$y)
-#' Y_learners = .default_continuous_learners()
-#' Xbinary_learners = .default_binary_learners()
-#' Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
-#' vi <- .varimp_aipw(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners[1:4],
-#' Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners[1:2] )
-#' vi
-#' }
 .varimp_aipw <- function(X,
                          Y,
                          delta=0.1,
@@ -172,6 +145,7 @@
   res
 }
 
+#' @export
 .varimp_aipw_boot <- function(X,
                               Y,
                               delta=0.1,

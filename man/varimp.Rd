@@ -13,8 +13,10 @@ varimp(
   Xbinary_learners = NULL,
   verbose = TRUE,
   estimator = "AIPW",
-  est = "diff",
+  bounded = FALSE,
+  estimand = "diff",
   B = NULL,
+  showProgress = TRUE,
   ...
 )
 }
@@ -35,6 +37,12 @@ varimp(
 
 \item{estimator}{(character) "AIPW" (default), "GCOMP", "IPW"}
 
+\item{estimand}{(character) "diff" (default, estimate mean difference comparing Y under intervention with observed Y), "mean" (estimate mean Y under intervention)}
+
+\item{B}{(NULL or integer) Numer of bootstrap iterations (NULL = asymptotic variance only)}
+
+\item{showProgress}{show progress of bootstrapping (only relevant if B is not NULL)}
+
 \item{...}{passed to sl3::make_sl3_Task (e.g. weights)}
 }
 \value{
@@ -42,4 +50,17 @@ vi object
 }
 \description{
 Variable importance in cross-sectional data
+}
+\examples{
+\dontrun{
+data(metals, package="qgcomp")
+XYlist = list(X=metals[,1:23], Y=metals$y)
+Y_learners = .default_continuous_learners_big()
+Xbinary_learners = .default_binary_learners()
+Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
+vi <- varimp(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners,
+       Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
+       estimator="TMLE")
+vi
+}
 }

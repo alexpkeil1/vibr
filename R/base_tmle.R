@@ -9,29 +9,41 @@
 
 # note d(a|w) = A+delta, and d^-1(a|w) = h(a|w) = A-delta
 
-.OneStepTmleCont <- function(Y,Qinit,Qdawinit,Haw,Hdaw,isbin=FALSE, weighted=FALSE){
+.OneStepTmleCont <- function(Y,Qinit,Qdawinit,Haw,Hdaw,isbin=FALSE, weighted=FALSE, .link=.identity, .ilink=.invidentity){
   # Q_update(A,W) = Q(A,W) + eps*H(A,W)
-  # 1. estimand epsilon
+  # Q_update(A,W) = expit(logit(Q(A,W)) + eps*H(A,W))
+  # 1. estimate epsilon
+  if(.link(.3)==.ilink(.3)) fam <- gaussian()
+  if(.link(.3)!=.ilink(.3)) fam <- binomial()
   if(weighted){
-    epsk <- as.numeric(lm(Y~ offset(Qinit), weights = Haw)$coefficients[1])
+    epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = Haw, family=fam)$coefficients[1])
   } else{
-    epsk <- as.numeric(lm(Y~ -1 + offset(Qinit) + Haw)$coefficients[1])
+    epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, family=fam)$coefficients[1])
   }
   # 2. update Qk
-  Qk1 <- Qinit + epsk*Haw
-  Qdawk1 <- Qdawinit + epsk*Hdaw
+  Qk1 <- .ilink(.link(Qinit) + epsk*Haw)
+  Qdawk1 <- .ilink(.link(Qdawinit) + epsk*Hdaw)
   cbind(Qk1, Qdawk1)
 }
 
-.OneStepTmleBin <- function(Y,Qinit,Qdawinit,Haw,Hdaw,isbin=FALSE){
+.OneStepTmleBin <- function(Y,Qinit,Q1init,Q0init,Haw,H1,H0,isbin=FALSE, weighted=FALSE, .link=.identity, .ilink=.invidentity){
+  # Q_update(A,W) = Q(A,W) + eps*H(A,W)
   # Q_update(A,W) = expit(logit(Q(A,W)) + eps*H(A,W))
   # 1. estimand epsilon
-  epsk <- as.numeric(glm(Y~ -1 + offset(.logit(Qinit)) + Haw, family=binomial(link="logit"))$coefficients[1])
+  if(.link(.3)==.ilink(.3)) fam <- gaussian()
+  if(.link(.3)!=.ilink(.3)) fam <- binomial()
+  if(weighted){
+    epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = Haw, family=fam)$coefficients[1])
+  } else{
+    epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, family=fam)$coefficients[1])
+  }
   # 2. update Qk
-  Qk1 <- .expit(.logit(Qinit) + epsk*Haw)
-  Qdawk1 <- .expit(.logit(Qdawinit) + epsk*Hdaw)
-  cbind(Qk1, Qdawk1)
+  Qk1 <- .ilink(.link(Qinit) + epsk*Haw)
+  Q1k1 <- .ilink(.link(Q1init) + epsk*H1)
+  Q0k1 <- .ilink(.link(Q0init) + epsk*H0)
+  cbind(Qk1, Q1k1, Q0k1)
 }
+
 
 .bound_zero_one <- function(Y){
   miny = min(Y)
@@ -72,16 +84,18 @@
   Haw = .Haw(gn, ga, gb)  # evaluated at A_i
   Hdaw = .Haw(gb, gn, gbb) # evaluated at d(A_i,W_i)
 
-  QuMat <- .OneStepTmleCont(Y,qinit,qbinit,Haw,Hdaw,isbin=FALSE)
+  #.OneStepTmleCont(Y,Qinit,Qdawinit,Haw,Hdaw,isbin=FALSE, weighted=FALSE, link=.identity, ilink=.invidentity)
+  QuMat <- .OneStepTmleCont(Y,qinit,qbinit,Haw,Hdaw,isbin=FALSE, weighted=FALSE, .link=.identity, .ilink=.invidentity)
   Qupdate <- QuMat[,1,drop=TRUE]
   Qdawupdate <- QuMat[,2,drop=TRUE]
   #.OneStepTmleBin(Y,qinit,Haw,Hdaw,isbin=FALSE)
   #eqfb = predict(lm(y~., data.frame(y=qfb, X=X[,-Acol])))   # simple linear regression on W to get E_g[Q | W]
   eqfb <- 0 # cancels out
+  psi <- mean(Qdawupdate)
   dc1 <- Haw*(Y - Qupdate)
   dc2 <- Qdawupdate - eqfb
-  dc3 <- eqfb - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
-  as.vector(dc1 + dc2 + dc3)
+  dc3 <- eqfb - Y*(estimand != "mean") - psi               # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  list(eif = as.vector(dc1 + dc2 + dc3), psi=psi)
 }
 
 
@@ -99,33 +113,36 @@
                                ...
 ){
   # define shifts
-  Xa <- .shift(X,Acol, -delta)
-  Xb <- .shift(X,Acol,  delta)
-  Xbb <- .shift(X,Acol,2*delta)
-  #
-  gn <- gfun(X,Acol,gfits=gfits)
-  #ga <- gfun(Xa,Acol,gfits=gfits)
-  gb <- gfun(Xb,Acol,gfits=gfits)
-  #gbb <- gfun(Xbb,Acol,gfits=gfits)
+  #Acol = 23
+  X0 <- .shift(X,Acol, -X[,Acol])
+  X1 <- .shift(X,Acol,  (1-X[,Acol]))
+  g0 <- gfun(X0,Acol,gfits=gfits)
+
   #
   qinit = qfun(X, Acol,qfit=qfit)
-  qbinit = qfun(Xb, Acol,qfit=qfit)
+  q1init = qfun(X1, Acol,qfit=qfit)
+  q0init = qfun(X0, Acol,qfit=qfit)
   #
   #ga = .enforce_min_dens(ga,eps=1e-8)
 
-  Haw = .Hawb(gn, delta, X, Acol)
-  Hdaw = .Hawb(gb, 2*delta, X, Acol)
+  Hawmat = .Hawb(g0, delta, X, Acol, retcols=3)
+  Haw  <- Hawmat[,1]
+  H1 <- Hawmat[,2]
+  H0 <- Hawmat[,3]
 
-  QuMat <- .OneStepTmleCont(Y,qinit,qbinit,Haw,Hdaw,isbin=FALSE)
+  #.OneStepTmleBin <- function(Y,Qinit,Q1init,Q0init,Haw,H1,H0,isbin=FALSE, link=.identity, ilink=.invidentity)
+  QuMat <- .OneStepTmleBin(Y,qinit, q1init, q0init,Haw,H1,H0,isbin=FALSE, weighted=FALSE,.link=.identity, .ilink=.invidentity)
   Qupdate <- QuMat[,1,drop=TRUE]
-  Qdawupdate <- QuMat[,2,drop=TRUE]
+  Q1update <- QuMat[,2,drop=TRUE]
+  Q0update <- QuMat[,3,drop=TRUE]
   #.OneStepTmleBin(Y,qinit,Haw,Hdaw,isbin=FALSE)
   #eqfb = predict(lm(y~., data.frame(y=qfb, X=X[,-Acol])))   # simple linear regression on W to get E_g[Q | W]
   eqfb <- 0 # cancels out
+  psi <- mean(Qupdate + delta*(Q1update - Q0update))
   dc1 <- Haw*(Y - Qupdate)
   dc2 <- Qdawupdate - eqfb
-  dc3 <- eqfb - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
-  as.vector(dc1 + dc2 + dc3)
+  dc3 <- eqfb - Y*(estimand != "mean") - psi                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  list(eif = as.vector(dc1 + dc2 + dc3), psi=psi)
 }
 
 ################################
@@ -133,9 +150,11 @@
 ################################
 
 .MakeTmleEst <- function(dphi){
+  est <- dphi$psi
+  eif <- dphi$eif
   #summary(fit <- lm(dphi~1))
-  est <- mean(dphi)
-  D <- dphi-est
+  #est <- mean(eif)
+  D <- eif
   se = sqrt(mean(D^2)/length(D))
   c(est=est, se = se, z=est/se)
 }
@@ -148,7 +167,7 @@
                        gfun,
                        qfit,
                        gfits,
-                       est,
+                       estimand,
                        bounded,
                        ...){
   #return(NULL)# remove when done
@@ -156,13 +175,11 @@
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
-      dphi <- .DbTMLE(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,est,bounded)
-      #dphi <- .DbTMLE(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,...)
+      dphilist <- .DbTMLE(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded)
     } else{
-      dphi <- .DcTMLE( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,est,bounded)
-      #dphi <- .DcTMLE( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,...)
+      dphilist <- .DcTMLE( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded)
     }
-    tm <- .MakeTmleEst(dphi)
+    tm <- .MakeTmleEst(dphilist)
     resmat[Acol,] <- tm
   }
   colnames(resmat) <- names(tm)
@@ -176,35 +193,7 @@
 ################################
 # expert wrappers
 ################################
-#' Variable importance using targeted minimum loss estimation
-#' @description Not usually called by users
-#'
-#' @param X data frame of predictors
-#' @param Y outcome
-#' @param delta change in each column of X corresponding to
-#' @param Y_learners list of sl3 learners used to predict the outcome, conditional on all predictors in X
-#' @param Xdensity_learners list of sl3 learners used to estimate the density of continuous predictors, conditional on all other predictors in X
-#' @param Xbinary_learners list of sl3 learners used to estimate the probability mass of continuous predictors, conditional on all other predictors in X
-#' @param verbose (logical) print extra information
-#' @param estimand (character) "diff" (default, estimate mean difference comparing Y under intervention with observed Y), "mean" (estimate mean Y under intervention)
-#' @param bounded (logical) does nothing yet
-#' @param ... passed to sl3::base_predict (rare)
-#'
-#' @return vi object
 #' @export
-#'
-#' @examples
-#' \dontrun{
-#' XYlist = .dgm(n=100,p=4,ncat=3)
-#' data(metals, package="qgcomp")
-#' XYlist = list(X=metals[,1:23], Y=metals$y)
-#' Y_learners = .default_continuous_learners()
-#' Xbinary_learners = .default_binary_learners()
-#' Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
-#' vi <- .varimp_aipw(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners[1:4],
-#' Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners[1:2] )
-#' vi
-#' }
 .varimp_tmle <- function(X,
                          Y,
                          delta=0.1,
@@ -236,6 +225,7 @@
   res
 }
 
+#' @export
 .varimp_tmle_boot <- function(X,
                          Y,
                          delta=0.1,

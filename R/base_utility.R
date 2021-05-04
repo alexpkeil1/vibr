@@ -1,5 +1,7 @@
 .logit <- function(p) log(p) - log1p(-p)
 .expit <- function(mu) 1/(1+exp(-mu))
+.identity <- function(x) x
+.invidentity <- .identity
 
 .shift <- function(X,Acol,shift){
   X[,Acol] = X[,Acol] + shift
@@ -53,13 +55,22 @@
 
 #' @import sl3
 #' @export
-.default_density_learners <- function(n_bins=c(10, 20, 30), histtypes=c("equal.mass", "equal.length", "dhist")){
+.default_density_learners_big <- function(n_bins=c(5, 20), histtypes=c("equal.mass", "equal.length")){
   density_learners=list()
-  idx  = idx+1
+  idx  = 1
   nm <- paste0("dens_sp_mean_")
   # uniform marginal with kernel density estimator
   density_learners[[idx]] <- Lrnr_density_semiparametric$new(name=nm, mean_learner = Lrnr_mean$new(), var_learner = NULL)
-  idx = 1
+  idx = idx + 1
+  nm <- paste0("dens_sp_glm_")
+  density_learners[[idx]] <- Lrnr_density_semiparametric$new(name=nm, mean_learner = Lrnr_glm$new(), var_learner = NULL)
+  idx = idx + 1
+  nm <- paste0("dens_sp_gam_")
+  density_learners[[idx]] <- Lrnr_density_semiparametric$new(name=nm, mean_learner = Lrnr_gam$new(), var_learner = NULL)
+  idx  = idx+1
+  nm <- paste0("dens_hse_glm_")
+  density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_glm$new(), var_learner = Lrnr_glm$new())
+  idx  = idx+1
   for(nb in n_bins){
     for(histtype in histtypes){
       nm <- paste0("hist_RF_", nb, histtype)
@@ -73,15 +84,23 @@
   density_learners
 }
 
+
+#' @import sl3
+#' @export
+.default_density_learners <- function(...){
+  .default_density_learners_big(...)[1:3]
+}
+
+
 #' @import sl3 glmnet earth
 #' @export
 .default_continuous_learners_big <- function(){
   continuous_learners=list(
-    Lrnr_glm$new(name="OLS", family="gaussian"),
+    Lrnr_glm$new(name="OLS", family=gaussian()),
     Lrnr_glmnet$new(name="Lasso", alpha=1.0),
     Lrnr_glmnet$new(name="Enet", alpha=0.0),
-    Lrnr_earth$new(name="MARS", alpha=1.0),
-    Pipeline$new(Lrnr_pca$new(name="PCA"), Lrnr_glm$new(name="OLS", family="gaussian")) # PCA plus glm
+    Lrnr_earth$new(name="MARS", family=gaussian()),
+    Pipeline$new(Lrnr_pca$new(name="PCA"), Lrnr_glm$new(name="OLS", family=gaussian())) # PCA plus glm
   )
   continuous_learners
 }
@@ -90,8 +109,8 @@
 #' @export
 .default_continuous_learners <- function(){
   continuous_learners=list(
-    Lrnr_glm$new(name="OLS"),
-    Lrnr_earth$new(name="MARS", alpha=1.0)
+    Lrnr_glm$new(name="OLS", family=gaussian()),
+    Lrnr_earth$new(name="MARS", family=gaussian())
   )
   continuous_learners
 }
@@ -100,11 +119,11 @@
 #' @export
 .default_binary_learners_big <- function(){
   bin_learners=list(
-    Lrnr_glm$new(name="LOGIT"),
+    Lrnr_glm$new(name="LOGIT", family=binomial()),
     Lrnr_glmnet$new(name="Lasso", alpha=1.0),
     Lrnr_glmnet$new(name="Enet", alpha=0.0),
-    Lrnr_earth$new(name="MARS", alpha=1.0),
-    Pipeline$new(Lrnr_pca$new(name="PCA"), Lrnr_glm$new(name="LOGIT")) # PCA plus glm
+    Lrnr_earth$new(name="MARS", family=binomial()),
+    Pipeline$new(Lrnr_pca$new(name="PCA"), Lrnr_glm$new(name="LOGIT", family=binomial())) # PCA plus glm
   )
   bin_learners
 }
@@ -113,8 +132,8 @@
 #' @export
 .default_binary_learners <- function(){
   bin_learners=list(
-    Lrnr_glm$new(name="LOGIT"),
-    Lrnr_earth$new(name="MARS", alpha=1.0)
+    Lrnr_glm$new(name="LOGIT", family=binomial()),
+    Lrnr_earth$new(name="MARS", family=binomial())
   )
   bin_learners
 }
@@ -139,18 +158,17 @@
 
 
 
-#' Train super learner
-#'
-#' @param datatask sl3 task
-#' @param learners R list of learners
-#' @param type type of fit ("density", "probability", or "expectation")
-#'
-#' @description Train a super learner fit, given some data held in an sl3 task object and a list of learners
-#'
-#' @return a trained super learner fit (output from sl3::make_learner)
+## Train super learner
+##
+## @param datatask sl3 task
+## @param learners R list of learners
+## @param type type of fit ("density", "probability", or "expectation")
+##
+## @description Train a super learner fit, given some data held in an sl3 task object and a list of learners
+##
+## @return a trained super learner fit (output from sl3::make_learner)
 #' @export
 #' @import sl3
-#'
 .train_superlearner <- function(datatask, learners, metalearner=NULL, type=c("density", "probability", "expectation")){
   #sl3_Task$new()
   # train learners
@@ -355,13 +373,13 @@
 }
 
 # clever covariate, binary (based on diaz and vdl 2018, translated to shift in propensity score)
-.Hawb <- function(gn, shift, X, Acol){
+.Hawb <- function(g0, shift, X, Acol, retcols=1){
   # if intervention would push exposure out of the support of A | W, then don't intervene
   # NOTE: (gn-shift)/gn = 1+(-shift)/gn
-  Haw1 <- ifelse(gn>0, 1+(-shift)/gn, 0) + as.numeric(gn + shift > 1)
-  Haw0 <- ifelse((1-gn)>0, 1+(shift)/(1-gn), 0) + as.numeric((1-gn) + shift > 1)
+  Haw0 <- ifelse(g0>0, 1+(-shift)/g0, 0) + as.numeric(g0 + shift > 1)
+  Haw1 <- ifelse((1-g0)>0, 1+(shift)/(1-g0), 0) + as.numeric((1-g0) + shift > 1)
   Haw <- X[,Acol]*Haw1 + (1-X[,Acol])*Haw0
-  Haw
+  cbind(Haw, Haw1, Haw0)[,1:retcols]
 }
 
 

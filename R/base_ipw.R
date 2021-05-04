@@ -54,17 +54,6 @@
   dc2 <- 0
   dc3 <- - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
   as.vector(dc1 + dc2 + dc3)
-
-  X1 <- X0 <- X
-  X1[,Acol] <- 1
-  X0[,Acol] <- 0
-  #Hk <- gfun(Xa,Acol,gfits=gfits,...)/gfun(X,Acol,gfits=gfits,...) # unsure why this one is not used
-  Hk <- (delta*(2*X[,Acol] - 1)/gfun(X,Acol,gfits=gfits,...) + 1)
-  eqa <- 0 # cancels out
-  db1 <- Hk*(Y - 0)
-  db2 <- 0 - eqa
-  db3 <- delta*(0-0) + eqa - Y*(estimand != "mean") # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
-  as.vector(db1 + db2 + db3)
 }
 
 
@@ -97,39 +86,7 @@
 ################################
 
 
-# \dontrun{
-# XYlist = .dgm(n=100,p=4,ncat=3)
-# data(metals, package="qgcomp")
-# XYlist = list(X=metals[,1:23], Y=metals$y)
-# Y_learners = .default_continuous_learners()
-# Xbinary_learners = .default_binary_learners()
-# Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
-# vi3 <- .varimp_ipw(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners[1:4],
-#  Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners[1:2] )
-# vi3
-# }
-# coef(summary(lm(XYlist$Y~as.matrix(XYlist$X))))[-1,]
-# y = rnorm(N, 0, 0.5) + (0.35 + ph*0.1)*calcium*sodium*zinc
-# + (0.35 + ph*0.1)*iron*selenium*selenium
-# + 1*(calcium>mean(calcium))
-# - (0.1 + ph*0.1)*lead*cadmium*arsenic
-# - (0.1 + ph*0.1)*chromium*mercury,
-
-#' Variable importance using inverse probability weighting
-#' @description Not usually called by users
-#'
-#' @param X data frame of predictors
-#' @param Y outcome
-#' @param delta change in each column of X corresponding to
-#' @param Y_learners list of sl3 learners used to predict the outcome, conditional on all predictors in X
-#' @param Xdensity_learners list of sl3 learners used to estimate the density of continuous predictors, conditional on all other predictors in X
-#' @param Xbinary_learners list of sl3 learners used to estimate the probability mass of continuous predictors, conditional on all other predictors in X
-#' @param verbose (logical) print extra information
-#' @param ... passed to sl3::base_predict (rare)
-#'
-#' @return vi object
 #' @export
-#'
 .varimp_ipw <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbinary_learners=NULL, verbose=TRUE,estimand, bounded=FALSE, ...){
   tasklist = .create_tasks(X,Y,delta)
   n = length(Y)
@@ -153,6 +110,7 @@
 }
 
 
+#' @export
 .varimp_ipw_boot <- function(X,
                               Y,
                               delta=0.1,
