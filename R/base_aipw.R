@@ -17,12 +17,21 @@
   # define shifts
   Xa <- .shift(X,Acol, -delta)
   Xb <- .shift(X,Acol,  delta)
-  Hk <- gfun(Xa,Acol,gfits=gfits,...)/gfun(X,Acol,gfits=gfits,...)
-  qfb = qfun(Xb, Acol,qfit=qfit,...)
+  #
+  gn <- gfun(X,Acol,gfits=gfits)
+  ga <- gfun(Xa,Acol,gfits=gfits)
+  gb <- gfun(Xb,Acol,gfits=gfits)
+  #
+  qinit = qfun(X, Acol,qfit=qfit)
+  qbinit = qfun(Xb, Acol,qfit=qfit)
+  #
+  #ga = .enforce_min_dens(ga,eps=1e-8)
+  Haw = .Haw(gn, ga, gb)  # evaluated at A_i
+
   #eqfb = predict(lm(y~., data.frame(y=qfb, X=X[,-Acol])))   # simple linear regression on W to get E_g[Q | W]
   eqfb <- 0 # cancels out
-  dc1 <- Hk*(Y - qfun(qfit=qfit,...))
-  dc2 <- qfb - eqfb
+  dc1 <- Haw*(Y - qinit)
+  dc2 <- qbinit - eqfb
   dc3 <- eqfb - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
   as.vector(dc1 + dc2 + dc3)
 }
@@ -46,27 +55,16 @@
   gn <- gfun(X,Acol,gfits=gfits)
   gb <- gfun(Xb,Acol,gfits=gfits)
   #
-
+  qinit = qfun(X, Acol,qfit=qfit)
+  qbinit = qfun(Xb, Acol,qfit=qfit)
+  #
   Haw = .Hawb(gn, delta, X, Acol)
-  dc1 <- Haw*(Y - 0)
-  dc2 <- 0
-  dc3 <-  - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
-  as.vector(dc1 + dc2 + dc3)
 
-  X1 <- X0 <- X
-  X1[,Acol] <- 1
-  X0[,Acol] <- 0
-  #Hk <- gfun(Xa,Acol,gfits=gfits,...)/gfun(X,Acol,gfits=gfits,...) # unsure why this one is not used
-  Hk <- (delta*(2*X[,Acol] - 1)/gfun(X,Acol,gfits=gfits,...) + 1)
-  qa <- qfun(qfit=qfit,...)
-  #eqa <- predict(lm(y~., data.frame(y=qfb, X=X[,-Acol])))   # simple linear regression on W to get E_g[Q | W]
-  eqa <- 0 # cancels out
-  q1 <- qfun(X1,Acol,qfit=qfit,...)
-  q0 <- qfun(X0,Acol,qfit=qfit,...)
-  db1 <- Hk*(Y - qa)
-  db2 <- qa - eqa
-  db3 <- delta*(q1-q0) + eqa - Y*(estimand != "mean") # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
-  as.vector(db1 + db2 + db3)
+  eqfb <- 0 # cancels out
+  dc1 <- Haw*(Y - qinit)
+  dc2 <- qbinit - eqfb
+  dc3 <- eqfb - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  as.vector(dc1 + dc2 + dc3)
 }
 
 
@@ -184,6 +182,7 @@
                               estimand="diff",
                               bounded=FALSE,
                               B=100,
+                              showProgress=TRUE,
                               ...){
   est <- .varimp_aipw(X,Y,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,...)
   rn <- rownames(est$res)
@@ -191,7 +190,7 @@
   n = length(Y)
   isbin <- as.character((length(unique(Y))==2))
   for(b in 1:B){
-    if(verbose) cat(".") # TODO: better interpretation
+    if(showProgress) cat(".") # TODO: better interpretation
     ridx <- sample(seq_len(n), n, replace=TRUE)
     Xi = X[ridx,,drop=FALSE]
     Yi = Y[ridx]
@@ -199,7 +198,7 @@
     yb = .bound_zero_one(Yi)
     Ybound = yb[[1]]
     sl.qfit <- .train_Y(Xi,Yi, Y_learners, verbose=FALSE, isbin)
-    sl.gfits <- .train_allX(Xi, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=FALSE)
+    sl.gfits <- .train_allX(Xi, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)
     fittable <- .EstEqAIPW(n,Xi,Yi,delta,qfun=.qfunction,gfun=.gfunction,qfit=sl.qfit,gfits=sl.gfits, estimand,bounded, ...)
     bootests[b,] <- fittable$est
   }

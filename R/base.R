@@ -12,12 +12,25 @@
 #' @param estimator (character) "AIPW" (default), "GCOMP", "IPW"
 #' @param estimand (character) "diff" (default, estimate mean difference comparing Y under intervention with observed Y), "mean" (estimate mean Y under intervention)
 #' @param B (NULL or integer) Numer of bootstrap iterations (NULL = asymptotic variance only)
+#' @param showProgress show progress of bootstrapping (only relevant if B is not NULL)
 #' @param ... passed to sl3::make_sl3_Task (e.g. weights)
 #'
 #' @return vi object
 #' @export
 #'
-varimp <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbinary_learners=NULL, verbose=TRUE, estimator="AIPW", bounded=FALSE, estimand="diff", B=NULL, ...){
+varimp <- function(X,
+                   Y,
+                   delta=0.1,
+                   Y_learners=NULL,
+                   Xdensity_learners=NULL,
+                   Xbinary_learners=NULL,
+                   verbose=TRUE,
+                   estimator="AIPW",
+                   bounded=FALSE,
+                   estimand="diff",
+                   B=NULL,
+                   showProgress=TRUE,
+                   ...){
   if(is.null(Y_learners)) Y_learners = .default_continuous_learners()
   if(is.null(Xbinary_learners)) Xbinary_learners = .default_binary_learners()
   if(is.null(Xdensity_learners)) Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
@@ -30,10 +43,10 @@ varimp <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbin
     )
   } else{
     res = switch(estimator,
-                 AIPW=.varimp_aipw_boot(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, B=B,...),
-                 GCOMP=.varimp_gcomp_boot(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, B=B,...),
-                 IPW=.varimp_ipw_boot(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, B=B,...),
-                 TMLE=.varimp_tmle_boot(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, B=B,...)
+                 AIPW=.varimp_aipw_boot(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, B=B, showProgress=showProgress,...),
+                 GCOMP=.varimp_gcomp_boot(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, B=B, showProgress=showProgress,...),
+                 IPW=.varimp_ipw_boot(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, B=B, showProgress=showProgress,...),
+                 TMLE=.varimp_tmle_boot(X,Y, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, B=B, showProgress=showProgress,...)
     )
   }
   res

@@ -9,33 +9,6 @@
 
 # note d(a|w) = A+delta, and d^-1(a|w) = h(a|w) = A-delta
 
-# clever covariate, general or continuous
-.Haw <- function(gn, ga, gb){
-  # I(A<u(w))g(a-delta|w)/g(a|w) + I(a>=u(w)-delta)
-  Haw <- ifelse(gn>0, ga/gn, 0) + as.numeric(gb == 0)
-  Haw
-}
-# clever covariate, binary (based on diaz and vdl 2012)
-.Hawb_old <- function(gn, ga, gb, shift, X, Acol){
-  # if intervention would push exposure out of the support of A | W, then don't intervene
-  # (delta*(I(A=1)-I(A=0)) + gn)/gn + gn/gn
-  #
-  Haw0 <- ifelse(gn>0, (-shift/gn + 1), 0)+ as.numeric(gb == 0)
-  Haw1 <- ifelse(gn>0, ( shift/gn + 1), 0)+ as.numeric(gb == 0)
-  Haw <- ifelse(gn>0, (shift*(2*X[,Acol] - 1)/gn + 1), 0)+ as.numeric(gb == 0)
-  Haw
-}
-
-# clever covariate, binary (based on diaz and vdl 2018, translated to shift in propensity score)
-.Hawb <- function(gn, shift, X, Acol){
-  # if intervention would push exposure out of the support of A | W, then don't intervene
-  Haw1 <- ifelse(gn>0, -shift/gn + 1, 0) + as.numeric(gn + shift > 1)
-  Haw0 <- ifelse((1-gn)>0, shift/(1-gn) + 1, 0) + as.numeric((1-gn) + shift > 1)
-  Haw <- X[,Acol]*Haw1 + (1-X[,Acol])*Haw0
-  Haw
-}
-
-
 .OneStepTmleCont <- function(Y,Qinit,Qdawinit,Haw,Hdaw,isbin=FALSE, weighted=FALSE){
   # Q_update(A,W) = Q(A,W) + eps*H(A,W)
   # 1. estimand epsilon
@@ -78,7 +51,7 @@
                 gfun,
                 qfit,
                 gfits,
-                est = "mean",
+                estimand = "mean",
                 bounded,
                 ...
                 ){
@@ -121,7 +94,7 @@
                                gfun,
                                qfit,
                                gfits,
-                               est = "mean",
+                               estimand = "mean",
                                bounded,
                                ...
 ){
@@ -273,6 +246,7 @@
                          estimand="diff",
                          bounded=FALSE,
                          B=100,
+                         showProgress=TRUE,
                          ...){
   est <- .varimp_tmle(X,Y,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,...)
   rn <- rownames(est$res)
@@ -280,7 +254,7 @@
   n = length(Y)
   isbin <- as.character((length(unique(Y))==2))
   for(b in 1:B){
-    if(verbose) cat(".") # TODO: better interpretation
+    if(showProgress) cat(".") # TODO: better interpretation
     ridx <- sample(seq_len(n), n, replace=TRUE)
     Xi = X[ridx,,drop=FALSE]
     Yi = Y[ridx]
@@ -288,7 +262,7 @@
     yb = .bound_zero_one(Yi)
     Ybound = yb[[1]]
     sl.qfit <- .train_Y(Xi,Yi, Y_learners, verbose=FALSE, isbin)
-    sl.gfits <- .train_allX(Xi, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=FALSE)
+    sl.gfits <- .train_allX(Xi, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)
     fittable <- .EstEqTMLE(n,Xi,Yi,delta,qfun=.qfunction,gfun=.gfunction,qfit=sl.qfit,gfits=sl.gfits, estimand,bounded, ...)
     bootests[b,] <- fittable$est
   }

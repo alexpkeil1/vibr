@@ -332,3 +332,36 @@
   #.qfunction_glm(X,1,qfit, ...)
   .qfunction_sl(X,1,qfit, ...)
 }
+
+
+################################
+# shared functions of esimators
+################################
+
+# clever covariate/weight continuous
+.Haw <- function(gn, ga, gb){
+  # I(A<u(w))g(a-delta|w)/g(a|w) + I(a>=u(w)-delta)
+  Haw <- ifelse(gn>0, ga/gn, 0) + as.numeric(gb == 0)
+  Haw
+}
+
+# clever covariate, binary (based on diaz and vdl 2012)
+.Hawb_old <- function(gn, ga, gb, shift, X, Acol){
+  # if intervention would push exposure out of the support of A | W, then don't intervene
+  # (delta*(I(A=1)-I(A=0)) + gn)/gn + gn/gn
+  #
+  Haw <- ifelse(gn>0, (shift*(2*X[,Acol] - 1)/gn + 1), 0)+ as.numeric(gb == 0)
+  Haw
+}
+
+# clever covariate, binary (based on diaz and vdl 2018, translated to shift in propensity score)
+.Hawb <- function(gn, shift, X, Acol){
+  # if intervention would push exposure out of the support of A | W, then don't intervene
+  # NOTE: (gn-shift)/gn = 1+(-shift)/gn
+  Haw1 <- ifelse(gn>0, 1+(-shift)/gn, 0) + as.numeric(gn + shift > 1)
+  Haw0 <- ifelse((1-gn)>0, 1+(shift)/(1-gn), 0) + as.numeric((1-gn) + shift > 1)
+  Haw <- X[,Acol]*Haw1 + (1-X[,Acol])*Haw0
+  Haw
+}
+
+

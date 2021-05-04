@@ -22,7 +22,6 @@
   gb <- gfun(Xb,Acol,gfits=gfits)
   #
   #
-  #ga = .enforce_min_dens(ga,eps=1e-8)
   Haw = .Haw(gn, ga, gb)  # evaluated at A_i
   dc1 <- Haw*(Y - 0)
   dc2 <- 0
@@ -42,6 +41,20 @@
                    gfits,
                    estimand,
                    ...){
+  # define shifts
+  Xa <- .shift(X,Acol, -delta)
+  Xb <- .shift(X,Acol,  delta)
+  #
+  gn <- gfun(X,Acol,gfits=gfits)
+  gb <- gfun(Xb,Acol,gfits=gfits)
+  #
+  Haw = .Hawb(gn, delta, X, Acol)
+
+  dc1 <- Haw*(Y - 0)
+  dc2 <- 0
+  dc3 <- - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  as.vector(dc1 + dc2 + dc3)
+
   X1 <- X0 <- X
   X1[,Acol] <- 1
   X0[,Acol] <- 0
@@ -150,14 +163,15 @@
                               estimand="diff",
                               bounded=FALSE,
                               B=100,
-                              ...){
+                             showProgress=TRUE,
+                             ...){
   est <- .varimp_ipw(X,Y,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,...)
   rn <- rownames(est$res)
   bootests <- matrix(NA, nrow=B, ncol = length(rn))
   n = length(Y)
   isbin <- as.character((length(unique(Y))==2))
   for(b in 1:B){
-    if(verbose) cat(".") # TODO: better interpretation
+    if(showProgress) cat(".") # TODO: better interpretation
     ridx <- sample(seq_len(n), n, replace=TRUE)
     Xi = X[ridx,,drop=FALSE]
     Yi = Y[ridx]
@@ -165,7 +179,7 @@
     yb = .bound_zero_one(Yi)
     Ybound = yb[[1]]
     sl.qfit <- .train_Y(Xi,Yi, Y_learners, verbose=FALSE, isbin)
-    sl.gfits <- .train_allX(Xi, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=FALSE)
+    sl.gfits <- .train_allX(Xi, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)
     fittable <- .EstEqIPW(n,Xi,Yi,delta,qfun=.qfunction,gfun=.gfunction,qfit=sl.qfit,gfits=sl.gfits, estimand,bounded, ...)
     bootests[b,] <- fittable$est
   }
