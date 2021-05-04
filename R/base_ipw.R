@@ -1,18 +1,53 @@
 ################################
 ## efficient influence functions - based on 2014 paper (same representation in binary and continuous exposures)
 ################################
-.Dcw <- function(n,X,Y,Acol,delta,qfun,gfun,qfit=NULL,gfits, ...){
-  # cf vanderlaan 2006, p 10
-  Xb <- Xa <- X
-  Xa[,Acol] <- X[,Acol]-delta
-  #Xb[,Acol] <- X[,Acol]+delta
-  p2 <- gfun(Xa,Acol,gfits=gfits,...)/gfun(X,Acol,gfits=gfits,...)
-  p3 <- Y
-  as.vector(p2*p3)
+
+.DcIPW <- function(n,
+                    X,
+                    Y,
+                    Acol,
+                    delta,
+                    qfun,
+                    gfun,
+                    qfit,
+                    gfits,
+                   estimand,
+                    ...){
+  # define shifts
+  Xa <- .shift(X,Acol, -delta)
+  Xb <- .shift(X,Acol,  delta)
+  Hk <- gfun(Xa,Acol,gfits=gfits,...)/gfun(X,Acol,gfits=gfits,...)
+  #eqfb = predict(lm(y~., data.frame(y=qfb, X=X[,-Acol])))   # simple linear regression on W to get E_g[Q | W]
+  eqfb <- 0 # cancels out
+  dc1 <- Hk*(Y - 0)
+  dc2 <- 0 - eqfb
+  dc3 <- 0 - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  as.vector(dc1 + dc2 + dc3)
 }
 
-.Dbw <- .Dcw
 
+.DbIPW <- function(n,
+                    X,
+                    Y,
+                    Acol,
+                    delta,
+                    qfun,
+                    gfun,
+                    qfit,
+                    gfits,
+                    est,
+                    ...){
+  X1 <- X0 <- X
+  X1[,Acol] <- 1
+  X0[,Acol] <- 0
+  #Hk <- gfun(Xa,Acol,gfits=gfits,...)/gfun(X,Acol,gfits=gfits,...) # unsure why this one is not used
+  Hk <- (delta*(2*X[,Acol] - 1)/gfun(X,Acol,gfits=gfits,...) + 1)
+  eqa <- 0 # cancels out
+  db1 <- Hk*(Y - 0)
+  db2 <- 0 - eqa
+  db3 <- delta*(0-0) + eqa - Y*(estimand != "mean") # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  as.vector(db1 + db2 + db3)
+}
 
 
 ################################
@@ -20,16 +55,16 @@
 ################################
 
 
-.EstEqIPW <- function(n,X,Y,delta,qfun=NULL,gfun,qfit=NULL,gfits,...){
+.EstEqIPW <- function(n,X,Y,delta,qfun=NULL,gfun,qfit=NULL,gfits,estimand,...){
   isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
-      dphi <- .Dbw(n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits, ...)
+      dphi <- .DbIPW(n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits,estimand, ...)
     } else{
-      dphi <- .Dcw( n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits, ...)
+      dphi <- .DcIPW( n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits,estimand, ...)
     }
-    tm <- .EstEq(dphi)
+    tm <- .MakeiAipwEst(dphi,n)
     resmat[Acol,] <- tm
   }
   colnames(resmat) <- names(tm)
@@ -77,7 +112,7 @@
 #' @return vi object
 #' @export
 #'
-.varimp_ipw <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbinary_learners=NULL, verbose=TRUE, ...){
+.varimp_ipw <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbinary_learners=NULL, verbose=TRUE,estimand, ...){
   tasklist = .create_tasks(X,Y,delta)
   n = length(Y)
   if(verbose) cat(paste0("Default delta = ", delta, "\n")) # TODO: better interpretation
@@ -87,7 +122,7 @@
   sl.gfits <- .train_allX(X, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)
   #.gfunction(X=NULL,Acol,gfits=sl.gfits)
   #.qfunction(X=NULL,Acol,qfit=sl.qfit)
-  fittable <- .EstEqIPW(n,X,Y,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=sl.gfits, ...)
+  fittable <- .EstEqIPW(n,X,Y,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=sl.gfits,estimand, ...)
   res <- list(
     res = fittable,
     qfit = NULL,

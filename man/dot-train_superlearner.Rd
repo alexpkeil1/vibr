@@ -7,6 +7,7 @@
 .train_superlearner(
   datatask,
   learners,
+  metalearner = NULL,
   type = c("density", "probability", "expectation")
 )
 }

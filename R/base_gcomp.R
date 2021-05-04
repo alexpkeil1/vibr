@@ -12,12 +12,13 @@
                  gfun=NULL,
                  qfit,
                  gfits=NULL,
+                 estimand,
                  ...){
   #cat(paste0("column ", names(X)[Acol], ": continuous\n"))
   Xa <- X
   Xa[,Acol] <- X[,Acol]+delta
   p2 <- qfun(Xa,Acol,qfit=qfit,...)
-  sum(p2 - Y)/n
+  sum(p2 - Y*(estimand != "mean"))/n
 }
 
 # binary
@@ -30,6 +31,7 @@
                  gfun=NULL,
                  qfit,
                  gfits=NULL,
+                 estimand,
                  ...){
   #cat(paste0("column ", names(X)[Acol], ": binary\n"))
   X1 <- X0 <- X
@@ -37,7 +39,7 @@
   X0[,Acol] <- 0
   p2 <- qfun(qfit=qfit,...)
   p3 <- delta*(qfun(X1,Acol,qfit=qfit,...) - qfun(X0,Acol,qfit=qfit,...))
-  sum(p2 + p3 - Y)/n
+  sum(p2 + p3 - Y*(estimand != "mean"))/n
 }
 
 
@@ -56,14 +58,15 @@
                             gfun,
                             qfit,
                             gfits,
+                            estimand,
                             ...){
   isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
-      est <- .gcb(n,X,Y,Acol,delta,qfun,gfun=NULL,qfit,gfits=NULL, ...)
+      est <- .gcb(n,X,Y,Acol,delta,qfun,gfun=NULL,qfit,gfits=NULL,estimand, ...)
     } else{
-      est <- .gcc( n,X,Y,Acol,delta,qfun,gfun=NULL,qfit,gfits=NULL, ...)
+      est <- .gcc( n,X,Y,Acol,delta,qfun,gfun=NULL,qfit,gfits=NULL,estimand, ...)
     }
     tm <- .EstGcomp(est)
     resmat[Acol,] <- tm
@@ -119,6 +122,7 @@
                           Xdensity_learners=NULL,
                           Xbinary_learners=NULL,
                           verbose=TRUE,
+                          estimand,
                           ...){
   tasklist = .create_tasks(X,Y,delta)
   n = length(Y)
@@ -126,7 +130,7 @@
 
   isbin <- as.character((length(unique(Y))==2))
   sl.qfit <- .train_Y(X,Y, Y_learners, verbose=verbose, isbin)
-  fittable <- .EstimatorGcomp(n,X,Y,delta,qfun=.qfunction,gfun=NULL,qfit=sl.qfit,gfits=NULL,...)
+  fittable <- .EstimatorGcomp(n,X,Y,delta,qfun=.qfunction,gfun=NULL,qfit=sl.qfit,gfits=NULL, estimand,...)
   res <- list(
     res = fittable,
     qfit = sl.qfit,
