@@ -45,7 +45,17 @@
   )
 }
 
-
+.scale_continuous <- function(X){
+  p <- ncol(X)
+  #nm = names(X)
+  isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
+  for(j in seq_len(p)){
+    if(!isbin_vec[j]){
+      X[,j] <- X[,j]/(2*sd(X[,j]))
+    }
+  }
+  X
+}
 
 
 ################################
@@ -253,7 +263,7 @@
 }
 
 ################################
-# prediction functions
+## prediction functions ##
 ################################
 
 
@@ -353,7 +363,7 @@
 
 
 ################################
-# shared functions of esimators
+## shared functions of esimators ##
 ################################
 
 # clever covariate/weight continuous
@@ -363,21 +373,15 @@
   Haw
 }
 
-# clever covariate, binary (based on diaz and vdl 2012)
-.Hawb_old <- function(gn, ga, gb, shift, X, Acol){
-  # if intervention would push exposure out of the support of A | W, then don't intervene
-  # (delta*(I(A=1)-I(A=0)) + gn)/gn + gn/gn
-  #
-  Haw <- ifelse(gn>0, (shift*(2*X[,Acol] - 1)/gn + 1), 0)+ as.numeric(gb == 0)
-  Haw
-}
-
 # clever covariate, binary (based on diaz and vdl 2018, translated to shift in propensity score)
 .Hawb <- function(g0, shift, X, Acol, retcols=1){
   # if intervention would push exposure out of the support of A | W, then don't intervene
-  # NOTE: (gn-shift)/gn = 1+(-shift)/gn
-  Haw0 <- ifelse(g0>0, 1+(-shift)/g0, 0) + as.numeric(g0 + shift > 1)
-  Haw1 <- ifelse((1-g0)>0, 1+(shift)/(1-g0), 0) + as.numeric((1-g0) + shift > 1)
+  # NOTE: (gn-shift)/gn = 1+(-shift)/gn;
+  #   1 + shift*(2A-1)/gn  = 1 + shift(I(A=1)/g1 - I(A=0)/g0)
+  #   I(A=1)(g1+shift)/g1  + I(A=0)(g0- shift)/G0 = 1+ shift/G1 - shift/G0
+  g1 <- 1-g0
+  Haw1 <- ifelse(g1>0, 1+( shift)/g1, 0) + as.numeric(g1 + shift > 1)
+  Haw0 <- ifelse(g0>0, 1+(-shift)/g0, 0) + as.numeric(g0 - shift < 0)
   Haw <- X[,Acol]*Haw1 + (1-X[,Acol])*Haw0
   cbind(Haw, Haw1, Haw0)[,1:retcols]
 }

@@ -196,13 +196,13 @@ testtxshift <- function(){
   print(tmle)
   print(vimp)
   dat$tr
-  summary(lm(y ~ I(z/.1) + I(x/.1), data = data.frame(y=dat$y, dat$X)))
+  summary(lm(y ~ I((.5*z/sd(z))/.1) + I(x/.1), data = data.frame(y=dat$y, dat$X)))$coefficients
 
 }
 
 
 
-analyze <- function(i, B=100, ...){
+analyze <- function(i, B=0, ...){
   dat = dgm(...)
   #set.seed(12312); dat = dgm( n=1000, delta = 0.1, beta = c(2,1, .3))
   (vimp <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=continuous_learners(),
@@ -210,13 +210,13 @@ analyze <- function(i, B=100, ...){
                   verbose=FALSE, estimator="AIPW"))
   (vimp2 <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=continuous_learners(),
                   Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
-                  verbose=FALSE, estimator="TMLE", B=B, showProgress=FALSE))
+                  verbose=FALSE, estimator="TMLE"))
   #vimp$qfit$learner_fits$Stack$learner_fits$`Pipeline(INT->OLS)`$learner_fits$OLS$coefficients
   #vimp$qfit$learner_fits$Stack$learner_fits$OLS$coefficients
   #vimp$qfit$learner_fits$Stack$learner_fits$`Pipeline(INT->LASSO)`$learner_fits$LASSO$coefficients
   #vimp$qfit$learner_fits$Stack$learner_fits$OLS$fit_object$coefficients
   obj <- as.matrix(vimp$res)
-  obj2 <- as.matrix(vimp2$est$res)
+  obj2 <- as.matrix(vimp$res)
   tr = dat$tr
   names(tr) <- colnames(dat$X)
   lmfit <- summary(lm(y~., data.frame(y=dat$y, dat$X/0.1)))
@@ -226,21 +226,21 @@ analyze <- function(i, B=100, ...){
     AIPWest = obj[1:2,1],
     AIPWse = obj[1:2,2],
     TMLEest = obj2[1:2,1],
-    TMLEse = apply(vimp2$boots,2,sd),
+    TMLEse = obj2[1:2,2],#apply(vimp2$boots,2,sd),
     lmest = lmfit$coefficients[2:3, 1],
     lmse = lmfit$coefficients[2:3, 2],
-    tr = tr,
-    TMLEseasymp = obj2[1:2,2]
+    tr = tr
+    #TMLEseasymp = obj2[1:2,2]
   )
 }
 
 
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
-t(res1 <- analyze(1231321, n=100, delta = 0.1, beta = c(1,2, -1.0, 1.0, -1.0, -1.0), degree=1, zk = c(-1.5, 0, 1.5), B=3))
+t(res1 <- analyze(1231321, n=50, delta = 0.1, beta = c(1,2, -1.0, 1.0, -1.0, -1.0), degree=1, zk = c(-1.5, 0, 1.5)))
 
 future::availableCores()
 future::plan("multicore")
-resL = future.apply::future_lapply(1:10, analyze, n=100, delta = 0.1, beta = c(1,2, -1.0, 1.0, -1.0, -1.0), degree=1, zk = c(-1.5, 0, 1.5), B=100, future.seed=TRUE)
+resL = future.apply::future_lapply(1:1000, analyze, n=50, delta = 0.1, beta = c(1,2, -1.0, 1.0, -1.0, -1.0), degree=1, zk = c(-1.5, 0, 1.5), future.seed=TRUE)
 res = as.data.frame(do.call(rbind, resL))
 rm <- apply(res, 2, mean)
 

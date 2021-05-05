@@ -23,10 +23,11 @@
   #
   #
   Haw = .Haw(gn, ga, gb)  # evaluated at A_i
+  psi <- mean(Haw*(Y) - Y)
   dc1 <- Haw*(Y - 0)
   dc2 <- 0
-  dc3 <- - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
-  as.vector(dc1 + dc2 + dc3)
+  dc3 <- - psi - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  list(eif = as.vector(dc1 + dc2 + dc3), psi=psi)
 }
 
 
@@ -42,18 +43,17 @@
                    estimand,
                    ...){
   # define shifts
-  Xa <- .shift(X,Acol, -delta)
-  Xb <- .shift(X,Acol,  delta)
-  #
-  gn <- gfun(X,Acol,gfits=gfits)
-  gb <- gfun(Xb,Acol,gfits=gfits)
-  #
-  Haw = .Hawb(gn, delta, X, Acol)
+  X0 <- .shift(X,Acol, -X[,Acol])
+  #X1 <- .shift(X,Acol,  (1-X[,Acol]))
+  g0 <- gfun(X0,Acol,gfits=gfits)
 
+
+  Haw <- .Hawb(g0, delta, X, Acol, retcols=1)
+  psi <- mean(Haw*(Y) - Y)
   dc1 <- Haw*(Y - 0)
   dc2 <- 0
-  dc3 <- - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
-  as.vector(dc1 + dc2 + dc3)
+  dc3 <- - psi - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  list(eif = as.vector(dc1 + dc2 + dc3), psi=psi)
 }
 
 
@@ -61,6 +61,7 @@
 #: estimating equations
 ################################
 
+#.MakeiIpwEst <- .MakeTmleEst
 
 .EstEqIPW <- function(n,X,Y,delta,qfun=NULL,gfun,qfit=NULL,gfits,estimand, bounded=FALSE,...){
   isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
@@ -71,7 +72,7 @@
     } else{
       dphi <- .DcIPW( n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits,estimand, ...)
     }
-    tm <- .MakeiAipwEst(dphi,n)
+    tm <- .MakeTmleEst(dphi)
     resmat[Acol,] <- tm
   }
   colnames(resmat) <- names(tm)
@@ -136,9 +137,9 @@
     tasklist = .create_tasks(Xi,Yi,delta)
     yb = .bound_zero_one(Yi)
     Ybound = yb[[1]]
-    sl.qfit <- .train_Y(Xi,Yi, Y_learners, verbose=FALSE, isbin)
+    #sl.qfit <- .train_Y(Xi,Yi, Y_learners, verbose=FALSE, isbin)
     sl.gfits <- .train_allX(Xi, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)
-    fittable <- .EstEqIPW(n,Xi,Yi,delta,qfun=.qfunction,gfun=.gfunction,qfit=sl.qfit,gfits=sl.gfits, estimand,bounded, ...)
+    fittable <- .EstEqIPW(n,Xi,Yi,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=sl.gfits, estimand,bounded, ...)
     bootests[b,] <- fittable$est
   }
   colnames(bootests) <- rn

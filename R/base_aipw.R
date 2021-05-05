@@ -24,6 +24,7 @@
   #
   qinit = qfun(X, Acol,qfit=qfit)
   qbinit = qfun(Xb, Acol,qfit=qfit)
+
   #
   #ga = .enforce_min_dens(ga,eps=1e-8)
   Haw = .Haw(gn, ga, gb)  # evaluated at A_i
@@ -48,22 +49,23 @@
                 estimand,
                 ...){
   # define shifts
-  Xa <- .shift(X,Acol, -delta)
-  Xb <- .shift(X,Acol,  delta)
-  Xbb <- .shift(X,Acol,2*delta)
-  #
-  gn <- gfun(X,Acol,gfits=gfits)
-  gb <- gfun(Xb,Acol,gfits=gfits)
+  X0 <- .shift(X,Acol, -X[,Acol])
+  X1 <- .shift(X,Acol,  (1-X[,Acol]))
+  g0 <- gfun(X0,Acol,gfits=gfits)
+
   #
   qinit = qfun(X, Acol,qfit=qfit)
-  qbinit = qfun(Xb, Acol,qfit=qfit)
+  q1init = qfun(X1, Acol,qfit=qfit)
+  q0init = qfun(X0, Acol,qfit=qfit)
   #
-  Haw = .Hawb(gn, delta, X, Acol)
+  #ga = .enforce_min_dens(ga,eps=1e-8)
+
+  Haw <- .Hawb(g0, delta, X, Acol, retcols=1)
 
   eqfb <- 0 # cancels out
   dc1 <- Haw*(Y - qinit)
-  dc2 <- qbinit - eqfb
-  dc3 <- eqfb - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  dc2 <- qinit - eqfb
+  dc3 <- delta*(q1init - q0init) + eqfb - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
   as.vector(dc1 + dc2 + dc3)
 }
 
@@ -73,12 +75,12 @@
 #: estimating equations
 ################################
 
-.MakeiAipwEst <- function(dphi, n){
+.MakeiAipwEst <- function(dphi){
   #summary(fit <- lm(dphi~1))
   est <- mean(dphi)
   D <- dphi-est
   avar = mean(D^2) # asymptotic variance
-  se = sqrt(avar)/sqrt(n)
+  se = sqrt(avar)/sqrt(length(D))
   c(est=est, se = se, z=est/se)
 }
 
@@ -101,7 +103,7 @@
     } else{
       dphi <- .DcAIPW( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,...)
     }
-    tm <- .MakeiAipwEst(dphi, n)
+    tm <- .MakeiAipwEst(dphi)
     resmat[Acol,] <- tm
   }
   colnames(resmat) <- names(tm)

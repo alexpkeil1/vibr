@@ -17,6 +17,7 @@ varimp(
   estimand = "diff",
   B = NULL,
   showProgress = TRUE,
+  scale_continuous = TRUE,
   ...
 )
 }

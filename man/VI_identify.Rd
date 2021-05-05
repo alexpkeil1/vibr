@@ -10,6 +10,7 @@ VI_identify(
   Xdensity_learners = NULL,
   Xbinary_learners = NULL,
   verbose = FALSE,
+  scale_continuous = TRUE,
   ...
 )
 }
@@ -35,8 +36,9 @@ data(metals, package="qgcomp")
 XYlist = list(X=metals[,1:23], Y=metals$y)
 Xbinary_learners = .default_binary_learners()
 Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
-VI_identify(X=XYlist$X, delta=0.1, Y_learners = Y_learners,
+ident <- VI_identify(X=XYlist$X, delta=0.1, Y_learners = Y_learners,
        Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
-       estimator="TMLE")
+       estimator="TMLE", verbose=TRUE)
+ident
 }
 }

@@ -91,7 +91,7 @@
   #.OneStepTmleBin(Y,qinit,Haw,Hdaw,isbin=FALSE)
   #eqfb = predict(lm(y~., data.frame(y=qfb, X=X[,-Acol])))   # simple linear regression on W to get E_g[Q | W]
   eqfb <- 0 # cancels out
-  psi <- mean(Qdawupdate)
+  psi <- mean(Qdawupdate - Y)
   dc1 <- Haw*(Y - Qupdate)
   dc2 <- Qdawupdate - eqfb
   dc3 <- eqfb - Y*(estimand != "mean") - psi               # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
@@ -100,17 +100,17 @@
 
 
 .DbTMLE <- function(n,
-                               X,
-                               Y,
-                               Acol,
-                               delta,
-                               qfun,
-                               gfun,
-                               qfit,
-                               gfits,
-                               estimand = "mean",
-                               bounded,
-                               ...
+                    X,
+                    Y,
+                    Acol,
+                    delta,
+                    qfun,
+                    gfun,
+                    qfit,
+                    gfits,
+                    estimand = "mean",
+                    bounded,
+                    ...
 ){
   # define shifts
   #Acol = 23
@@ -138,10 +138,10 @@
   #.OneStepTmleBin(Y,qinit,Haw,Hdaw,isbin=FALSE)
   #eqfb = predict(lm(y~., data.frame(y=qfb, X=X[,-Acol])))   # simple linear regression on W to get E_g[Q | W]
   eqfb <- 0 # cancels out
-  psi <- mean(Qupdate + delta*(Q1update - Q0update))
+  psi <- mean(Qupdate + delta*(Q1update - Q0update) - Y)
   dc1 <- Haw*(Y - Qupdate)
-  dc2 <- Qdawupdate - eqfb
-  dc3 <- eqfb - Y*(estimand != "mean") - psi                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  dc2 <- Qupdate - eqfb
+  dc3 <- delta*(Q1update - Q0update) + eqfb - Y*(estimand != "mean") - psi                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
   list(eif = as.vector(dc1 + dc2 + dc3), psi=psi)
 }
 
@@ -175,11 +175,11 @@
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
-      dphilist <- .DbTMLE(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded)
+      dphi <- .DbTMLE(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded)
     } else{
-      dphilist <- .DcTMLE( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded)
+      dphi <- .DcTMLE( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded)
     }
-    tm <- .MakeTmleEst(dphilist)
+    tm <- .MakeTmleEst(dphi)
     resmat[Acol,] <- tm
   }
   colnames(resmat) <- names(tm)

@@ -1,8 +1,9 @@
 .wtB <- function(X,Acol,gfun,gfits, delta){
-  gn <- gfun(X,Acol,gfits=gfits)
-  #
-  Haw = .Hawb(gn, delta, X, Acol)
-  Haw
+  X0 <- .shift(X,Acol, -X[,Acol])
+  g0 <- gfun(X0,Acol,gfits=gfits)
+  #function(g0, shift, X, Acol, retcols=1)
+  Haw = .Hawb(g0, delta, X, Acol, retcols=1)
+  abs(Haw) # shift/p(a|w) = avg proportion of trt probability in the shift
 }
 
 .wtC <- function(X,Acol,gfun,gfits, delta){
@@ -15,7 +16,7 @@
   gb <- gfun(Xb,Acol,gfits=gfits)
   #
   Haw = .Haw(gn, ga, gb)
-  Haw
+  Haw # g(a-delta | w)/g(a | w) =
 }
 
 .summarizewts <- function(wts){
@@ -74,7 +75,13 @@ VI_identify <- function(X,
                         Xdensity_learners=NULL,
                         Xbinary_learners=NULL,
                         verbose=FALSE,
+                        scale_continuous = TRUE,
                         ...){
+  if(scale_continuous){
+    if(verbose) cat("Scaling all continuous variables by 2*sd\n")
+    # divide continuous by 2*sd
+    X = .scale_continuous(X)
+  }
   tasklist = .create_tasks(X,NULL,delta)
   if(verbose) cat(paste0("delta = ", delta, "\n")) # TODO: better interpretation
   if(verbose) cat(paste0("Training models\n"))
