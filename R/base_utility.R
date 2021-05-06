@@ -13,6 +13,10 @@
 ################################
 
 .create_tasks <- function(X,Y, delta=0.1, ...){
+  # TODO add Y task and centralize all task creation here to avoid overhead
+  # for Y: single task
+  # for binary X: observed, X=0, X=1
+  # for continuous X: observed, X+delta, X-delta, X+2*delta
   slX <- list()
   slXpdelta <- list() # X + delta
   slXmdelta <- list() # X-delta
