@@ -82,7 +82,7 @@ VI_identify <- function(X,
     # divide continuous by 2*sd
     X = .scale_continuous(X)
   }
-  tasklist = .create_tasks(X,NULL,delta)
+  tasklist = .create_tasks(X,NULL,delta, ...)
   if(verbose) cat(paste0("delta = ", delta, "\n")) # TODO: better interpretation
   if(verbose) cat(paste0("Training models\n"))
   sl.gfits <- .train_allX(X, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)

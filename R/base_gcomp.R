@@ -94,13 +94,13 @@
                           estimand,
                           bounded=FALSE,
                           ...){
-  tasklist = .create_tasks(X,Y,delta)
+  tasklist = .create_tasks(X,Y,delta, ...)
   n = length(Y)
   if(verbose) cat(paste0("Default delta = ", delta, "\n")) # TODO: better interpretation
 
   isbin <- as.character((length(unique(Y))==2))
-  sl.qfit <- .train_Y(X,Y, Y_learners, verbose=verbose, isbin)
-  fittable <- .EstimatorGcomp(n,X,Y,delta,qfun=.qfunction,gfun=NULL,qfit=sl.qfit,gfits=NULL, estimand, bounded,...)
+  sl.qfit <- .train_Y(X,Y, Y_learners, verbose=verbose, isbin, ...)
+  fittable <- .EstimatorGcomp(n,X,Y,delta,qfun=.qfunction,gfun=NULL,qfit=sl.qfit,gfits=NULL, estimand, bounded)
   res <- list(
     res = fittable,
     qfit = sl.qfit,
@@ -136,12 +136,12 @@
     ridx <- sample(seq_len(n), n, replace=TRUE)
     Xi = X[ridx,,drop=FALSE]
     Yi = Y[ridx]
-    tasklist = .create_tasks(Xi,Yi,delta)
+    tasklist = .create_tasks(Xi,Yi,delta, ...)
     yb = .bound_zero_one(Yi)
     Ybound = yb[[1]]
     sl.qfit <- .train_Y(Xi,Yi, Y_learners, verbose=FALSE, isbin)
     sl.gfits <- .train_allX(Xi, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)
-    fittable <- .EstimatorGcomp(n,Xi,Yi,delta,qfun=.qfunction,gfun=.gfunction,qfit=sl.qfit,gfits=sl.gfits, estimand,bounded, ...)
+    fittable <- .EstimatorGcomp(n,Xi,Yi,delta,qfun=.qfunction,gfun=.gfunction,qfit=sl.qfit,gfits=sl.gfits, estimand,bounded)
     bootests[b,] <- fittable$est
   }
   colnames(bootests) <- rn

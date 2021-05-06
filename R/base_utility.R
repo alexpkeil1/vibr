@@ -12,7 +12,7 @@
 # Data handlers
 ################################
 
-.create_tasks <- function(X,Y, delta=0.1){
+.create_tasks <- function(X,Y, delta=0.1, ...){
   slX <- list()
   slXpdelta <- list() # X + delta
   slXmdelta <- list() # X-delta
@@ -23,18 +23,18 @@
     tt = ifelse(isbin, "binomial", "continuous")
     slX[[j]] <- sl3_Task$new(outcome_type=variable_type(type=tt), data=data.frame(X),
                              covariates=nm[-j],
-                             outcome=nm[j]
+                             outcome=nm[j], ...
     )
     Xt = X
     Xt[j] = ifelse(isbin, 1, X[j]+delta)
     slXpdelta[[j]] <- sl3_Task$new(outcome_type=variable_type(type=tt), data=data.frame(Xt),
                                    covariates=nm[-j],
-                                   outcome=nm[j]
+                                   outcome=nm[j], ...
     )
     Xt[j] = ifelse(isbin, 0, X[j]-delta)
     slXmdelta[[j]] <- sl3_Task$new(outcome_type=variable_type(type=tt), data=data.frame(Xt),
                                    covariates=nm[-j],
-                                   outcome=nm[j]
+                                   outcome=nm[j], ...
     )
   }
   # TODO: give this a class
@@ -232,14 +232,14 @@
 
 
 #' @import sl3
-.train_Y <- function(X,Y, learners, metalearner=NULL, verbose=TRUE, isbin=FALSE){
+.train_Y <- function(X,Y, learners, metalearner=NULL, verbose=TRUE, isbin=FALSE, ...){
   df = data.frame(X, Y)
   pp1 <- ncol(df)
   isbin <- length(unique(Y))==2
   XY <- sl3_Task$new(data=df,
                      outcome_type=variable_type(type=ifelse(isbin, "binomial", "continuous")),
                      covariates=names(df)[-pp1],
-                     outcome=names(df)[pp1]
+                     outcome=names(df)[pp1], ...
   )
   if(verbose) cat(paste0("Training: ", names(df)[pp1], "(", ifelse(isbin, "binomial", "continuous, predicted"), ")\n"))
   .train_superlearner(XY, learners, metalearner=NULL, type="expectation")

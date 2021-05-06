@@ -89,7 +89,7 @@
 
 #' @export
 .varimp_ipw <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbinary_learners=NULL, verbose=TRUE,estimand, bounded=FALSE, ...){
-  tasklist = .create_tasks(X,Y,delta)
+  tasklist = .create_tasks(X,Y,delta, ...)
   n = length(Y)
   if(verbose) cat(paste0("Default delta = ", delta, "\n")) # TODO: better interpretation
 
@@ -98,7 +98,7 @@
   sl.gfits <- .train_allX(X, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)
   #.gfunction(X=NULL,Acol,gfits=sl.gfits)
   #.qfunction(X=NULL,Acol,qfit=sl.qfit)
-  fittable <- .EstEqIPW(n,X,Y,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=sl.gfits,estimand, bounded=FALSE, ...)
+  fittable <- .EstEqIPW(n,X,Y,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=sl.gfits,estimand, bounded=FALSE)
   res <- list(
     res = fittable,
     qfit = NULL,
@@ -134,12 +134,12 @@
     ridx <- sample(seq_len(n), n, replace=TRUE)
     Xi = X[ridx,,drop=FALSE]
     Yi = Y[ridx]
-    tasklist = .create_tasks(Xi,Yi,delta)
+    tasklist = .create_tasks(Xi,Yi,delta, ...)
     yb = .bound_zero_one(Yi)
     Ybound = yb[[1]]
     #sl.qfit <- .train_Y(Xi,Yi, Y_learners, verbose=FALSE, isbin)
     sl.gfits <- .train_allX(Xi, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)
-    fittable <- .EstEqIPW(n,Xi,Yi,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=sl.gfits, estimand,bounded, ...)
+    fittable <- .EstEqIPW(n,Xi,Yi,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=sl.gfits, estimand,bounded)
     bootests[b,] <- fittable$est
   }
   colnames(bootests) <- rn

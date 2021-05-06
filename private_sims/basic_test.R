@@ -201,6 +201,89 @@ testtxshift <- function(){
 }
 
 
+stabilitytest <- function(...){
+  data(metals, package="qgcomp")
+  dat = list(X=metals[,1:10], y=metals$y) # up t 23
+
+  density_learners <- function(n_bins=c(3,8), histtypes=c("equal.mass")){
+    #sl3::sl3_list_learners("density") # see all available
+    density_learners=list()
+    idx = 1
+    nm <- paste0("dens_sp_gam_")
+    density_learners[[idx]] <- Lrnr_density_semiparametric$new(name=nm, mean_learner = Lrnr_gam$new(), var_learner = NULL)
+    idx  = idx+1
+    nm <- paste0("dens_sp_mean_")
+    density_learners[[idx]] <- Lrnr_density_semiparametric$new(name=nm, mean_learner = Lrnr_mean$new(), var_learner = NULL)
+    idx  = idx+1
+    for(nb in n_bins){
+      for(histtype in histtypes){
+        nm = paste0("hist_Unadj_", nb, histtype)
+        density_learners[[idx]] <- Lrnr_density_discretize$new(name=nm, categorical_learner = Lrnr_mean$new(), n_bins = nb, bin_method=histtype)
+        idx  = idx+1
+      }
+    }
+    density_learners
+  }
+
+  continuous_learners <- function(){
+    #sl3::sl3_list_learners("continuous")
+    continuous_learners=list(
+      Lrnr_mean$new(name="Mean"),
+      Lrnr_glm$new(name="OLS", family=gaussian()),
+      #Pipeline$new(Lrnr_define_interactions$new(name="INT", list(c("x", "z"), c("z", "z"))), Lrnr_glmnet$new(name="LASSO", alpha=1.0)),
+      Lrnr_gam$new(name="GAM")
+      #Pipeline$new(Lrnr_define_interactions$new(name="INT", list(c("x", "z"), c("z", "z"))), Lrnr_glm$new(name="OLS"))
+    )
+    continuous_learners
+  }
+
+  binary_learners <- function(){
+    #sl3::sl3_list_learners("binomial")
+    bin_learners=list(
+      Lrnr_glm$new(name="LOGIT", family=binomial()),
+      Lrnr_mean$new(name="Mean")
+    )
+    bin_learners
+  }
+
+  set.seed(NULL)
+  #set.seed(1231)
+  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
+                  Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
+                  verbose=FALSE, estimator="TMLE", estimand="diff", folds=20))
+
+
+  #set.seed(1231)
+  (vimp2 <- varimp(data.frame(dat$X[,1:3]),dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
+                  Xdensity_learners=density_learners()[1:2], Xbinary_learners=binary_learners()[1:2],
+                  verbose=FALSE, estimator="TMLE", estimand="diff", folds=5))
+
+
+  set.seed(1231)
+  t2 <- sl3::sl3_Task$new(data = dat$X, folds = 20, covariates = names(dat$X))
+  set.seed(1231)
+  t1 <- sl3::sl3_Task$new(data = dat$X, folds = 20, covariates = names(dat$X))
+  t1$folds[[10]]$validation_set
+  t2$folds[[10]]$validation_set
+
+  #outcome
+  plot(vimp$qfit$predict(), vimp2$qfit$predict()) # stable under a seed
+  plot(vimp$qfit$learner_fits$Stack$predict(), vimp2$qfit$learner_fits$Stack$predict()) # stable under a seed
+  # density
+  plot(vimp$gfits[[1]]$predict()[[1]], vimp2$gfits[[1]]$predict()[[1]])
+  plot(vimp$gfits[[2]]$predict()[[1]], vimp2$gfits[[2]]$predict()[[1]])
+  plot(vimp$gfits[[6]]$predict()[[1]], vimp2$gfits[[6]]$predict()[[1]])
+  plot(vimp$gfits[[6]]$learner_fits$Stack$predict()[[1]], vimp2$gfits[[6]]$learner_fits$Stack$predict()[[1]])
+  plot(vimp$gfits[[6]]$learner_fits$Stack$predict()[[2]], vimp2$gfits[[6]]$learner_fits$Stack$predict()[[2]])
+  plot(vimp$gfits[[6]]$learner_fits$Stack$predict()[[3]], vimp2$gfits[[6]]$learner_fits$Stack$predict()[[3]])
+  plot(vimp$gfits[[6]]$learner_fits$Stack$predict()[[4]], vimp2$gfits[[6]]$learner_fits$Stack$predict()[[4]])
+  cbind(vimp$gfits[[6]]$learner_fits$Stack$predict()[[4]], vimp2$gfits[[6]]$learner_fits$Stack$predict()[[4]])
+  plot(vimp$res$est, vimp2$res$est)
+  plot(vimp$res$se, vimp2$res$se)
+  plot(vimp$res$z, vimp2$res$z)
+  plot(order(abs(vimp$res$est)), order(abs(vimp2$res$est)))
+  plot(vimp$res$est-vimp2$res$est, vimp$res$se-vimp2$res$se)
+}
 
 analyze <- function(i, B=0, ...){
   dat = dgm(...)
