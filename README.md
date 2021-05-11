@@ -27,32 +27,36 @@ Flexible modeling of the target is farmed out to the sl3 package, but some defau
 
 ## quick start
 ## variable importance for a set of mainly continuous predictors on a continuous target
-data(metals, package="qgcomp")
-XYlist = list(X=metals[,1:23], Y=metals$y)
-Y_learners = .default_continuous_learners()
-Xbinary_learners = list(Lrnr_stepwise$new(name="SW"))
-Xdensity_learners = .default_density_learners(n_bins=c(10))
+    data(metals, package="qgcomp")
+    XYlist = list(X=metals[,1:23], Y=metals$y)
+    Y_learners = .default_continuous_learners()
+    Xbinary_learners = list(Lrnr_stepwise$new(name="SW"))
+    Xdensity_learners = .default_density_learners(n_bins=c(10))
 
 
-vi <- varimp(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners,
-       Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
+    vi <- varimp(X=XYlist$X,Y=XYlist$Y, delta=0.1, 
+       Y_learners = Y_learners,
+       Xdensity_learners=Xdensity_learners[1:2],
+       Xbinary_learners=Xbinary_learners,
        estimator="TMLE")
-vi
+    vi
 
 # reusing model fits from another vibr object to obtain an alternative estimator
-vi2 <- varimp_refit(vi, X=XYlist$X,Y=XYlist$Y, delta=0.1,
+    vi2 <- varimp_refit(vi, X=XYlist$X,Y=XYlist$Y, delta=0.1,
                     estimator="AIPW")
 
-vi3 <- varimp_refit(vi, X=XYlist$X,Y=XYlist$Y, delta=0.1,
+    vi3 <- varimp_refit(vi, X=XYlist$X,Y=XYlist$Y, delta=0.1,
                     estimator="IPW")
 
-vi2
-vi3
+    vi2
+    vi3
 
 
 # using weights (under construction - use with caution)
-V = data.frame(wt=runif(nrow(metals)))
-viw <- varimp(X=XYlist$X,Y=XYlist$Y, V=V, delta=0.1, Y_learners = Y_learners,
-       Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
+    V = data.frame(wt=runif(nrow(metals)))
+    viw <- varimp(X=XYlist$X,Y=XYlist$Y, V=V, delta=0.1, 
+       Y_learners = Y_learners,
+       Xdensity_learners=Xdensity_learners[1:2], 
+       Xbinary_learners=Xbinary_learners,
        estimator="TMLE", weights="wt")
-viw
+    viw
