@@ -7,6 +7,7 @@
 varimp(
   X,
   Y,
+  V = NULL,
   delta = 0.1,
   Y_learners = NULL,
   Xdensity_learners = NULL,
@@ -14,6 +15,7 @@ varimp(
   verbose = TRUE,
   estimator = "AIPW",
   bounded = FALSE,
+  updatetype = "weighted",
   estimand = "diff",
   B = NULL,
   showProgress = TRUE,
@@ -26,6 +28,8 @@ varimp(
 
 \item{Y}{outcome}
 
+\item{V}{(default NULL) a data frame of other variables that contain weights or offsets, if used ("weights" and "offset" are both passed to other functions via extra arguments represented by ...: see example below)}
+
 \item{delta}{change in each column of X corresponding to}
 
 \item{Y_learners}{list of sl3 learners used to predict the outcome, conditional on all predictors in X}
@@ -36,7 +40,11 @@ varimp(
 
 \item{verbose}{(logical) print extra information}
 
-\item{estimator}{(character) "AIPW" (default), "GCOMP", "IPW"}
+\item{estimator}{(character) "AIPW" (default), "TMLE", "GCOMP", "IPW"}
+
+\item{bounded}{(logical) not used}
+
+\item{updatetype}{(character) (used for estimator = "TMLE" only) weighted" or any other valid character. If "weighted" then uses weighting by clever covariate in update step of TMLE, otherwise fits a generalized linear model with no intercept and clever covariate as a sole predictor}
 
 \item{estimand}{(character) "diff" (default, estimate mean difference comparing Y under intervention with observed Y), "mean" (estimate mean Y under intervention)}
 
@@ -56,12 +64,17 @@ Variable importance in cross-sectional data
 \dontrun{
 data(metals, package="qgcomp")
 XYlist = list(X=metals[,1:23], Y=metals$y)
-Y_learners = .default_continuous_learners_big()
-Xbinary_learners = .default_binary_learners()
-Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
+Y_learners = .default_continuous_learners()
+Xbinary_learners = list(Lrnr_stepwise$new(name="SW"))
+Xdensity_learners = .default_density_learners(n_bins=c(10))
 vi <- varimp(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners,
        Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
        estimator="TMLE")
 vi
+V = data.frame(wt=runif(nrow(metals)))
+viw <- varimp(X=XYlist$X,Y=XYlist$Y, V=V, delta=0.1, Y_learners = Y_learners,
+       Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
+       estimator="TMLE", weights="wt")
+viw
 }
 }

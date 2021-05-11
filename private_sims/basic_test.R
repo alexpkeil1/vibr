@@ -26,8 +26,8 @@ dgm <- function(n, delta, beta, degree=1, zk = c(-1, 0, 1)){
   px <- 0.5
   z <- rnorm(n)
   x <- rbinom(n,1,px)
-  zint <- rnorm(n, delta)
-  xint <- rbinom(n,1,px+delta)
+  zint <- z+delta
+  xint <- ifelse(x==0, rbinom(n,1,delta), x)
   yfun <- function(z,x,beta){
     zbasis <- simspline(zk, z, degree)
     pz <- ncol(zbasis)
@@ -164,16 +164,15 @@ testtxshift <- function(){
   sd(dphi)/sqrt(length(dat$y))
   sd(dphi2)/sqrt(length(dat$y))
 
-  set.seed(123123)
-  tmle
-  tmle2
   # bounded estimator in progress, will look like tmle package
-  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
+  set.seed(123123)
+  (vimp <- varimp(data.frame(dat$X),dat$y, V=data.frame(wt=rep(1,500)), delta=.1, Y_learners=continuous_learners()[1:3],
                   Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
-                  verbose=FALSE, estimator="TMLE", estimand="diff"))
-  (vimp2 <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
+                  verbose=FALSE, estimator="TMLE", estimand="diff", weights="wt"))
+  (vimp2 <- varimp(data.frame(dat$X),dat$y, V=data.frame(wt=runif(500)), delta=.1, Y_learners=continuous_learners()[1:3],
                   Xdensity_learners=density_learners()[[1]], Xbinary_learners=binary_learners(),
-                  verbose=FALSE, estimator="TMLE", estimand="diff", B=5))
+                  verbose=FALSE, estimator="TMLE", estimand="diff", B=5, weights="wt"))
+  set.seed(123123)
   (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
                   Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="AIPW", estimand="diff"))
@@ -299,7 +298,7 @@ analyze <- function(i, B=0, ...){
   #vimp$qfit$learner_fits$Stack$learner_fits$`Pipeline(INT->LASSO)`$learner_fits$LASSO$coefficients
   #vimp$qfit$learner_fits$Stack$learner_fits$OLS$fit_object$coefficients
   obj <- as.matrix(vimp$res)
-  obj2 <- as.matrix(vimp$res)
+  obj2 <- as.matrix(vimp2$res)
   tr = dat$tr
   names(tr) <- colnames(dat$X)
   lmfit <- summary(lm(y~., data.frame(y=dat$y, dat$X/0.1)))
@@ -322,8 +321,8 @@ analyze <- function(i, B=0, ...){
 t(res1 <- analyze(1231321, n=50, delta = 0.1, beta = c(1,2, -1.0, 1.0, -1.0, -1.0), degree=1, zk = c(-1.5, 0, 1.5)))
 
 future::availableCores()
-future::plan("multicore")
-resL = future.apply::future_lapply(1:1000, analyze, n=50, delta = 0.1, beta = c(1,2, -1.0, 1.0, -1.0, -1.0), degree=1, zk = c(-1.5, 0, 1.5), future.seed=TRUE)
+future::plan("multicore", workers=availableCores())
+resL = future.apply::future_lapply(1:8, analyze, n=50, delta = 0.1, beta = c(1,2, -1.0, 1.0, -1.0, -1.0), degree=1, zk = c(-1.5, 0, 1.5), future.seed=TRUE)
 res = as.data.frame(do.call(rbind, resL))
 rm <- apply(res, 2, mean)
 
@@ -359,6 +358,7 @@ cipow(res, "TMLE", "x", "bias")
 cipow(res, "lm", "z", "bias")
 cipow(res, "lm", "x", "bias")
 
+rm[c("tr.z", "tr.x")]
 print(apply(res[,  grep("est.", names(res))], 2, function(x) c(mean=mean(x), sd=sd(x))))
 print(apply((res)[,grep("bias", names(res))], 2, function(x) c(bias=mean(x), mse=mean(x^2), sd.bias=sd(x))))
 print(apply(res[,grep("se[a]*", names(res))], 2, function(x) c(mean=mean(x))))

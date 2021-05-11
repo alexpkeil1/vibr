@@ -47,7 +47,9 @@ parameters is printed at every major iteration (default 0).}
 
 \seealso{
 Other Learners: 
-\code{\link{Lrnr_solnp_density_quiet}}
+\code{\link{Lrnr_multinom}},
+\code{\link{Lrnr_solnp_density_quiet}},
+\code{\link{Lrnr_stepwise}}
 }
 \concept{Learners}
 \keyword{data}

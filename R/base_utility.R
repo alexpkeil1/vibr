@@ -8,20 +8,39 @@
   X
 }
 
+.call_with_args_vibr <- function (fun, args, other_valid = list(), keep_all = FALSE,
+                                  silent = FALSE, ignore = c())
+{
+  args <- args[!(names(args) %in% ignore)]
+  if (!keep_all) {
+    formal_args <- names(formals(fun))
+    all_valid <- c(formal_args, other_valid)
+    invalid <- names(args)[which(!(names(args) %in% all_valid))]
+    args <- args[which(names(args) %in% all_valid)]
+    if (!silent & length(invalid) > 0) {
+      message(sprintf("Learner called function %s with unknown args: %s. These will be dropped.\nCheck the params supported by this learner.",
+                      as.character(substitute(fun)), paste(invalid,
+                                                           collapse = ", ")))
+    }
+  }
+  do.call(fun, args)
+}
+
+
 ################################
 # Data handlers
 ################################
 
-.create_tasks <- function(X,Y, delta=0.1, ...){
-  # TODO add Y task and centralize all task creation here to avoid overhead
-  # for Y: single task
-  # for binary X: observed, X=0, X=1
-  # for continuous X: observed, X+delta, X-delta, X+2*delta
-  slX <- list()
-  slXpdelta <- list() # X + delta
-  slXmdelta <- list() # X-delta
+.create_tasks <- function(X,Y, V=NULL, delta=0.1, ...){
+  X <- as.data.frame(X)
   p <- ncol(X)
   nm = names(X)
+  slX <- list()
+#  slXpdelta <- list() # X + delta
+#  slXmdelta <- list() # X-delta
+  if(!is.null(V[1])){
+    X = data.frame(cbind(X, V)) # V can hold weights, offsets, etc.
+  }
   for(j in seq_len(p)){
     isbin = length(unique(X))==2
     tt = ifelse(isbin, "binomial", "continuous")
@@ -29,23 +48,23 @@
                              covariates=nm[-j],
                              outcome=nm[j], ...
     )
-    Xt = X
-    Xt[j] = ifelse(isbin, 1, X[j]+delta)
-    slXpdelta[[j]] <- sl3_Task$new(outcome_type=variable_type(type=tt), data=data.frame(Xt),
-                                   covariates=nm[-j],
-                                   outcome=nm[j], ...
-    )
-    Xt[j] = ifelse(isbin, 0, X[j]-delta)
-    slXmdelta[[j]] <- sl3_Task$new(outcome_type=variable_type(type=tt), data=data.frame(Xt),
-                                   covariates=nm[-j],
-                                   outcome=nm[j], ...
-    )
+    #    Xt = X
+#    Xt[j] = ifelse(isbin, 1, X[j]+delta)
+#    slXpdelta[[j]] <- sl3_Task$new(outcome_type=variable_type(type=tt), data=data.frame(Xt),
+#                                   covariates=nm[-j],
+#                                   outcome=nm[j], ...
+#    )
+#    Xt[j] = ifelse(isbin, 0, X[j]-delta)
+#    slXmdelta[[j]] <- sl3_Task$new(outcome_type=variable_type(type=tt), data=data.frame(Xt),
+#                                   covariates=nm[-j],
+#                                   outcome=nm[j], ...
+#    )
   }
   # TODO: give this a class
   list(
-    slX = slX,
-    slXpdelta = slXpdelta, # X + delta
-    slXmdelta = slXmdelta # X-delta
+    slX = slX #,
+    #slXpdelta = slXpdelta, # X + delta
+    #slXmdelta = slXmdelta # X-delta
   )
 }
 
@@ -69,28 +88,40 @@
 
 #' @import sl3
 #' @export
-.default_density_learners_big <- function(n_bins=c(5, 20), histtypes=c("equal.mass", "equal.length")){
+.default_density_learners_big <- function(n_bins=c(7, 12), histtypes=c("equal.mass", "equal.length")){
   density_learners=list()
   idx  = 1
-  nm <- paste0("dens_sp_mean_")
+  nm <- paste0("hist_multinom_10")
+  density_learners[[idx]] <- Lrnr_density_discretize$new(name=nm, categorical_learner = Lrnr_multinom$new(trace=FALSE), n_bins = 10, bin_method="equal.mass")
+  idx  = idx+1
+  nm <- paste0("dens_hse_glm")
+  density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_glm$new(), var_learner = Lrnr_glm$new())
+  idx  = idx+1
+  nm <- paste0("dens_hse_lasso")
+  density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian"), var_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian"))
+  idx  = idx+1
+  nm <- paste0("dens_hse_sw")
+  density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_stepwise$new(name="Stepwise"), var_learner = Lrnr_stepwise$new(name="Stepwise"))
+  idx  = idx+1
+  nm <- paste0("dens_hse_mars")
+  density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_earth$new(name="MARS", family=gaussian()), var_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian"))
+  idx = idx + 1
+  nm <- paste0("dens_hse_nnet")
+  density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE), var_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian"))
+  idx  = idx+1
+  nm <- paste0("dens_sp_unadj")
   # uniform marginal with kernel density estimator
   density_learners[[idx]] <- Lrnr_density_semiparametric$new(name=nm, mean_learner = Lrnr_mean$new(), var_learner = NULL)
-  idx = idx + 1
-  nm <- paste0("dens_sp_glm_")
-  density_learners[[idx]] <- Lrnr_density_semiparametric$new(name=nm, mean_learner = Lrnr_glm$new(), var_learner = NULL)
-  idx = idx + 1
-  nm <- paste0("dens_sp_gam_")
-  density_learners[[idx]] <- Lrnr_density_semiparametric$new(name=nm, mean_learner = Lrnr_gam$new(), var_learner = NULL)
   idx  = idx+1
-  nm <- paste0("dens_hse_glm_")
-  density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_glm$new(), var_learner = Lrnr_glm$new())
+  nm <- paste0("dens_sp_glm")
+  density_learners[[idx]] <- Lrnr_density_semiparametric$new(name=nm, mean_learner = Lrnr_glm$new(), var_learner = NULL)
   idx  = idx+1
   for(nb in n_bins){
     for(histtype in histtypes){
-      nm <- paste0("hist_RF_", nb, histtype)
+      nm <- paste0("hist_rf_", nb, histtype)
       density_learners[[idx]] <- Lrnr_density_discretize$new(name=nm, categorical_learner = Lrnr_randomForest$new(), n_bins = nb, bin_method=histtype)
       idx  = idx+1
-      nm = paste0("hist_Unadj_", nb, histtype)
+      nm = paste0("hist_unadj_", nb, histtype)
       density_learners[[idx]] <- Lrnr_density_discretize$new(name=nm, categorical_learner = Lrnr_mean$new(), n_bins = nb, bin_method=histtype)
       idx  = idx+1
     }
@@ -99,57 +130,58 @@
 }
 
 
-#' @import sl3
 #' @export
 .default_density_learners <- function(...){
-  .default_density_learners_big(...)[1:3]
+  .default_density_learners_big(...)[1:4]
 }
 
 
-#' @import sl3 glmnet earth
+#' @import sl3 glmnet earth stats nnet xgboost stats
 #' @export
 .default_continuous_learners_big <- function(){
   continuous_learners=list(
-    Lrnr_glm$new(name="OLS", family=gaussian()),
-    Lrnr_glmnet$new(name="Lasso", alpha=1.0),
-    Lrnr_glmnet$new(name="Enet", alpha=0.0),
-    Lrnr_earth$new(name="MARS", family=gaussian()),
-    Pipeline$new(Lrnr_pca$new(name="PCA"), Lrnr_glm$new(name="OLS", family=gaussian())) # PCA plus glm
+    Lrnr_glm$new(name="ols", family=gaussian()),
+    Lrnr_glmnet$new(name="lasso", alpha=1.0, family="gaussian"),
+    Lrnr_stepwise$new(name="stepwise", family=gaussian()),
+    Lrnr_earth$new(name="mars", family=gaussian()),
+    Lrnr_xgboost$new(name="xgboost"),
+    Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE),
+    Lrnr_glmnet$new(name="enet", alpha=0.0, family="gaussian"),
+    Pipeline$new(Lrnr_pca$new(name="pca"), Lrnr_glm$new(name="ols", family=gaussian())), # PCA plus glm
+    Pipeline$new(Lrnr_screener_coefs$new(name="lassocreen", learner=Lrnr_glmnet$new(name="lasso", alpha=1.0, family="gaussian")), Lrnr_earth$new(name="MARS", family=gaussian())), # screen by coefficient size then OLS
+    Pipeline$new(Lrnr_screener_coefs$new(name="coefscreen", learner=Lrnr_glm$new(name="ols", family=gaussian())), Lrnr_glm$new(name="OLS", family=gaussian())), # screen by coefficient size then OLS
+    Pipeline$new(Lrnr_screener_importance$new(name="rfimpscreen", learner=Lrnr_randomForest$new()), Lrnr_glm$new(name="OLS", family=gaussian())) # screen by variable importance then OLS
   )
   continuous_learners
 }
 
-#' @import sl3 glmnet earth
 #' @export
 .default_continuous_learners <- function(){
-  continuous_learners=list(
-    Lrnr_glm$new(name="OLS", family=gaussian()),
-    Lrnr_earth$new(name="MARS", family=gaussian())
-  )
-  continuous_learners
+  .default_continuous_learners_big()[1:4]
 }
 
-#' @import sl3 glmnet earth stats
+#' @import sl3 glmnet earth stats nnet xgboost stats
 #' @export
 .default_binary_learners_big <- function(){
   bin_learners=list(
-    Lrnr_glm$new(name="LOGIT", family=binomial()),
-    Lrnr_glmnet$new(name="Lasso", alpha=1.0),
-    Lrnr_glmnet$new(name="Enet", alpha=0.0),
-    Lrnr_earth$new(name="MARS", family=binomial()),
-    Pipeline$new(Lrnr_pca$new(name="PCA"), Lrnr_glm$new(name="LOGIT", family=binomial())) # PCA plus glm
+    Lrnr_glm$new(name="logit", family=binomial()),
+    Lrnr_glmnet$new(name="lasso", alpha=1.0, family="binomial"),
+    Lrnr_stepwise$new(name="stepwise", family=binomial()),
+    Lrnr_earth$new(name="mars", family=binomial()),
+    Lrnr_xgboost$new(),
+    Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE),
+    Lrnr_glmnet$new(name="enet", alpha=0.0, family="binomial"),
+    Pipeline$new(Lrnr_pca$new(name="pca"), Lrnr_glm$new(name="logit", family=binomial())), # PCA plus glm
+    Pipeline$new(Lrnr_screener_coefs$new(name="lassocreen", learner=Lrnr_glmnet$new(name="lasso", alpha=1.0, family="binomial")), Lrnr_earth$new(name="mars", family=binomial())), # screen by coefficient size then OLS
+    Pipeline$new(Lrnr_screener_coefs$new(name="coefscreen", learner=Lrnr_glm$new(name="logit", family=binomial())), Lrnr_glm$new(name="logit", family=binomial())), # screen by coefficient size then OLS
+    Pipeline$new(Lrnr_screener_importance$new(name="rfimpscreen", learner=Lrnr_randomForest$new()), Lrnr_glm$new(name="logit", family=binomial())) # screen by variable importance then LOGIT
   )
   bin_learners
 }
 
-#' @import sl3 glmnet earth stats
 #' @export
 .default_binary_learners <- function(){
-  bin_learners=list(
-    Lrnr_glm$new(name="LOGIT", family=binomial()),
-    Lrnr_earth$new(name="MARS", family=binomial())
-  )
-  bin_learners
+  .default_binary_learners_big()[1:4]
 }
 
 #' @import sl3 glmnet earth stats
@@ -180,24 +212,29 @@
 ##
 ## @description Train a super learner fit, given some data held in an sl3 task object and a list of learners
 ##
-## @return a trained super learner fit (output from sl3::make_learner)
+## @return a trained sl3 fit: defaults to super learner ensemble if a list of multiple learners are given (output from sl3::make_learner)
 #' @export
 #' @import sl3
-.train_superlearner <- function(datatask, learners, metalearner=NULL, type=c("density", "probability", "expectation")){
+.train_fullstack <- function(datatask, learners, metalearner=NULL, type=c("density", "probability", "expectation")){
   #sl3_Task$new()
   # train learners
-  learner_stack <- Stack$new(learners)
-  learner_fit <- learner_stack$train(datatask)
-  #cross validation
-  #cv_stack <- Lrnr_cv$new(learner_stack, full_fit = TRUE) # seems like it should be needed, but makes no difference
-  cv_stack <- Lrnr_cv$new(learner_stack)
-  cv_fit <- cv_stack$train(datatask)
-  cv_task <- cv_fit$chain()
-  # train super learner
-  if(is.null(metalearner)) metalearner <- .default_metalearner(type)
-  sl_fit <- metalearner$train(cv_task)
-  sl_pipeline <- make_learner(Pipeline, learner_fit, sl_fit)
-  sl_pipeline
+  if(length(learners)>1){
+    learner_stack <- Stack$new(learners)
+    learner_fit <- learner_stack$train(datatask)
+    #cross validation
+    #cv_stack <- Lrnr_cv$new(learner_stack, full_fit = TRUE) # seems like it should be needed, but makes no difference
+    cv_stack <- Lrnr_cv$new(learner_stack)
+    cv_fit <- cv_stack$train(datatask)
+    cv_task <- cv_fit$chain()
+    # train super learner
+    if(is.null(metalearner)) metalearner <- .default_metalearner(type)
+    sl_fit <- metalearner$train(cv_task)
+    sl_pipeline <- make_learner(Pipeline, learner_fit, sl_fit)
+    ret <- sl_pipeline
+  } else{
+    ret <- learners[[1]]$train(datatask)
+  }
+  ret
 }
 
 .train_cvsuperlearner <- function(datatask, learners, metalearner=NULL, type=c("density", "probability", "expectation")){
@@ -236,22 +273,24 @@
 
 
 #' @import sl3
-.train_Y <- function(X,Y, learners, metalearner=NULL, verbose=TRUE, isbin=FALSE, ...){
+.train_Y <- function(X,Y, learners, metalearner=NULL, verbose=TRUE, isbin=FALSE, V=NULL, ...){
   df = data.frame(X, Y)
+  nms = names(df)
   pp1 <- ncol(df)
+  if(!is.null(V[1])) df = data.frame(cbind(df, V))
   isbin <- length(unique(Y))==2
   XY <- sl3_Task$new(data=df,
                      outcome_type=variable_type(type=ifelse(isbin, "binomial", "continuous")),
-                     covariates=names(df)[-pp1],
-                     outcome=names(df)[pp1], ...
+                     covariates=nms[-pp1],
+                     outcome=nms[pp1], ...
   )
   if(verbose) cat(paste0("Training: ", names(df)[pp1], "(", ifelse(isbin, "binomial", "continuous, predicted"), ")\n"))
-  .train_superlearner(XY, learners, metalearner=NULL, type="expectation")
+  .train_fullstack(XY, learners, metalearner=NULL, type="expectation")
 }
 
 
 #' @import sl3
-.train_allX <- function(X, tasks, bin_learners, density_learners, metalearner=NULL, verbose=TRUE){
+.train_allX <- function(X, tasks, bin_learners, density_learners, metalearner=NULL, verbose=TRUE, V=NULL){
   # TODO: check for data frame X
   vartype = ifelse(apply(X, 2, function(x) length(unique(x))==2), "b", "c")
   p = ncol(X)
@@ -259,8 +298,8 @@
   for(j in 1:p){
     if(verbose) cat(paste0("Training: ", names(X)[j], "(", ifelse(vartype[j]=="b", "binomial", "continuous, density"), ")\n"))
     trained_models[[j]] <- switch(vartype[j],
-                                  b = .train_superlearner( tasks[[j]],bin_learners, metalearner=metalearner[[bin_learners]], type="prob"),
-                                  c = .train_superlearner( tasks[[j]],density_learners, metalearner=metalearner[[density_learners]], type="density")
+                                  b = .train_fullstack( tasks[[j]],bin_learners, metalearner=metalearner[[bin_learners]], type="prob"),
+                                  c = .train_fullstack( tasks[[j]],density_learners, metalearner=metalearner[[density_learners]], type="density")
     )
   }
   trained_models
@@ -374,6 +413,7 @@
 .Haw <- function(gn, ga, gb){
   # I(A<u(w))g(a-delta|w)/g(a|w) + I(a>=u(w)-delta)
   Haw <- ifelse(gn>0, ga/gn, 0) + as.numeric(gb == 0)
+  if(any(Haw<0)) warning(paste0("",sum(Haw<0), " weights (continuous predictor) were < 0\n"))
   Haw
 }
 
@@ -387,7 +427,79 @@
   Haw1 <- ifelse(g1>0, 1+( shift)/g1, 0) + as.numeric(g1 + shift > 1)
   Haw0 <- ifelse(g0>0, 1+(-shift)/g0, 0) + as.numeric(g0 - shift < 0)
   Haw <- X[,Acol]*Haw1 + (1-X[,Acol])*Haw0
+  if(any(Haw<0)) warning(paste0("",sum(Haw<0), " weights (binary predictor) were < 0\n"))
   cbind(Haw, Haw1, Haw0)[,1:retcols]
 }
 
 
+##########
+# prelim functions
+#########
+.prelims <- function(X, Y, V=NULL, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...){
+  #.prelims(X, Y, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
+  # basic error checking
+  stopifnot(is.data.frame(X))
+  if(!is.null(V[1])) stopifnot(is.data.frame(V))
+
+  n = length(Y)
+  args = list(...)
+  # checking for weights
+  nmargs = names(args)
+  if("weights" %in% nmargs){
+    wt <- V[,args$weights]
+  } else{
+    wt <- rep(1.0, n)
+  }
+  if(!is.logical(all.equal(sum(wt),as.double(n)))){
+    if(verbose) cat("Normalizing weights to sum to length(Y)")
+    wt = wt/mean(wt)
+  }
+
+  tasklist = .create_tasks(X,Y,V,delta, ...)
+  isbin <- as.character((length(unique(Y))==2))
+  if(verbose) cat(paste0("delta = ", delta, "\n")) # TODO: better interpretation
+  yb = .bound_zero_one(Y)
+  Ybound = yb[[1]]
+  sl.qfit <- sl.gfits <- NULL
+  if(!is.null(Y_learners)){
+    yb = .bound_zero_one(Y)
+    sl.qfit <- .train_Y(X,Y, Y_learners, verbose=verbose, isbin, V=V, ...)
+  }
+  if(!is.null(Xbinary_learners) || !is.null(Xdensity_learners)){
+    sl.gfits <- .train_allX(X, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose, V=V)
+  }
+  list(n=n, Ybound=Ybound, tasklist = tasklist, sl.qfit = sl.qfit, sl.gfits=sl.gfits, isbin = isbin, weights=wt)
+}
+
+
+.ChExstractFit <- function(obj){
+  yfit <- xfit <- tasklist <- FALSE
+  if(!is.null(obj$qfit)){
+    yfit <- obj$qfit$is_trained
+  }
+  if(!is.null(obj$gfits)){
+    xfit <- obj$gfits[[1]]$is_trained
+    if(xfit){
+      tasklist <- list()
+      tasklist$slX <- lapply(1:length(obj$gfits), function(x) obj$gfits[[x]]$training_task)
+    }
+  }
+  list(yfit=yfit,
+       xfit=xfit,
+       sl.qfit=obj$qfit,
+       sl.gfits=obj$gfit,
+       tasklist=tasklist,
+       binomial=obj$binomial,
+       oldtype=obj$type,
+       scaled =obj$scaled,
+       weights=obj$weights,
+       n = length(obj$weights)
+       )
+}
+
+
+.attach_misc <- function(obj, scale_continuous, delta){
+  obj$scaled = scale_continuous
+  obj$delta = delta
+  obj
+}

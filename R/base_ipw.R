@@ -12,7 +12,8 @@
                    qfit,
                    gfits,
                    estimand,
-                    ...){
+                   wt,
+                   ...){
   # define shifts
   Xa <- .shift(X,Acol, -delta)
   Xb <- .shift(X,Acol,  delta)
@@ -23,11 +24,11 @@
   #
   #
   Haw = .Haw(gn, ga, gb)  # evaluated at A_i
-  psi <- mean(Haw*(Y) - Y)
+  psi <- mean((Haw*(Y) - Y*(estimand != "mean"))*wt)
   dc1 <- Haw*(Y - 0)
   dc2 <- 0
   dc3 <- - psi - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
-  list(eif = as.vector(dc1 + dc2 + dc3), psi=psi)
+  list(eif = as.vector(dc1 + dc2 + dc3)*wt, psi=psi)
 }
 
 
@@ -41,6 +42,7 @@
                    qfit,
                    gfits,
                    estimand,
+                   wt,
                    ...){
   # define shifts
   X0 <- .shift(X,Acol, -X[,Acol])
@@ -49,11 +51,11 @@
 
 
   Haw <- .Hawb(g0, delta, X, Acol, retcols=1)
-  psi <- mean(Haw*(Y) - Y)
+  psi <- mean((Haw*(Y) - Y*(estimand != "mean"))*wt)
   dc1 <- Haw*(Y - 0)
   dc2 <- 0
   dc3 <- - psi - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
-  list(eif = as.vector(dc1 + dc2 + dc3), psi=psi)
+  list(eif = as.vector(dc1 + dc2 + dc3)*wt, psi=psi)
 }
 
 
@@ -63,14 +65,25 @@
 
 #.MakeiIpwEst <- .MakeTmleEst
 
-.EstEqIPW <- function(n,X,Y,delta,qfun=NULL,gfun,qfit=NULL,gfits,estimand, bounded=FALSE,...){
+.EstEqIPW <- function(n,
+                      X,
+                      Y,
+                      delta,
+                      qfun=NULL,
+                      gfun,
+                      qfit=NULL,
+                      gfits,
+                      estimand,
+                      bounded=FALSE,
+                      wt=rep(1,n),
+                      ...){
   isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
-      dphi <- .DbIPW(n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits,estimand, ...)
+      dphi <- .DbIPW(n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits,estimand,wt, ...)
     } else{
-      dphi <- .DcIPW( n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits,estimand, ...)
+      dphi <- .DcIPW( n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits,estimand,wt, ...)
     }
     tm <- .MakeTmleEst(dphi)
     resmat[Acol,] <- tm
@@ -85,46 +98,61 @@
 ################################
 # expert wrappers
 ################################
-
-
-#' @export
-.varimp_ipw <- function(X,Y, delta=0.1, Y_learners=NULL, Xdensity_learners=NULL, Xbinary_learners=NULL, verbose=TRUE,estimand, bounded=FALSE, ...){
-  tasklist = .create_tasks(X,Y,delta, ...)
-  n = length(Y)
-  if(verbose) cat(paste0("Default delta = ", delta, "\n")) # TODO: better interpretation
-
-  isbin <- as.character((length(unique(Y))==2))
-  #sl.qfit <- .train_Y(X,Y, Y_learners, verbose=TRUE, isbin)
-  sl.gfits <- .train_allX(X, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)
-  #.gfunction(X=NULL,Acol,gfits=sl.gfits)
-  #.qfunction(X=NULL,Acol,qfit=sl.qfit)
-  fittable <- .EstEqIPW(n,X,Y,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=sl.gfits,estimand, bounded=FALSE)
+.trained_ipw <- function(obj,
+                          X,
+                          Y,
+                          delta,
+                          qfun,
+                          gfun,
+                          estimand,
+                          bounded,
+                          updatetype){
+  fittable <- .EstEqIPW(obj$n,X,Y,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=obj$sl.gfits,estimand, bounded=FALSE,wt=obj$weights)
   res <- list(
     res = fittable,
     qfit = NULL,
-    gfits = sl.gfits,
-    binomial = isbin,
-    type = "IPW"
+    gfits = obj$sl.gfits,
+    binomial = obj$isbin,
+    type = "IPW",
+    weights=obj$weights
   )
   class(res) <- c("vibr.fit", class(res))
+  res
+}
+
+#' @export
+.varimp_ipw <- function(X,
+                        Y,
+                        V=NULL,
+                        delta=0.1,
+                        Y_learners=NULL,
+                        Xdensity_learners=NULL,
+                        Xbinary_learners=NULL,
+                        verbose=TRUE,
+                        estimand,
+                        bounded=FALSE,
+                        ...){
+  obj = .prelims(X, Y, V, delta, Y_learners=NULL, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
+  res = .trained_aipw(obj,X,Y,delta,qfun,gfun,estimand,bounded,updatetype)
   res
 }
 
 
 #' @export
 .varimp_ipw_boot <- function(X,
-                              Y,
-                              delta=0.1,
-                              Y_learners=NULL,
-                              Xdensity_learners=NULL,
-                              Xbinary_learners=NULL,
-                              verbose=TRUE,
-                              estimand="diff",
-                              bounded=FALSE,
-                              B=100,
+                             Y,
+                             V=NULL,
+                             delta=0.1,
+                             Y_learners=NULL,
+                             Xdensity_learners=NULL,
+                             Xbinary_learners=NULL,
+                             verbose=TRUE,
+                             estimand="diff",
+                             bounded=FALSE,
+                             B=100,
                              showProgress=TRUE,
                              ...){
-  est <- .varimp_ipw(X,Y,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,...)
+  est <- .varimp_ipw(X,Y,V,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,...)
   rn <- rownames(est$res)
   bootests <- matrix(NA, nrow=B, ncol = length(rn))
   n = length(Y)
@@ -134,12 +162,9 @@
     ridx <- sample(seq_len(n), n, replace=TRUE)
     Xi = X[ridx,,drop=FALSE]
     Yi = Y[ridx]
-    tasklist = .create_tasks(Xi,Yi,delta, ...)
-    yb = .bound_zero_one(Yi)
-    Ybound = yb[[1]]
-    #sl.qfit <- .train_Y(Xi,Yi, Y_learners, verbose=FALSE, isbin)
-    sl.gfits <- .train_allX(Xi, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)
-    fittable <- .EstEqIPW(n,Xi,Yi,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=sl.gfits, estimand,bounded)
+    Vi = V[ridx,,drop=FALSE]
+    obj = .prelims(Xi, Yi, Vi, delta, Y_learners=NULL, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
+    fittable <- .EstEqIPW(obj$n,Xi,Yi,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=obj$sl.gfits, estimand,bounded,wt=obj$weights)
     bootests[b,] <- fittable$est
   }
   colnames(bootests) <- rn

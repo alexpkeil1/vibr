@@ -9,38 +9,72 @@
 
 # note d(a|w) = A+delta, and d^-1(a|w) = h(a|w) = A-delta
 
-.OneStepTmleCont <- function(Y,Qinit,Qdawinit,Haw,Hdaw,isbin=FALSE, weighted=FALSE, .link=.identity, .ilink=.invidentity){
+.OneStepTmleCont <- function(Y,
+                             Qinit,
+                             Qdawinit,
+                             Haw,
+                             Hdaw,
+                             isbin=FALSE,
+                             weighted=FALSE,
+                             wt=wt,
+                             .link=.identity,
+                             .ilink=.invidentity
+                             ){
   # Q_update(A,W) = Q(A,W) + eps*H(A,W)
   # Q_update(A,W) = expit(logit(Q(A,W)) + eps*H(A,W))
   # 1. estimate epsilon
   if(.link(.3)==.ilink(.3)) fam <- gaussian()
   if(.link(.3)!=.ilink(.3)) fam <- binomial()
   if(weighted){
-    epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = Haw, family=fam)$coefficients[1])
+    #
+    #epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = Haw*wt, family=fam)$coefficients[1])
+    epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = pmax(0,Haw), family=fam)$coefficients[1])
+    # 2. update Qk
+    Qk1 <- .ilink(.link(Qinit) + epsk)        # Q(A       | W) + eps*H(A      |W)
+    Qdawk1 <- .ilink(.link(Qdawinit) + epsk) # Q(A+delta | W) + eps*H(A+delta|W)
   } else{
+    #epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, weights=wt, family=fam)$coefficients[1])
     epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, family=fam)$coefficients[1])
+    # 2. update Qk
+    Qk1 <- .ilink(.link(Qinit) + epsk*Haw)        # Q(A       | W) + eps*H(A      |W)
+    Qdawk1 <- .ilink(.link(Qdawinit) + epsk*Hdaw) # Q(A+delta | W) + eps*H(A+delta|W)
   }
-  # 2. update Qk
-  Qk1 <- .ilink(.link(Qinit) + epsk*Haw)
-  Qdawk1 <- .ilink(.link(Qdawinit) + epsk*Hdaw)
   cbind(Qk1, Qdawk1)
 }
 
-.OneStepTmleBin <- function(Y,Qinit,Q1init,Q0init,Haw,H1,H0,isbin=FALSE, weighted=FALSE, .link=.identity, .ilink=.invidentity){
+.OneStepTmleBin <- function(Y,
+                            Qinit,
+                            Q1init,
+                            Q0init,
+                            Haw,
+                            H1,
+                            H0,
+                            isbin=FALSE,
+                            weighted=FALSE,
+                            wt=wt,
+                            .link=.identity,
+                            .ilink=.invidentity
+                            ){
   # Q_update(A,W) = Q(A,W) + eps*H(A,W)
   # Q_update(A,W) = expit(logit(Q(A,W)) + eps*H(A,W))
   # 1. estimand epsilon
   if(.link(.3)==.ilink(.3)) fam <- gaussian()
   if(.link(.3)!=.ilink(.3)) fam <- binomial()
   if(weighted){
-    epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = Haw, family=fam)$coefficients[1])
+    #epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = Haw*wt, family=fam)$coefficients[1])
+    epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = pmax(0,Haw), family=fam)$coefficients[1])
+    # 2. update Qk
+    Qk1 <- .ilink(.link(Qinit) + epsk)
+    Q1k1 <- .ilink(.link(Q1init) + epsk)
+    Q0k1 <- .ilink(.link(Q0init) + epsk)
   } else{
+    #epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, weights=wt, family=fam)$coefficients[1])
     epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, family=fam)$coefficients[1])
+    # 2. update Qk
+    Qk1 <- .ilink(.link(Qinit) + epsk*Haw)
+    Q1k1 <- .ilink(.link(Q1init) + epsk*H1)
+    Q0k1 <- .ilink(.link(Q0init) + epsk*H0)
   }
-  # 2. update Qk
-  Qk1 <- .ilink(.link(Qinit) + epsk*Haw)
-  Q1k1 <- .ilink(.link(Q1init) + epsk*H1)
-  Q0k1 <- .ilink(.link(Q0init) + epsk*H0)
   cbind(Qk1, Q1k1, Q0k1)
 }
 
@@ -65,6 +99,8 @@
                 gfits,
                 estimand = "mean",
                 bounded,
+                wt,
+                updatetype="weighted",
                 ...
                 ){
   # define shifts
@@ -81,17 +117,18 @@
   qbinit = qfun(Xb, Acol,qfit=qfit)
   #
   #ga = .enforce_min_dens(ga,eps=1e-8)
-  Haw = .Haw(gn, ga, gb)  # evaluated at A_i
+  Haw = .Haw(gn, ga, gb)  # evaluated at A_i (ga/gn) + I(gb=0)
   Hdaw = .Haw(gb, gn, gbb) # evaluated at d(A_i,W_i)
 
   #.OneStepTmleCont(Y,Qinit,Qdawinit,Haw,Hdaw,isbin=FALSE, weighted=FALSE, link=.identity, ilink=.invidentity)
-  QuMat <- .OneStepTmleCont(Y,qinit,qbinit,Haw,Hdaw,isbin=FALSE, weighted=FALSE, .link=.identity, .ilink=.invidentity)
-  Qupdate <- QuMat[,1,drop=TRUE]
-  Qdawupdate <- QuMat[,2,drop=TRUE]
+  QuMat <- .OneStepTmleCont(Y,qinit,qbinit,Haw,Hdaw,isbin=FALSE, weighted=(updatetype=="weighted"), wt=wt, .link=.identity, .ilink=.invidentity)
+  Qupdate <- QuMat[,1,drop=TRUE]     # predict at observed A
+  Qdawupdate <- QuMat[,2,drop=TRUE]  # predict at observed A + delta
   #.OneStepTmleBin(Y,qinit,Haw,Hdaw,isbin=FALSE)
   #eqfb = predict(lm(y~., data.frame(y=qfb, X=X[,-Acol])))   # simple linear regression on W to get E_g[Q | W]
+  # TODO: FIGURE OUT WEIGHTS!
   eqfb <- 0 # cancels out
-  psi <- mean(Qdawupdate - Y)
+  psi <- mean((Qdawupdate - Y*(estimand != "mean")))
   dc1 <- Haw*(Y - Qupdate)
   dc2 <- Qdawupdate - eqfb
   dc3 <- eqfb - Y*(estimand != "mean") - psi               # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
@@ -110,6 +147,8 @@
                     gfits,
                     estimand = "mean",
                     bounded,
+                    wt,
+                    updatetype="weighted",
                     ...
 ){
   # define shifts
@@ -131,14 +170,14 @@
   H0 <- Hawmat[,3]
 
   #.OneStepTmleBin <- function(Y,Qinit,Q1init,Q0init,Haw,H1,H0,isbin=FALSE, link=.identity, ilink=.invidentity)
-  QuMat <- .OneStepTmleBin(Y,qinit, q1init, q0init,Haw,H1,H0,isbin=FALSE, weighted=FALSE,.link=.identity, .ilink=.invidentity)
+  QuMat <- .OneStepTmleBin(Y,qinit, q1init, q0init,Haw,H1,H0,isbin=FALSE, weighted=(updatetype=="weighted"), wt=wt,.link=.identity, .ilink=.invidentity)
   Qupdate <- QuMat[,1,drop=TRUE]
   Q1update <- QuMat[,2,drop=TRUE]
   Q0update <- QuMat[,3,drop=TRUE]
   #.OneStepTmleBin(Y,qinit,Haw,Hdaw,isbin=FALSE)
   #eqfb = predict(lm(y~., data.frame(y=qfb, X=X[,-Acol])))   # simple linear regression on W to get E_g[Q | W]
   eqfb <- 0 # cancels out
-  psi <- mean(Qupdate + delta*(Q1update - Q0update) - Y)
+  psi <- mean((Qupdate + delta*(Q1update - Q0update) - Y*(estimand != "mean")))
   dc1 <- Haw*(Y - Qupdate)
   dc2 <- Qupdate - eqfb
   dc3 <- delta*(Q1update - Q0update) + eqfb - Y*(estimand != "mean") - psi                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
@@ -169,15 +208,16 @@
                        gfits,
                        estimand,
                        bounded,
+                       wt=rep(1,n),
+                       updatetype="weighted",
                        ...){
-  #return(NULL)# remove when done
   isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
-      dphi <- .DbTMLE(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded)
+      dphi <- .DbTMLE(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded,wt,updatetype)
     } else{
-      dphi <- .DcTMLE( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded)
+      dphi <- .DcTMLE( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded,wt,updatetype)
     }
     tm <- .MakeTmleEst(dphi)
     resmat[Acol,] <- tm
@@ -193,67 +233,74 @@
 ################################
 # expert wrappers
 ################################
-#' @export
-.varimp_tmle <- function(X,
-                         Y,
-                         delta=0.1,
-                         Y_learners=NULL,
-                         Xdensity_learners=NULL,
-                         Xbinary_learners=NULL,
-                         verbose=TRUE,
-                         estimand="diff",
-                         bounded=FALSE,
-                         ...){
-  tasklist = .create_tasks(X,Y,delta, ...)
-  n = length(Y)
-  if(verbose) cat(paste0("delta = ", delta, "\n")) # TODO: better interpretation
-
-  isbin <- as.character((length(unique(Y))==2))
-  yb = .bound_zero_one(Y)
-  Ybound = yb[[1]]
-  sl.qfit <- .train_Y(X,Y, Y_learners, verbose=verbose, isbin, ...)
-  sl.gfits <- .train_allX(X, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)
-  fittable <- .EstEqTMLE(n,X,Y,delta,qfun=.qfunction,gfun=.gfunction,qfit=sl.qfit,gfits=sl.gfits, estimand,bounded)
+.trained_tmle <- function(obj,
+                          X,
+                          Y,
+                          delta,
+                          qfun,
+                          gfun,
+                          estimand,
+                          bounded,
+                          updatetype){
+  fittable <- vibr:::.EstEqTMLE(n=obj$n,X=X,Y=Y,delta=delta,qfun=vibr:::.qfunction,gfun=vibr:::.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights,updatetype=updatetype)
   res <- list(
     res = fittable,
-    qfit = sl.qfit,
-    gfits = sl.gfits,
-    binomial = isbin,
-    type = "TMLE"
-  )
+    qfit = obj$sl.qfit,
+    gfits = obj$sl.gfits,
+    binomial = obj$isbin,
+    type = "TMLE",
+    weights=obj$weights
+    )
   class(res) <- c("vibr.fit", class(res))
   res
 }
 
 #' @export
-.varimp_tmle_boot <- function(X,
+.varimp_tmle <- function(X,
                          Y,
+                         V=NULL,
                          delta=0.1,
                          Y_learners=NULL,
                          Xdensity_learners=NULL,
                          Xbinary_learners=NULL,
                          verbose=TRUE,
-                         estimand="diff",
+                         estimand,
                          bounded=FALSE,
-                         B=100,
-                         showProgress=TRUE,
+                         updatetype="weighted",
                          ...){
-  est <- .varimp_tmle(X,Y,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,...)
+  obj = .prelims(X, Y, V, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
+  res = .trained_tmle(obj,X,Y,delta,qfun,gfun,estimand,bounded,updatetype)
+  res
+}
+
+#' @export
+.varimp_tmle_boot <- function(X,
+                              Y,
+                              V=NULL,
+                              delta=0.1,
+                              Y_learners=NULL,
+                              Xdensity_learners=NULL,
+                              Xbinary_learners=NULL,
+                              verbose=TRUE,
+                              estimand="diff",
+                              bounded=FALSE,
+                              updatetype="weighted",
+                              B=100,
+                              showProgress=TRUE,
+                              ...){
+  est <- .varimp_tmle(X,Y,V,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,updatetype,...)
   rn <- rownames(est$res)
   bootests <- matrix(NA, nrow=B, ncol = length(rn))
   n = length(Y)
-  isbin <- as.character((length(unique(Y))==2))
+  #isbin <- as.character((length(unique(Y))==2))
   for(b in 1:B){
     if(showProgress) cat(".") # TODO: better interpretation
     ridx <- sample(seq_len(n), n, replace=TRUE)
     Xi = X[ridx,,drop=FALSE]
     Yi = Y[ridx]
-    tasklist = .create_tasks(Xi,Yi,delta, ...)
-    yb = .bound_zero_one(Yi)
-    Ybound = yb[[1]]
-    sl.qfit <- .train_Y(Xi,Yi, Y_learners, verbose=FALSE, isbin)
-    sl.gfits <- .train_allX(Xi, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose)
-    fittable <- .EstEqTMLE(n,Xi,Yi,delta,qfun=.qfunction,gfun=.gfunction,qfit=sl.qfit,gfits=sl.gfits, estimand,bounded)
+    Vi = V[ridx,,drop=FALSE]
+    obj = .prelims(Xi, Yi, Vi, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
+    fittable <- .EstEqTMLE(obj$n,Xi,Yi,delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand,bounded,wt=obj$weights,updatetype)
     bootests[b,] <- fittable$est
   }
   colnames(bootests) <- rn
@@ -261,7 +308,7 @@
   res <- list(
     est = est,
     boots = bootests,
-    binomial = isbin,
+    binomial = obj$isbin,
     type = "TMLE"
   )
   class(res) <- c("vibr.bootfit", class(res))
