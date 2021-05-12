@@ -1,4 +1,4 @@
-flibrary(mvtnorm)
+library(mvtnorm)
 library(vibr)
 library(txshift)
 library(sl3)
