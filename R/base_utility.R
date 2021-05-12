@@ -30,7 +30,7 @@
 ################################
 # Data handlers
 ################################
-
+#' @importFrom sl3 sl3_Task variable_type
 .create_tasks <- function(X,Y, V=NULL, delta=0.1, ...){
   X <- as.data.frame(X)
   p <- ncol(X)
@@ -42,35 +42,21 @@
     X = data.frame(cbind(X, V)) # V can hold weights, offsets, etc.
   }
   for(j in seq_len(p)){
-    isbin = length(unique(X))==2
+    isbin = length(unique(X[,j]))==2
     tt = ifelse(isbin, "binomial", "continuous")
-    slX[[j]] <- sl3_Task$new(outcome_type=variable_type(type=tt), data=data.frame(X),
+    slX[[j]] <- sl3_Task$new(outcome_type=variable_type(type=tt), data=X,
                              covariates=nm[-j],
                              outcome=nm[j], ...
     )
-    #    Xt = X
-#    Xt[j] = ifelse(isbin, 1, X[j]+delta)
-#    slXpdelta[[j]] <- sl3_Task$new(outcome_type=variable_type(type=tt), data=data.frame(Xt),
-#                                   covariates=nm[-j],
-#                                   outcome=nm[j], ...
-#    )
-#    Xt[j] = ifelse(isbin, 0, X[j]-delta)
-#    slXmdelta[[j]] <- sl3_Task$new(outcome_type=variable_type(type=tt), data=data.frame(Xt),
-#                                   covariates=nm[-j],
-#                                   outcome=nm[j], ...
-#    )
   }
   # TODO: give this a class
   list(
-    slX = slX #,
-    #slXpdelta = slXpdelta, # X + delta
-    #slXmdelta = slXmdelta # X-delta
+    slX = slX
   )
 }
 
 .scale_continuous <- function(X){
   p <- ncol(X)
-  #nm = names(X)
   isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
   for(j in seq_len(p)){
     if(!isbin_vec[j]){
@@ -446,15 +432,14 @@
   # checking for weights
   nmargs = names(args)
   if("weights" %in% nmargs){
-    wt <- V[,args$weights]
+    wt <- V[,args$weights, drop=TRUE]
   } else{
     wt <- rep(1.0, n)
   }
   if(!is.logical(all.equal(sum(wt),as.double(n)))){
     if(verbose) cat("Normalizing weights to sum to length(Y)")
-    wt = wt/mean(wt)
+    wt <- wt/mean(wt)
   }
-
   tasklist = .create_tasks(X,Y,V,delta, ...)
   isbin <- as.character((length(unique(Y))==2))
   if(verbose) cat(paste0("delta = ", delta, "\n")) # TODO: better interpretation
@@ -462,7 +447,7 @@
   Ybound = yb[[1]]
   sl.qfit <- sl.gfits <- NULL
   if(!is.null(Y_learners)){
-    yb = .bound_zero_one(Y)
+    #yb = .bound_zero_one(Y)
     sl.qfit <- .train_Y(X,Y, Y_learners, verbose=verbose, isbin, V=V, ...)
   }
   if(!is.null(Xbinary_learners) || !is.null(Xdensity_learners)){

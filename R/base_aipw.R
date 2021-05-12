@@ -13,6 +13,7 @@
                 qfit,
                 gfits,
                 estimand,
+                bounded,
                 wt,
                 ...){
   # define shifts
@@ -48,6 +49,7 @@
                 qfit,
                 gfits,
                 estimand,
+                bounded,
                 wt,
                 ...){
   # define shifts
@@ -62,7 +64,8 @@
   #
   #ga = .enforce_min_dens(ga,eps=1e-8)
 
-  Haw <- .Hawb(g0, delta, X, Acol, retcols=1)
+  Hawmat <- .Hawb(g0, delta, X, Acol, retcols=3)
+  Haw  <- Hawmat[,1]
 
   eqfb <- 0 # cancels out
   dc1 <- Haw*(Y - qinit)
@@ -102,9 +105,9 @@
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
-      dphi <- .DbAIPW(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand, wt,...)
+      dphi <- .DbAIPW(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand, bounded, wt)
     } else{
-      dphi <- .DcAIPW( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand, wt,...)
+      dphi <- .DcAIPW( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand, bounded, wt)
     }
     tm <- .MakeiAipwEst(dphi)
     resmat[Acol,] <- tm
@@ -177,19 +180,23 @@
                               ...){
   est <- .varimp_aipw(X,Y,V,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,...)
   rn <- rownames(est$res)
-  bootests <- matrix(NA, nrow=B, ncol = length(rn))
   n = length(Y)
   isbin <- as.character((length(unique(Y))==2))
+  ee <- new.env()
   for(b in 1:B){
-    if(showProgress) cat(".") # TODO: better interpretation
+    if(showProgress) cat(".")
     ridx <- sample(seq_len(n), n, replace=TRUE)
-    Xi = X[ridx,,drop=FALSE]
-    Yi = Y[ridx]
-    Vi = V[ridx,,drop=FALSE]
-    obj = .prelims(Xi, Yi, Vi, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
-    fittable <- .EstEqAIPW(obj$n,Xi,Yi,delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand,bounded,wt=obj$weights)
-    bootests[b,] <- fittable$est
+    ee[[paste0("iter",b)]] <- future( {
+      Xi = X[ridx,,drop=FALSE]
+      Yi = Y[ridx]
+      Vi = V[ridx,,drop=FALSE]
+      obj = .prelims(X=Xi, Y=Yi, V=Vi, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
+      fittable <- .EstEqAIPW(n=obj$n,X=Xi,Y=Yi,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights)
+      fittable$est
+    }, seed=TRUE, lazy=TRUE)
   }
+  bootests = do.call(rbind, as.list(value(ee)))
+  if(showProgress) cat("\n")
   colnames(bootests) <- rn
   if(verbose) cat("\n")
   res <- list(

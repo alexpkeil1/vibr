@@ -11,7 +11,7 @@ Author: Alexander Keil [aut, cre]
 Maintainer: Alexander Keil <akeil@unc.edu>
 Description: This package implements two variable importance estimators for prediction of binary or continuous target variables. Namely, based on a black-box prediction/regression model fit to the data, this approach yields g-computation and augmented inverse probability weighted estimates of variable importance, both described by Diaz et al (2014), and the targeted maximum likelihood approach described in Diaz and van der Laan (2018). This package relies on black-box prediction from the \code{sl3} package, which, among other things, uses super learning (stacking) to make predictions.
 Depends:  R (>= 3.5), sl3
-Imports:  mvtnorm, glmnet, earth, qgcomp, randomForest, nnls, Rsolnp, R6, data.table
+Imports:  mvtnorm, glmnet, earth, qgcomp, randomForest, nnls, Rsolnp, R6, data.table, future
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true

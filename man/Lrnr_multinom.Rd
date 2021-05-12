@@ -77,7 +77,7 @@ Other Learners:
 \if{latex}{\out{\hypertarget{method-new}{}}}
 \subsection{Method \code{new()}}{
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Lrnr_multinom$new(size = 5, decay = 0, maxit = 100, linout = FALSE, ...)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Lrnr_multinom$new(decay = 0, maxit = 100, linout = FALSE, ...)}\if{html}{\out{</div>}}
 }
 
 }

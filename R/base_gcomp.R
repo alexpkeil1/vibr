@@ -19,7 +19,7 @@
   Xb <- X
   Xb[,Acol] <- X[,Acol]+delta
   p2 <- qfun(Xb,Acol,qfit=qfit,...)
-  sum((p2 - Y*(estimand != "mean"))*wt)/n
+  (p2 - Y*(estimand != "mean"))*wt
 }
 
 # binary
@@ -40,14 +40,15 @@
   X1 <- .shift(X,Acol,  (1-X[,Acol]))
   p2 <- qfun(qfit=qfit,...)
   p3 <- delta*(qfun(X1,Acol,qfit=qfit,...) - qfun(X0,Acol,qfit=qfit,...))
-  sum((p2 + p3 - Y*(estimand != "mean"))*wt)/n
+  (p2 + p3 - Y*(estimand != "mean"))*wt
 }
 
-
-.EstGcomp <- function(est){
+.EstGcomp <- function(phi){
   #summary(fit <- lm(dphi~1))
-  D <- est
-  c(est=est, se = NA, z=NA)
+  est = mean(phi)
+  D <- phi-est
+  se = sqrt(mean(D^2)/length(D))
+  c(est=est, se = se, z=est/se)
 }
 
 .EstimatorGcomp <- function(n,
@@ -66,11 +67,11 @@
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
-      est <- .gcb(n=n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=qfun,gfun=NULL,qfit=qfit,gfits=NULL,estimand=estimand, wt=wt, ...)
+      phi <- .gcb(n=n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=qfun,gfun=NULL,qfit=qfit,gfits=NULL,estimand=estimand, wt=wt, ...)
     } else{
-      est <- .gcc(n=n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=qfun,gfun=NULL,qfit=qfit,gfits=NULL,estimand=estimand, wt=wt, ...)
+      phi <- .gcc(n=n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=qfun,gfun=NULL,qfit=qfit,gfits=NULL,estimand=estimand, wt=wt, ...)
     }
-    tm <- .EstGcomp(est)
+    tm <- .EstGcomp(phi)
     resmat[Acol,] <- tm
   }
   colnames(resmat) <- names(tm)
@@ -141,19 +142,23 @@
                                ...){
   est <- .varimp_gcomp(X,Y,V,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,...)
   rn <- rownames(est$res)
-  bootests <- matrix(NA, nrow=B, ncol = length(rn))
   n = length(Y)
   isbin <- as.character((length(unique(Y))==2))
+  ee <- new.env()
   for(b in 1:B){
-    if(showProgress) cat(".") # TODO: better interpretation
+    if(showProgress) cat(".")
     ridx <- sample(seq_len(n), n, replace=TRUE)
-    Xi = X[ridx,,drop=FALSE]
-    Yi = Y[ridx]
-    Vi = V[ridx,,drop=FALSE]
-    obj = .prelims(Xi, Yi, Vi, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
-    fittable <- .EstimatorGcomp(obj$n,Xi,Yi,delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand,bounded,wt=obj$weights)
-    bootests[b,] <- fittable$est
+    ee[[paste0("iter",b)]] <- future( {
+      Xi = X[ridx,,drop=FALSE]
+      Yi = Y[ridx]
+      Vi = V[ridx,,drop=FALSE]
+      obj = .prelims(X=Xi, Y=Yi, V=Vi, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
+      fittable <- .EstimatorGcomp(obj$n,Xi,Yi,delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand,bounded,wt=obj$weights)
+      fittable$est
+    }, seed=TRUE, lazy=TRUE)
   }
+  bootests = do.call(rbind, as.list(value(ee)))
+  if(showProgress) cat("\n")
   colnames(bootests) <- rn
   if(verbose) cat("\n")
   res <- list(

@@ -154,19 +154,23 @@
                              ...){
   est <- .varimp_ipw(X,Y,V,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,...)
   rn <- rownames(est$res)
-  bootests <- matrix(NA, nrow=B, ncol = length(rn))
   n = length(Y)
   isbin <- as.character((length(unique(Y))==2))
+  ee <- new.env()
   for(b in 1:B){
-    if(showProgress) cat(".") # TODO: better interpretation
+    if(showProgress) cat(".")
     ridx <- sample(seq_len(n), n, replace=TRUE)
-    Xi = X[ridx,,drop=FALSE]
-    Yi = Y[ridx]
-    Vi = V[ridx,,drop=FALSE]
-    obj = .prelims(Xi, Yi, Vi, delta, Y_learners=NULL, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
-    fittable <- .EstEqIPW(obj$n,Xi,Yi,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=obj$sl.gfits, estimand,bounded,wt=obj$weights)
-    bootests[b,] <- fittable$est
+    ee[[paste0("iter",b)]] <- future( {
+      Xi = X[ridx,,drop=FALSE]
+      Yi = Y[ridx]
+      Vi = V[ridx,,drop=FALSE]
+      obj = .prelims(X=Xi, Y=Yi, V=Vi, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
+      fittable <- .EstEqIPW(obj$n,Xi,Yi,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=obj$sl.gfits, estimand,bounded,wt=obj$weights)
+      fittable$est
+    }, seed=TRUE, lazy=TRUE)
   }
+  bootests = do.call(rbind, as.list(value(ee)))
+  if(showProgress) cat("\n")
   colnames(bootests) <- rn
   if(verbose) cat("\n")
   res <- list(

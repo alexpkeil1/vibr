@@ -75,8 +75,9 @@ varimp <- function(X,
                  IPW=.varimp_ipw_boot(    X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, B=B, showProgress=showProgress,...),
                  TMLE=.varimp_tmle_boot(  X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, updatetype=updatetype, B=B, showProgress=showProgress,...)
     )
+    res$est <- .attach_misc(res$est, scale_continuous=scale_continuous, delta=delta)
   }
-  res <- .attach_misc(res, scale_continuous, delta=delta)
+  res <- .attach_misc(res, scale_continuous=scale_continuous, delta=delta)
   res
 }
 
