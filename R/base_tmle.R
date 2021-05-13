@@ -269,6 +269,7 @@
   res = .trained_tmle(obj,X,Y,delta,qfun,gfun,estimand,bounded,updatetype)
   res
 }
+
 #' @importFrom future future value
 #' @export
 .varimp_tmle_boot <- function(X,
@@ -293,7 +294,7 @@
   ee <- new.env()
   for(b in 1:B){
     ridx <- sample(seq_len(n), n, replace=TRUE)
-    ee[[paste0("iter",b)]] <- future( {
+    ee[[paste0("iter",b)]] <- future::future( {
       if(showProgress) cat(".")
       Xi = X[ridx,,drop=FALSE]
       Yi = Y[ridx]
@@ -303,7 +304,7 @@
       fittable$est
     }, seed=TRUE, lazy=TRUE)
   }
-  bootests = do.call(rbind, as.list(value(ee)))
+  bootests = do.call(rbind, as.list(future::value(ee)))
   if(showProgress) cat("\n")
   colnames(bootests) <- rn
   if(verbose) cat("\n")

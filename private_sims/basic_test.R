@@ -262,13 +262,13 @@ system.time(res1 <- analyze(1231321, n=100, B=20, delta = 0.1, beta = c(1, -.4, 
 (ncores <- future::availableCores())
 future::plan("multisession", workers=ncores)
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
-system.time(res1 <- analyze(1231321, n=100, B=20, delta = 0.1, beta = c(1, -.4, 1, 2,-1), degree=1, zk = c(-1.5, 0, 1.5)))
+system.time(res1 <- analyze(1231321, n=100, B=100, delta = 0.1, beta = c(1, -.4, 1, 2,-1), degree=1, zk = c(-1.5, 0, 1.5)))
 
 csvout <- "/Users/akeil/temp/vimp_check.csv"
 write.table(t(res1), csvout, append = FALSE, row.names = FALSE, sep=",")
 
 resL = future.apply::future_lapply(1:1000, analyze, outfile=csvout, n=100, B=100, delta = 0.1, beta = c(1, -.4, 1, 2,-1), degree=1, zk = c(-1.5, 0, 1.5),
-                                   future.seed=TRUE)
+                                   future.seed=TRUE, future.packages=NULL)
 res = as.data.frame(do.call(rbind, resL))
 rm <- apply(res, 2, mean)
 
