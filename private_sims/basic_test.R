@@ -87,93 +87,14 @@ binary_learners <- function(){
 
 testtxshift <- function(){
   set.seed(12312)
-  dat = dgm( n=1000, delta = 0.1, beta = c(1,2, -1.0, 1.0, -1.0), degree=1, zk = c(-1.5, 0, 1.5))
-  #plot(dat$X[,1], dat$y)
-  #plot(dat$X[,2], dat$y)
-  ####
-  .dl <- continuous_learners()
-  .tsk <- sl3_Task$new(data = data.frame(dat$X, y=dat$y),
-                       covariates=c("x", "z"),
-                       outcome="y")
-  .tskx <- sl3_Task$new(data = data.frame(dat$X),
-                        covariates=c("z"),
-                        outcome="x")
-  .tskz <- sl3_Task$new(data = data.frame(dat$X),
-                        covariates=c("x"),
-                        outcome="z")
-
-  f1 <- function(dl=.dl,tsk=.tsk){
-    learner_stack <- Stack$new(dl)
-    learner_fit <- learner_stack$train(tsk)
-    #cross validation
-    cv_stack <- Lrnr_cv$new(learner_stack)
-    cv_fit <- cv_stack$train(tsk)
-    cv_task <- cv_fit$chain()
-    # train super learner
-    type = "cont"
-    metalearner <- Lrnr_nnls$new(convex=TRUE)
-    sl_fit <- metalearner$train(cv_task)
-    #sl_pipeline <- make_learner(Pipeline, learner_fit, sl_fit)
-    sl_pipeline <- Pipeline$new(learner_fit, sl_fit)
-    list(sl_pipeline, metalearner)
-  }
-  (res1 <- f1(density_learners(), .tskz))
-  (res2 <- f1(continuous_learners(), .tsk))
-  sl_learner = res1[[1]]
-  #sl_learner$train(.tskz)
-
-  set.seed(123123)
-
-  sl_learner_density <- Lrnr_sl$new(learners = Stack$new(density_learners()), metalearner = Lrnr_solnp_density_quiet$new())
-  sl_learner          <-Lrnr_sl$new(learners = Stack$new(continuous_learners()[1:2]), metalearner = Lrnr_nnls$new(convex=TRUE))
-  sl_learner_bin      <-Lrnr_sl$new(learners = Stack$new(binary_learners()), metalearner = Lrnr_nnls$new(convex=TRUE))
-  #sl_learner_density$train_sublearners(.tskz)
-  #sl_learner_density$train(.tskz)
-  #sl_learner_bin$train_sublearners(.tskx)
-  #sl_learner_bin$train(.tskx)
-  #sl_learner$train_sublearners(.tsk)
-  #sl_learner$train(.tsk)
-
-  (tmle <- txshift(W = data.frame(dat$X[,"x", drop=FALSE]), A = dat$X[,"z"], Y = as.numeric(dat$y), delta = .1,
-          estimator="tmle",
-          g_exp_fit_args = list(fit_type = "sl",
-                                sl_learners_density = sl_learner_density
-          ),
-          Q_fit_args = list(fit_type = "sl",
-                              sl_learners = sl_learner
-          )
-  ))
-  (tmle2 <- txshift(W = dat$X[,"z"], A = dat$X[,"x"], Y = as.numeric(dat$y), delta =.1,
-                   estimator="tmle",
-                   g_exp_fit_args = list(fit_type = "sl",
-                                         sl_learners_density = sl_learner_bin
-                   ),
-                   Q_fit_args = list(fit_type = "sl",
-                                     sl_learners = sl_learner
-                   )
-  ))
-  # delta method to get mean difference comparing Y^A+delta to Y^A
-  # if x-theta -> n^-1/2 N(0,sig^2)
-  # then g(x)-g(theta) -> n^-1/2 N(0,sig^2 * g'(theta)^2)
-  # g(x) \equiv X - Y
-  # g(theta) \equiv theta - Y
-  # g'(theta) = ?
-  dphi <- tmle$eif + tmle$psi - dat$y
-  mean(dphi)
-  dphi2 <- tmle2$eif + tmle2$psi - dat$y
-  mean(dphi2)
-  sd(dphi)/sqrt(length(dat$y))
-  sd(dphi2)/sqrt(length(dat$y))
-
+  dat = dgm( n=10000, delta = 0.1, beta = c(1,0), degree=1, zk = c(-1.5, 0, 1.5))
+  lm(dat$y~., data=data.frame(dat$X/.1))
   # bounded estimator in progress, will look like tmle package
   set.seed(123123)
   V = data.frame(wt=rep(1,length(dat$y)))
   (vimp <- varimp(data.frame(dat$X),dat$y, V=V, delta=.1, Y_learners=.default_continuous_learners(),
                   Xdensity_learners=.default_density_learners(), Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="TMLE", estimand="diff", weights="wt"))
-  (vimp <- varimp(data.frame(dat$X),dat$y, V=V, delta=.1, Y_learners=.default_continuous_learners(),
-                  Xdensity_learners=.default_density_learners(), Xbinary_learners=binary_learners(),
-                  verbose=FALSE, updatetype="unweighted", estimator="TMLE", estimand="diff", weights="wt", B=2))
   varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="AIPW", delta = .1)
   varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="IPW", delta = .1)
   varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .1)
@@ -293,17 +214,17 @@ stabilitytest <- function(...){
   plot(vimp$res$est-vimp2$res$est, vimp$res$se-vimp2$res$se)
 }
 
-analyze <- function(i, B=0, ...){
+analyze <- function(i, B=1, outfile=NULL, ...){
   dat = dgm(...)
   #set.seed(12312); dat = dgm( n=1000, delta = 0.1, beta = c(2,1, .3))
   (vimp <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
-                  Xdensity_learners=.default_density_learners(), Xbinary_learners=binary_learners(),
+                  Xdensity_learners=.default_density_learners()[c(1,2,4)], Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="TMLE", scale_continuous = FALSE))
   (vimp2 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="IPW", delta = .1))
   (vimp3 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .1))
   (vimp4 <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
-                  Xdensity_learners=.default_density_learners(), Xbinary_learners=binary_learners(),
-                  verbose=FALSE, estimator="TMLE", scale_continuous = FALSE, B=100))
+                  Xdensity_learners=.default_density_learners()[c(1,2,4)], Xbinary_learners=binary_learners(),
+                  verbose=FALSE, estimator="TMLE", scale_continuous = FALSE, B=B))
   #
   obj <- as.matrix(vimp$res)
   obj2 <- as.matrix(vimp2$res)
@@ -315,7 +236,7 @@ analyze <- function(i, B=0, ...){
   lmfit <- summary(lm(y~., data.frame(y=dat$y, dat$X/0.1)))
   # vimp$qfit$learner_fits$Stack$learner_fits$OLS$fit_object$R
   # chol(solve(lmfit$cov)) # close to cholesky decomposition of the Hessian, but varying in signs
-  c(
+  res = c(
     TMLEest = obj[1:2,1],
     TMLEse = obj[1:2,2],
     TMLEbootest = obj4[1:2,1],
@@ -328,15 +249,26 @@ analyze <- function(i, B=0, ...){
     lmse = lmfit$coefficients[2:3, 2],
     tr = tr
   )
+  if(!is.null(outfile)) write.table(t(res), outfile, append = TRUE, row.names = FALSE, sep=",", col.names = FALSE)
+  res
 }
 
 
+future::plan("sequential")
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
-t(res1 <- analyze(1231321, n=100, delta = 0.1, beta = c(1, -.4, 1, 2,-1), degree=1, zk = c(-1.5, 0, 1.5)))
+system.time(res1 <- analyze(1231321, n=100, B=20, delta = 0.1, beta = c(1, -.4, 1, 2,-1), degree=1, zk = c(-1.5, 0, 1.5)))
+
 
 (ncores <- future::availableCores())
-future::plan("multicore", workers=ncores)
-resL = future.apply::future_lapply(1:1000, analyze, n=100, delta = 0.1, beta = c(1, -.4, 1, 2,-1), degree=1, zk = c(-1.5, 0, 1.5), future.seed=TRUE)
+future::plan("multisession", workers=ncores)
+#dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
+system.time(res1 <- analyze(1231321, n=100, B=20, delta = 0.1, beta = c(1, -.4, 1, 2,-1), degree=1, zk = c(-1.5, 0, 1.5)))
+
+csvout <- "/Users/akeil/temp/vimp_check.csv"
+write.table(t(res1), csvout, append = FALSE, row.names = FALSE, sep=",")
+
+resL = future.apply::future_lapply(1:1000, analyze, outfile=csvout, n=100, B=100, delta = 0.1, beta = c(1, -.4, 1, 2,-1), degree=1, zk = c(-1.5, 0, 1.5),
+                                   future.seed=TRUE)
 res = as.data.frame(do.call(rbind, resL))
 rm <- apply(res, 2, mean)
 

@@ -126,6 +126,7 @@
 }
 
 
+#' @importFrom future future value
 #' @export
 .varimp_gcomp_boot <- function(X,
                                Y,

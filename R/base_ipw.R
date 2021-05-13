@@ -45,17 +45,17 @@
                    wt,
                    ...){
   # define shifts
-  X0 <- .shift(X,Acol, -X[,Acol])
+  #X0 <- vibr:::.shift(X,Acol, -X[,Acol])
   #X1 <- .shift(X,Acol,  (1-X[,Acol]))
-  g0 <- gfun(X0,Acol,gfits=gfits)
+  g0 <- 1-gfun(NULL,Acol,gfits=gfits)
 
 
   Haw <- .Hawb(g0, delta, X, Acol, retcols=1)
-  psi <- mean((Haw*(Y) - Y*(estimand != "mean"))*wt)
-  dc1 <- Haw*(Y - 0)
+  psi <- mean(Haw*Y*wt) - mean(Y*(estimand != "mean")*wt)
+  dc1 <- Haw*(Y - 0)*wt
   dc2 <- 0
-  dc3 <- - psi - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
-  list(eif = as.vector(dc1 + dc2 + dc3)*wt, psi=psi)
+  dc3 <- - psi - Y*(estimand != "mean")*wt                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  list(eif = as.vector(dc1 + dc2 + dc3), psi=psi)
 }
 
 
@@ -133,11 +133,12 @@
                         bounded=FALSE,
                         ...){
   obj = .prelims(X, Y, V, delta, Y_learners=NULL, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
-  res = .trained_aipw(obj,X,Y,delta,qfun,gfun,estimand,bounded,updatetype)
+  res = .trained_ipw(obj,X,Y,delta,qfun,gfun,estimand,bounded,updatetype)
   res
 }
 
 
+#' @importFrom future future value
 #' @export
 .varimp_ipw_boot <- function(X,
                              Y,

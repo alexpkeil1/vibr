@@ -397,6 +397,9 @@
 
 # clever covariate/weight continuous
 .Haw <- function(gn, ga, gb){
+  # if intervention would push exposure out of the support of A | W, then don't intervene (potential = observed outcome)
+  # g(a-delta) = expected density after probabilistically shifting all individuals to a-delta (continuous)
+  # i.e. if intervetion is g(a+delta), then observed individual represents g(a-delta) individuals in intervened world
   # I(A<u(w))g(a-delta|w)/g(a|w) + I(a>=u(w)-delta)
   Haw <- ifelse(gn>0, ga/gn, 0) + as.numeric(gb == 0)
   if(any(Haw<0)) warning(paste0("",sum(Haw<0), " weights (continuous predictor) were < 0\n"))
@@ -405,14 +408,29 @@
 
 # clever covariate, binary (based on diaz and vdl 2018, translated to shift in propensity score)
 .Hawb <- function(g0, shift, X, Acol, retcols=1){
-  # if intervention would push exposure out of the support of A | W, then don't intervene
-  # NOTE: (gn-shift)/gn = 1+(-shift)/gn;
+  # if intervention would push exposure out of the support of A | W, then don't intervene (potential = observed outcome)
+  # g(a-delta) = expected density after probabilistically shifting all individuals to a-delta (continuous)
+  # i.e. if intervetion is g(a+delta), then observed individual represents 1/g(a-delta) individuals in intervened world
+  # NOTE:
+  #    g(a-shift) = I(A=1)*(g(1)-shift) + I(A=0)*(g(0)+shift)          since support is only on [0,1](binary)
+  #    g(a-shift)/g(a)  =  (I(A=1)*(g(1)-shift) + I(A=0)*(g(0)+shift)) / (I(A=1)*g(1) + I(A=0)*g(0))
+  #        =  (I(A=1)*(g(1)-shift) + I(A=0)*(g(0)+shift)) / (I(A=1)*g(1) + I(A=0)*g(0))
+  #        =  (I(A=1)*(g(1)-shift)/ g(1) + I(A=0)*(g(0)+shift)/g(0)
+  #        =  (I(A=1)*(1-shift/ g(1)) + I(A=0)*(1+shift/g(0))
+  #        =  1 + (I(A=1)*(-shift/ g(n)) + I(A=0)*(+shift/g(n))
+  #        =  1 + shift(-I(A=1)/g(n) + I(A=0)/g(n))
+  #        =  1 + shift((I(A=0)-I(A=1))/g(n))
+  #
+  #
   #   1 + shift*(2A-1)/gn  = 1 + shift(I(A=1)/g1 - I(A=0)/g0)
-  #   I(A=1)(g1+shift)/g1  + I(A=0)(g0- shift)/G0 = 1+ shift/G1 - shift/G0
+  #    shift(I(A=1)/g1) = I(A=1)(g1+shift)/g1) -I(A=1)
+  #   -I(A=1) + I(A=1)(g1+shift)/g1 -  (-I(A=0)  I(A=0)(g0- shift)/G0) = 1 + shift/G1 - shift/G0
+  #   1 + I(A=1)(gn+shift)/gn + I(A=0)(gn- shift)/gn = 1 + I(A=1)(gn+shift)/gn - I(A=0)(gn + shift)/gn
+  #   (2A-1)*(gn+shift)/gn = (2A-1)*(1+shift/gn)
   g1 <- 1-g0
-  Haw1 <- ifelse(g1>0, 1+( shift)/g1, 0) + as.numeric(g1 + shift > 1)
-  Haw0 <- ifelse(g0>0, 1+(-shift)/g0, 0) + as.numeric(g0 - shift < 0)
-  Haw <- X[,Acol]*Haw1 + (1-X[,Acol])*Haw0
+  Haw1 <- ifelse(g1>0, 1 + shift/g1, 0) + as.numeric(g1 + shift > 1)
+  Haw0 <- ifelse(g0>0, 1 - shift/g0, 0) + as.numeric(g0 - shift < 0)
+  Haw <-  X[,Acol]*Haw1 + (1-X[,Acol])*Haw0
   if(any(Haw<0)) warning(paste0("",sum(Haw<0), " weights (binary predictor) were < 0\n"))
   cbind(Haw, Haw1, Haw0)[,1:retcols]
 }

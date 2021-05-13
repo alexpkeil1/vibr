@@ -55,7 +55,7 @@
   # define shifts
   X0 <- .shift(X,Acol, -X[,Acol])
   X1 <- .shift(X,Acol,  (1-X[,Acol]))
-  g0 <- gfun(X0,Acol,gfits=gfits)
+  g0 <- 1-gfun(NULL,Acol,gfits=gfits)
 
   #
   qinit = qfun(X, Acol,qfit=qfit)
@@ -164,6 +164,7 @@
   res
 }
 
+#' @importFrom future future value
 #' @export
 .varimp_aipw_boot <- function(X,
                               Y,

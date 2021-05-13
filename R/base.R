@@ -140,7 +140,7 @@ varimp_refit <- function(vibr.fit,
                          updatetype="weighted",
                          estimand="diff"
                          ){
-  obj <- .ChExstractFit(vibr.fit)
+  obj <- vibr:::.ChExstractFit(vibr.fit)
   if(obj$scaled){
     if(verbose) cat("Scaling all continuous variables by 2*sd\n")
     # divide continuous by 2*sd
