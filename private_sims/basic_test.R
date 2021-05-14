@@ -87,20 +87,37 @@ binary_learners <- function(){
 
 testtxshift <- function(){
   set.seed(12312)
-  dat = dgm( n=100, delta = 0.1, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
+  dat = dgm( n=500, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
   dat$tr
   lm(dat$y~., data=data.frame(dat$X/.1))
   task = sl3_Task$new(data=data.frame(dat$X), outcome="z", covariates="x")
   Lrnr_density_gaussian$new()$train(task)$predict()
   # bounded estimator in progress, will look like tmle package
-  set.seed(123123)
+  #set.seed(123123)
+  dat$X <- cbind(dat$X, z2=exp(runif(length(dat$y))))
+  subtest <- function() {
+    task <- sl3::sl3_Task$new(data = data.frame(dat$X), covariates="x", outcome="z")
+    ft <- Lrnr_density_gaussian$new(transfun = function(x) x)
+    fun = list()
+    is.null(fun$factor)
+    fitted <- ft$train(task)
+    fitted$predict()
+    #
+    task <- sl3::sl3_Task$new(data = data.frame(dat$X), covariates="x", outcome="z2")
+    ft <- Lrnr_density_gaussian$new(transfun = log)
+    fun = list()
+    is.null(fun$factor)
+    fitted <- ft$train(task)
+    fitted$predict()
+  }
+
   V = data.frame(wt=rep(1,length(dat$y)))
-  (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.1, Y_learners=.default_continuous_learners(),
-                  Xdensity_learners=c(Lrnr_density_gaussian$new(), density_learners()), Xbinary_learners=binary_learners(),
+  (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
+                  Xdensity_learners=c(Lrnr_density_gaussian$new(), Lrnr_density_gaussian$new(transfun=log)), Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="TMLE", estimand="diff", weights="wt", scale_continuous = FALSE))
-  (vi1<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="AIPW", delta = .1))
-  (vi3<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="IPW", delta = .1))
-  (vi2<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .1))
+  (vi1<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="AIPW", delta = .05))
+  (vi3<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="IPW", delta = .05))
+  (vi2<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .05))
   cor(as.matrix(cbind(tmle=vi0$rank, aipw=vi1$rank, gcomp=vi2$rank, ipw=vi3$rank)))
 
   #

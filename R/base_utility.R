@@ -73,9 +73,9 @@
     Z <- as.matrix(Z)
     itzz = MASS::ginv(t(Z) %*% Z)
     Hi <-  apply(Z, 1, function(zi) ((zi %*% itzz) %*% zi)[1])
-    ret = sqrt((1-Hi)*sse/df)
+    ret = sqrt((1-Hi)*sse/df) # individual standard errors from fitted data
   } else{
-    ret = sse/length(sse)
+    ret = sqrt(sse/df) # for new data
   }
   ret
 }
@@ -145,12 +145,12 @@
 .default_continuous_learners_big <- function(){
   continuous_learners=list(
     Lrnr_glm$new(name="ols", family=gaussian()),
-    Lrnr_glmnet$new(name="lasso", alpha=1.0, family="gaussian"),
+    Lrnr_glmnet$new(name="CV elastic net", alpha=0.0, family="gaussian"),
     Lrnr_stepwise$new(name="stepwise", family=gaussian()),
     Lrnr_earth$new(name="mars", family=gaussian()),
     Lrnr_xgboost$new(name="xgboost"),
     Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE),
-    Lrnr_glmnet$new(name="enet", alpha=0.0, family="gaussian"),
+    Lrnr_glmnet$new(name="CV lasso", alpha=1.0, family="gaussian"),
     Pipeline$new(Lrnr_pca$new(name="pca"), Lrnr_glm$new(name="ols", family=gaussian())), # PCA plus glm
     Pipeline$new(Lrnr_screener_coefs$new(name="lassocreen", learner=Lrnr_glmnet$new(name="lasso", alpha=1.0, family="gaussian")), Lrnr_earth$new(name="MARS", family=gaussian())), # screen by coefficient size then OLS
     Pipeline$new(Lrnr_screener_coefs$new(name="coefscreen", learner=Lrnr_glm$new(name="ols", family=gaussian())), Lrnr_glm$new(name="OLS", family=gaussian())), # screen by coefficient size then OLS
@@ -333,38 +333,6 @@
   pred
 }
 
-.gfunction_glm_density <- function(X=NULL,Acol=1,gfits=NULL, ...){
-  # assume normal model
-  yy = X[,-Acol,drop=TRUE]
-  if(!is.null(X)){
-    if(!is.data.frame(X)){
-      X = as.data.frame(X[,-Acol, drop=FALSE])
-    }
-    preds <- predict(gfits[[Acol]], newdata = X)
-  }
-  if(is.null(X)){
-    preds <- predict(gfits[[Acol]])
-  }
-  if(typeof(preds)=="list") preds <- preds[[1]]
-  err <- y - preds
-  sderr <- sd(err)
-  dens <- dnorm(err, 0, sderr)
-  dens
-}
-
-.gfunction_glm <- function(X=NULL,Acol=1,gfits=NULL, ...){
-  if(!is.null(X)){
-    if(!is.data.frame(XX)){
-      X = as.data.frame(X[,-Acol, drop=FALSE])
-    }
-    pred <- predict(gfits[[Acol]], newdata = X)
-  }
-  if(is.null(X)){
-    pred <- predict(gfits[[Acol]])
-  }
-  if(typeof(pred)=="list") pred <- pred[[1]]
-  pred
-}
 
 # outcome prediction
 #.qfunction <- function(X=NULL,Acol=1,qfit=sl.qfit, ...){
@@ -378,21 +346,6 @@
     pred <- qfit$predict(XX)
   }
   if(is.null(X))  pred <- qfit$predict()
-  if(typeof(pred)=="list") pred <- pred[[1]]
-  pred
-}
-
-
-.qfunction_glm <- function(X=NULL,Acol=1,gfits=NULL, ...){
-  if(!is.null(X)){
-    if(!is.data.frame(XX)){
-      X = as.data.frame(X[,, drop=FALSE])
-    }
-    pred <- predict(gfits[[Acol]], newdata = X)
-  }
-  if(is.null(X)){
-    pred <- predict(gfits[[Acol]])
-  }
   if(typeof(pred)=="list") pred <- pred[[1]]
   pred
 }

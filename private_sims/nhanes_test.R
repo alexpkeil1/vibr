@@ -18,12 +18,13 @@ dat <- read.csv("/Users/akeil/EpiProjects/NHANES/pcbs_furans_dioxins/mitro_data_
 Y = dat$telomean
 Xcr = dat[,c(mixturela)]
 X = dat[,c(mixturela, "ridageyr")]
-X = data.frame(cbind(log(dat[,c(mixturela)]), ridageyr=dat$ridageyr))
+#X = data.frame(cbind(log(dat[,c(mixturela)]), ridageyr=dat$ridageyr))
+summary(vibr:::.scale_continuous(X[,2, drop=FALSE]))
 
 
 vi0 <- vibr::varimp(X,Y,delta=0.1,
                    Y_learners = .default_continuous_learners(),
-                   Xdensity_learners = list(Lrnr_density_gaussian$new()),
+                   Xdensity_learners = c(Lrnr_density_gaussian$new(transfun=log), Lrnr_density_gaussian$new(), .default_density_learners()[2:4]),
                    Xbinary_learners = list(Lrnr_stepwise$new()), estimator="TMLE")
 vi1 <- vibr::varimp_refit(vi0,X,Y,delta=0.1, estimator="AIPW")
 vi2 <- vibr::varimp_refit(vi0,X,Y,delta=0.1, estimator="GCOMP")
@@ -33,11 +34,11 @@ vi1
 vi2
 vi3
 
-plot(vi0$rank, vi1$rank)
-plot(vi0$rank, vi2$rank)
-plot(vi1$rank, vi2$rank)
-plot(vi0$rank, vi3$rank)
-plot(vi2$rank, vi3$rank)
+plot(vi0$rank, vi1$rank) # tmle, aipw
+plot(vi0$rank, vi2$rank) # tmle, gcomp
+plot(vi1$rank, vi2$rank) # aipw, gcomp
+plot(vi0$rank, vi3$rank) # tmle, ipw
+plot(vi2$rank, vi3$rank) # gcomp, ipw
 cor(as.matrix(cbind(tmle=vi0$rank, aipw=vi1$rank, gcomp=vi2$rank, ipw=vi3$rank)))
 
 

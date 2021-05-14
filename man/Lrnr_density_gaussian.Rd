@@ -18,13 +18,13 @@ and then the errors are assumed normally distributed epsilon_i ~ Normal(0, sigma
 \section{Parameters}{
 
 \describe{
-\item{\code{mean_learner}}{The learner to wrap.}
+\item{\code{intercept, default=TRUE}}{include intercept in mean model}
+\item{\code{transfun, default=identity}}{function to transform outcome}
 }
 }
 
 \seealso{
 Other Learners: 
-\code{\link{Lrnr_density_loggaussian}},
 \code{\link{Lrnr_multinom}},
 \code{\link{Lrnr_solnp_density_quiet}},
 \code{\link{Lrnr_solnp_quiet}},
@@ -71,7 +71,7 @@ Other Learners:
 \if{latex}{\out{\hypertarget{method-new}{}}}
 \subsection{Method \code{new()}}{
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Lrnr_density_gaussian$new(intercept = TRUE, ...)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Lrnr_density_gaussian$new(intercept = TRUE, transfun = function(x) x, ...)}\if{html}{\out{</div>}}
 }
 
 }

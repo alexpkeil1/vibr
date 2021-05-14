@@ -23,7 +23,8 @@
 #'
 #' @section Parameters:
 #' \describe{
-#'   \item{\code{mean_learner}}{The learner to wrap.}
+#'   \item{\code{intercept, default=TRUE}}{include intercept in mean model}
+#'   \item{\code{transfun, default=identity}}{function to transform outcome}
 #' }
 #'
 Lrnr_density_gaussian <- R6Class(
@@ -31,7 +32,7 @@ Lrnr_density_gaussian <- R6Class(
   inherit = Lrnr_base, portable = TRUE,
   class = TRUE,
   public = list(
-    initialize = function(intercept = TRUE, ...) {
+    initialize = function(intercept = TRUE, transfun= function(x) x, ...) {
       params <- args_to_list()
       super$initialize(params = params, ...)
     }
@@ -42,6 +43,7 @@ Lrnr_density_gaussian <- R6Class(
 
     .train = function(task) {
       args <- self$params
+      args$transfun <- NULL
       outcome_type <- self$get_outcome_type(task)
 
       if (is.null(args$family)) {
@@ -50,6 +52,7 @@ Lrnr_density_gaussian <- R6Class(
       family_name <- args$family$family
       linkinv_fun <- args$family$linkinv
       link_fun <- args$family$linkfun
+      transfun <- self$params$transfun
 
       # specify data
       if (args$intercept) {
@@ -57,8 +60,7 @@ Lrnr_density_gaussian <- R6Class(
       } else {
         args$x <- as.matrix(task$X)
       }
-      args$y <- outcome_type$format(task$Y)
-
+      args$y <- transfun(outcome_type$format(task$Y))
       if (task$has_node("weights")) {
         args$weights <- task$weights
       }
@@ -69,6 +71,8 @@ Lrnr_density_gaussian <- R6Class(
 
       args$control <- glm.control(trace = FALSE)
       fit_object <- .call_with_args_vibr(stats::glm.fit, args)
+      resids <- fit_object$residuals
+      fit_object$stdres <- .stdres(resids=resids, df=fit_object$df.residual, args$x, train=FALSE)
 
       fit_object$linear.predictors <- NULL
       fit_object$weights <- NULL
@@ -110,13 +114,14 @@ Lrnr_density_gaussian <- R6Class(
           predictions <- as.vector(self$fit_object$linkinv_fun(eta))
         }
       }
-      errors <- task$Y - predictions
-      n <- task$nrow
-      df <- n - length(coef)
-      stdres <- .stdres(resids=errors, df=df, X)
+      transfun <- self$params$transfun
+      suppressWarnings(tY <- transfun(task$Y)) # for log xform, these should have density=0 automatically
+      dropidx <- which(is.na(tY))
+      tY[dropidx] <- 0
+      errors <- tY - predictions
 
-      dens_preds <- dnorm(errors, 0, stdres)
-      # dens_preds[is.na(dens_preds)] <- 0
+      dens_preds <- dnorm(errors, 0, self$fit_object$stdres)
+      dens_preds[dropidx] <- 0
       return(dens_preds)
     },
     .required_packages = c()
