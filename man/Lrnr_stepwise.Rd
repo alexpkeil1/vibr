@@ -49,6 +49,8 @@ My learner is special so it has a special function.
 
 \seealso{
 Other Learners: 
+\code{\link{Lrnr_density_gaussian}},
+\code{\link{Lrnr_density_loggaussian}},
 \code{\link{Lrnr_multinom}},
 \code{\link{Lrnr_solnp_density_quiet}},
 \code{\link{Lrnr_solnp_quiet}}

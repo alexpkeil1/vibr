@@ -32,6 +32,8 @@ and for multinomial log-linear models.
 
 \seealso{
 Other Learners: 
+\code{\link{Lrnr_density_gaussian}},
+\code{\link{Lrnr_density_loggaussian}},
 \code{\link{Lrnr_solnp_density_quiet}},
 \code{\link{Lrnr_solnp_quiet}},
 \code{\link{Lrnr_stepwise}}

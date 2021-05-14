@@ -20,11 +20,10 @@ Xcr = dat[,c(mixturela)]
 X = dat[,c(mixturela, "ridageyr")]
 X = data.frame(cbind(log(dat[,c(mixturela)]), ridageyr=dat$ridageyr))
 
-lnr  = Lrnr_density_discretize$new(name=nm, categorical_learner = Lrnr_multinom$new(trace=FALSE), n_bins = 5, bin_method="equal.mass")
 
 vi0 <- vibr::varimp(X,Y,delta=0.1,
                    Y_learners = .default_continuous_learners(),
-                   Xdensity_learners = .default_density_learners(),
+                   Xdensity_learners = list(Lrnr_density_gaussian$new()),
                    Xbinary_learners = list(Lrnr_stepwise$new()), estimator="TMLE")
 vi1 <- vibr::varimp_refit(vi0,X,Y,delta=0.1, estimator="AIPW")
 vi2 <- vibr::varimp_refit(vi0,X,Y,delta=0.1, estimator="GCOMP")
@@ -33,6 +32,14 @@ vi0
 vi1
 vi2
 vi3
+
+plot(vi0$rank, vi1$rank)
+plot(vi0$rank, vi2$rank)
+plot(vi1$rank, vi2$rank)
+plot(vi0$rank, vi3$rank)
+plot(vi2$rank, vi3$rank)
+cor(as.matrix(cbind(tmle=vi0$rank, aipw=vi1$rank, gcomp=vi2$rank, ipw=vi3$rank)))
+
 
 ridx <- which.max(vi$res$est)
 vi$res$est[ridx]

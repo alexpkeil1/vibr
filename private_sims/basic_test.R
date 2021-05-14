@@ -1,6 +1,6 @@
 library(mvtnorm)
 library(vibr)
-library(txshift)
+#library(txshift)
 library(sl3)
 library(future)
 
@@ -87,17 +87,22 @@ binary_learners <- function(){
 
 testtxshift <- function(){
   set.seed(12312)
-  dat = dgm( n=10000, delta = 0.1, beta = c(1,0), degree=1, zk = c(-1.5, 0, 1.5))
+  dat = dgm( n=100, delta = 0.1, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
+  dat$tr
   lm(dat$y~., data=data.frame(dat$X/.1))
+  task = sl3_Task$new(data=data.frame(dat$X), outcome="z", covariates="x")
+  Lrnr_density_gaussian$new()$train(task)$predict()
   # bounded estimator in progress, will look like tmle package
   set.seed(123123)
   V = data.frame(wt=rep(1,length(dat$y)))
-  (vimp <- varimp(data.frame(dat$X),dat$y, V=V, delta=.1, Y_learners=.default_continuous_learners(),
-                  Xdensity_learners=.default_density_learners(), Xbinary_learners=binary_learners(),
-                  verbose=FALSE, estimator="TMLE", estimand="diff", weights="wt"))
-  varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="AIPW", delta = .1)
-  varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="IPW", delta = .1)
-  varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .1)
+  (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.1, Y_learners=.default_continuous_learners(),
+                  Xdensity_learners=c(Lrnr_density_gaussian$new(), density_learners()), Xbinary_learners=binary_learners(),
+                  verbose=FALSE, estimator="TMLE", estimand="diff", weights="wt", scale_continuous = FALSE))
+  (vi1<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="AIPW", delta = .1))
+  (vi3<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="IPW", delta = .1))
+  (vi2<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .1))
+  cor(as.matrix(cbind(tmle=vi0$rank, aipw=vi1$rank, gcomp=vi2$rank, ipw=vi3$rank)))
+
   #
   (vimp2 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.1, Y_learners=continuous_learners()[1:3],
                   Xdensity_learners=density_learners()[[1]], Xbinary_learners=binary_learners(),
@@ -218,7 +223,7 @@ analyze <- function(i, B=1, outfile=NULL, ...){
   dat = dgm(...)
   #set.seed(12312); dat = dgm( n=1000, delta = 0.1, beta = c(2,1, .3))
   (vimp <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
-                  Xdensity_learners=.default_density_learners()[c(1,2,4)], Xbinary_learners=binary_learners(),
+                  Xdensity_learners=.default_density_learners()[c(1,2,3)], Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="TMLE", scale_continuous = FALSE))
   (vimp2 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="IPW", delta = .1))
   (vimp3 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .1))
@@ -256,11 +261,11 @@ analyze <- function(i, B=1, outfile=NULL, ...){
 
 future::plan("sequential")
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
-system.time(res1 <- analyze(1231321, n=100, B=20, delta = 0.1, beta = c(1, -.4, 1, 2,-1), degree=1, zk = c(-1.5, 0, 1.5)))
+(res1 <- analyze(1231321, n=100, B=5, delta = 0.1, beta = c(1, -.4, 1, 2,-1), degree=1, zk = c(-1.5, 0, 1.5)))
 
 
 (ncores <- future::availableCores())
-future::plan("multisession", workers=ncores)
+future::plan("multisession", workers=ncores/2)
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
 system.time(res1 <- analyze(1231321, n=100, B=100, delta = 0.1, beta = c(1, -.4, 1, 2,-1), degree=1, zk = c(-1.5, 0, 1.5)))
 

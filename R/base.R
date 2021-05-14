@@ -75,9 +75,9 @@ varimp <- function(X,
                  IPW=.varimp_ipw_boot(    X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, B=B, showProgress=showProgress,...),
                  TMLE=.varimp_tmle_boot(  X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, updatetype=updatetype, B=B, showProgress=showProgress,...)
     )
-    res$est <- .attach_misc(res$est, scale_continuous=scale_continuous, delta=delta)
+    res$est <- .attach_misc(res$est, scale_continuous=scale_continuous, delta=delta, B=NULL)
   }
-  res <- .attach_misc(res, scale_continuous=scale_continuous, delta=delta)
+  res <- .attach_misc(res, scale_continuous=scale_continuous, delta=delta, B)
   res
 }
 
@@ -172,7 +172,7 @@ varimp_refit <- function(vibr.fit,
 #' @export
 print.vibr.fit <- function(x, ...){
   xr = x$res
-  xr$rnk = rank(-abs(xr$est))
+  xr$rnk = x$rank
   cat(paste0("Variable importance estimates (", x$type, "): \n"))
   names(xr) <- c("Estimate", "Std. Error (asymptotic)", "z value", "Pr(>|z|)", "Rank")
   printCoefmat(xr, P.values=TRUE, has.Pvalue=TRUE, signif.stars=FALSE, cs.ind=c(1,2), tst.ind=3)
@@ -194,7 +194,7 @@ print.vibr.bootfit <- function(x, ...){
   cat("\n")
   #
   est = asest$res$est
-  rnk = rank(-abs(est))
+  rnk = asest$rank
   sds <- apply(x$boots,2,sd)
   zz <- est/sds
   xr2 <- as.data.frame(cbind(est, sds, zz, pnorm(-abs(zz))*2, rnk))

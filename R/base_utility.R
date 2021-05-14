@@ -66,6 +66,21 @@
   X
 }
 
+#' @importFrom MASS ginv
+.stdres <- function(resids, df, Z, train=FALSE){
+  sse <- sum(resids^2)
+  if(train){
+    Z <- as.matrix(Z)
+    itzz = MASS::ginv(t(Z) %*% Z)
+    Hi <-  apply(Z, 1, function(zi) ((zi %*% itzz) %*% zi)[1])
+    ret = sqrt((1-Hi)*sse/df)
+  } else{
+    ret = sse/length(sse)
+  }
+  ret
+}
+
+
 
 ################################
 # default learners
@@ -77,6 +92,9 @@
 .default_density_learners_big <- function(n_bins=c(7, 12), histtypes=c("equal.mass", "equal.length")){
   density_learners=list()
   idx  = 1
+  nm <- paste0("dens_gaussian_glm")
+  density_learners[[idx]] <- Lrnr_density_gaussian$new(name=nm)
+  idx  = idx+1
   nm <- paste0("hist_multinom_10")
   density_learners[[idx]] <- Lrnr_density_discretize$new(name=nm, categorical_learner = Lrnr_multinom$new(trace=FALSE), n_bins = 10, bin_method="equal.mass")
   idx  = idx+1
@@ -118,7 +136,7 @@
 
 #' @export
 .default_density_learners <- function(...){
-  .default_density_learners_big(...)[1:4]
+  vibr::.default_density_learners_big()[1:4]
 }
 
 
@@ -496,13 +514,16 @@
        oldtype=obj$type,
        scaled =obj$scaled,
        weights=obj$weights,
-       n = length(obj$weights)
+       n = length(obj$weights),
+       rank = obj$rank
        )
 }
 
 
-.attach_misc <- function(obj, scale_continuous, delta){
+.attach_misc <- function(obj, scale_continuous, delta, B=NULL){
   obj$scaled = scale_continuous
   obj$delta = delta
+  if(is.null(B)) obj$rank = rank(-abs(obj$res$est))
+  if(!is.null(B)) obj$rank = rank(-abs(obj$est$res$est))
   obj
 }
