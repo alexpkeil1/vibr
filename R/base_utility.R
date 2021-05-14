@@ -70,8 +70,11 @@
 .stdres <- function(resids, df, Z, train=FALSE){
   sse <- sum(resids^2)
   if(train){
+    # yields studentized residuals, reflecting the fact that residuals at ends of domain
+    # will be more influential
     Z <- as.matrix(Z)
     itzz = MASS::ginv(t(Z) %*% Z)
+    # leverage
     Hi <-  apply(Z, 1, function(zi) ((zi %*% itzz) %*% zi)[1])
     ret = sqrt((1-Hi)*sse/df) # individual standard errors from fitted data
   } else{
@@ -95,6 +98,9 @@
   nm <- paste0("dens_gaussian_glm")
   density_learners[[idx]] <- Lrnr_density_gaussian$new(name=nm)
   idx  = idx+1
+  nm <- paste0("dens_gaussian_glmlogy")
+  density_learners[[idx]] <- Lrnr_density_gaussian$new(name=nm, transfun = log)
+  idx  = idx+1
   nm <- paste0("hist_multinom_10")
   density_learners[[idx]] <- Lrnr_density_discretize$new(name=nm, categorical_learner = Lrnr_multinom$new(trace=FALSE), n_bins = 10, bin_method="equal.mass")
   idx  = idx+1
@@ -112,6 +118,12 @@
   idx = idx + 1
   nm <- paste0("dens_hse_nnet")
   density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE), var_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian"))
+  idx  = idx+1
+  density_learners[[idx]] <- Pipeline$new(Lrnr_pca$new(name="pca"),
+                                          Lrnr_density_gaussian$new(name="dens_gaussian_glm"))
+  idx  = idx+1
+  density_learners[[idx]] <- Pipeline$new(Lrnr_pca$new(name="pca"),
+                                          Lrnr_density_gaussian$new(name="dens_gaussian_glmlogtrans", transfun=log))
   idx  = idx+1
   nm <- paste0("dens_sp_unadj")
   # uniform marginal with kernel density estimator

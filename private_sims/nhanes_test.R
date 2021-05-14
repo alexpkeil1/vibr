@@ -1,4 +1,5 @@
 library("vibr")
+library("ggplot2")
 pcbs1 <- paste0("lbx", sprintf("%03d",c(74, 99, 105, 118,138,153,156,157,167,170,180,187,189,194,196)))
 pcbs2 <- tolower(c(paste0("lbd", sprintf("%03d",c(199))), "LBXPCB", "LBXHXC"))
 pcbs1la <- paste0(paste0("lbx", sprintf("%03d",c(74, 99, 105, 118,138,153,156,157,167,170,180,187,189,194,196, 199))), "la")
@@ -13,7 +14,7 @@ furansla <- paste0(furans, "la")
 mixturela = c(pcbsla,dioxinsla, furansla)
 
 dat <- read.csv("/Users/akeil/EpiProjects/NHANES/pcbs_furans_dioxins/mitro_data_cc.csv")
-
+dim(dat)
 
 Y = dat$telomean
 Xcr = dat[,c(mixturela)]
@@ -24,7 +25,7 @@ summary(vibr:::.scale_continuous(X[,2, drop=FALSE]))
 
 vi0 <- vibr::varimp(X,Y,delta=0.1,
                    Y_learners = .default_continuous_learners(),
-                   Xdensity_learners = c(Lrnr_density_gaussian$new(transfun=log), Lrnr_density_gaussian$new(), .default_density_learners()[2:4]),
+                   Xdensity_learners = c(.default_density_learners()),
                    Xbinary_learners = list(Lrnr_stepwise$new()), estimator="TMLE")
 vi1 <- vibr::varimp_refit(vi0,X,Y,delta=0.1, estimator="AIPW")
 vi2 <- vibr::varimp_refit(vi0,X,Y,delta=0.1, estimator="GCOMP")
@@ -33,13 +34,32 @@ vi0
 vi1
 vi2
 vi3
+vi0$gfits[[1]]
+vi0$gfits[[9]]
 
-plot(vi0$rank, vi1$rank) # tmle, aipw
-plot(vi0$rank, vi2$rank) # tmle, gcomp
-plot(vi1$rank, vi2$rank) # aipw, gcomp
-plot(vi0$rank, vi3$rank) # tmle, ipw
-plot(vi2$rank, vi3$rank) # gcomp, ipw
+
+ggplot(data=data.frame(x=vi0$rank, y=vi1$rank), aes(x=x,y=y)) + geom_smooth()+ geom_point() # tmle, aipw
+ggplot(data=data.frame(x=vi0$rank, y=vi2$rank), aes(x=x,y=y)) + geom_smooth()+ geom_point() # tmle, gcomp
+ggplot(data=data.frame(x=vi0$rank, y=vi3$rank), aes(x=x,y=y)) + geom_smooth()+ geom_point() # tmle, ipw
+ggplot(data=data.frame(x=vi1$rank, y=vi2$rank), aes(x=x,y=y)) + geom_smooth()+ geom_point() # aipw, gcomp
+ggplot(data=data.frame(x=vi1$rank, y=vi3$rank), aes(x=x,y=y)) + geom_smooth()+ geom_point() # aipw, ipw
+ggplot(data=data.frame(x=vi2$rank, y=vi3$rank), aes(x=x,y=y)) + geom_smooth()+ geom_point() # gcomp, ipw
+
+ggplot(data=data.frame(x=vi0$res$est, y=vi1$res$est), aes(x=x,y=y)) + geom_smooth()+ geom_point() # tmle, aipw
+ggplot(data=data.frame(x=vi0$res$est, y=vi2$res$est), aes(x=x,y=y)) + geom_smooth()+ geom_point() # tmle, gcomp
+ggplot(data=data.frame(x=vi0$res$est, y=vi3$res$est), aes(x=x,y=y)) + geom_smooth()+ geom_point() # tmle, ipw
+ggplot(data=data.frame(x=vi1$res$est, y=vi2$res$est), aes(x=x,y=y)) + geom_smooth()+ geom_point() # aipw, gcomp
+ggplot(data=data.frame(x=vi1$res$est, y=vi3$res$est), aes(x=x,y=y)) + geom_smooth()+ geom_point() # aipw, ipw
+ggplot(data=data.frame(x=vi2$res$est, y=vi3$res$est), aes(x=x,y=y)) + geom_smooth()+ geom_point() # gcomp, ipw
+
+
+cor(as.matrix(cbind(tmle=sign(vi0$res$est),
+                    aipw=sign(vi1$res$est),
+                    gcomp=sign(vi2$res$est),
+                    ipw=sign(vi3$res$est))))
+
 cor(as.matrix(cbind(tmle=vi0$rank, aipw=vi1$rank, gcomp=vi2$rank, ipw=vi3$rank)))
+cor(as.matrix(cbind(tmle=vi0$res$est, aipw=vi1$res$est, gcomp=vi2$res$est, ipw=vi3$res$est)))
 
 
 ridx <- which.max(vi$res$est)

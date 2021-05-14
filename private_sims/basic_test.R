@@ -39,7 +39,9 @@ dgm <- function(n, delta, beta, degree=1, zk = c(-1, 0, 1)){
   yintz <- yerr + yfun(zint,x,fullbeta)
   yintx <- yerr + yfun(z,xint,fullbeta)
   (trdiff <- c(mean(yintz-y), mean(yintx-y)))
-  list(X = cbind(z,x), y=y, tr = trdiff)
+  res = list(X = cbind(z,x), y=y, tr = trdiff)
+  attr(res, "yfun") <- function(z,x) yfun(z,x,beta)
+  res
 }
 
 density_learners <- function(n_bins=c(3,8), histtypes=c("equal.mass")){
@@ -87,9 +89,9 @@ binary_learners <- function(){
 
 testtxshift <- function(){
   set.seed(12312)
-  dat = dgm( n=500, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
+  dat = dgm( n=100, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
   dat$tr
-  lm(dat$y~., data=data.frame(dat$X/.1))
+  lm(dat$y~., data=data.frame(dat$X/.05))
   task = sl3_Task$new(data=data.frame(dat$X), outcome="z", covariates="x")
   Lrnr_density_gaussian$new()$train(task)$predict()
   # bounded estimator in progress, will look like tmle package
@@ -113,7 +115,7 @@ testtxshift <- function(){
 
   V = data.frame(wt=rep(1,length(dat$y)))
   (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
-                  Xdensity_learners=c(Lrnr_density_gaussian$new(), Lrnr_density_gaussian$new(transfun=log)), Xbinary_learners=binary_learners(),
+                  Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
                   verbose=FALSE, estimator="TMLE", estimand="diff", weights="wt", scale_continuous = FALSE))
   (vi1<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="AIPW", delta = .05))
   (vi3<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="IPW", delta = .05))
@@ -144,8 +146,6 @@ testtxshift <- function(){
                   Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="IPW", estimand="diff", B=5))
 
-  print(tmle)
-  print(vimp)
   dat$tr
   summary(lm(y ~ I((.5*z/sd(z))/.1) + I(x/.1), data = data.frame(y=dat$y, dat$X)))$coefficients
 
@@ -240,12 +240,12 @@ analyze <- function(i, B=1, outfile=NULL, ...){
   dat = dgm(...)
   #set.seed(12312); dat = dgm( n=1000, delta = 0.1, beta = c(2,1, .3))
   (vimp <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
-                  Xdensity_learners=.default_density_learners()[c(1,2,3)], Xbinary_learners=binary_learners(),
+                  Xdensity_learners=.default_density_learners()[-3], Xbinary_learners=.default_binary_learners(),
                   verbose=FALSE, estimator="TMLE", scale_continuous = FALSE))
   (vimp2 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="IPW", delta = .1))
   (vimp3 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .1))
   (vimp4 <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
-                  Xdensity_learners=.default_density_learners()[c(1,2,4)], Xbinary_learners=binary_learners(),
+                  Xdensity_learners=.default_density_learners()[-3], Xbinary_learners=.default_binary_learners(),
                   verbose=FALSE, estimator="TMLE", scale_continuous = FALSE, B=B))
   #
   obj <- as.matrix(vimp$res)
