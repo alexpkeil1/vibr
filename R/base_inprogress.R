@@ -62,3 +62,61 @@
 }
 
 
+
+.gcjoint <- function(n,
+                     X,
+                     Y,
+                     delta,
+                     qfun,
+                     gfun=NULL,
+                     qfit,
+                     gfits=NULL,
+                     estimand,
+                     wt,
+                     ...){
+  #cat(paste0("column ", names(X)[Acol], ": binary\n"))
+  isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
+  resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
+  X1 <- X0 <- X
+  for(Acol in seq_len(length(isbin_vec))){
+    if(isbin_vec[Acol]){
+      X0[,Acol] <- X0[,Acol]+delta
+      X1[,Acol] <- X1[,Acol]+delta
+    } else{
+      X0 <- .shift(X1, Acol, -X[,Acol])
+      X1 <- .shift(X0, Acol,  (1-X[,Acol]))
+    }
+  }
+  # X1: Ac = A+delta, Ab=1
+  # X0: Ac = A+delta, Ab=0
+  #qfun(Xb,Acol,qfit=qfit,...)
+  # E(Y | Ab,Ac) = E(Y|A,Ac) + delta(E(Y | 1,Ac) - E(Y | 0,Ac))
+  p3 <- delta*(qfun(X1,Acol,qfit=qfit,...) - qfun(X0,Acol,qfit=qfit,...))
+  p2 <- qfun(qfit=qfit,...)
+  (p2 + p3 - Y*(estimand != "mean"))*wt
+}
+
+
+.EstimatorGcompJoint <- function(n,
+                                 X,
+                                 Y,
+                                 delta,
+                                 qfun,
+                                 gfun,
+                                 qfit,
+                                 gfits,
+                                 estimand,
+                                 bounded=FALSE,
+                                 wt=rep(1,n),
+                                 ...){
+  isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
+  resmat <- matrix(NA, nrow=1, ncol=3)
+  phi <- .gcjoint(n=n,X=X,Y=Y,delta=delta,qfun=qfun,gfun=NULL,qfit=qfit,gfits=NULL,estimand=estimand, wt=wt, ...)
+  tm <- .EstGcomp(phi)
+  resmat[Acol,] <- tm
+  colnames(resmat) <- names(tm)
+  rownames(resmat) <- names(X)
+  resmat <- data.frame(resmat)
+  resmat$p <- pnorm(-abs(resmat$z))*2
+  resmat
+}

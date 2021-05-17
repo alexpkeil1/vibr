@@ -19,88 +19,109 @@ dim(dat)
 Y = dat$telomean
 Xcr = dat[,c(mixturela)]
 X = dat[,c(mixturela, "ridageyr")]
+V =dat[,c("wtspo2yr"),drop=FALSE]
+V$wtspo2yr = V$wtspo2yr/(mean(V$wtspo2yr))
 #X = data.frame(cbind(log(dat[,c(mixturela)]), ridageyr=dat$ridageyr))
 summary(vibr:::.scale_continuous(X[,2, drop=FALSE]))
 
+Xi = X[,,drop=FALSE]
+glm.fit(cbind(rep(1, length(Y)),Xi),Y,weights=V$wtspo2yr)$coef
+glm.fit(cbind(rep(1, length(Y)),Xi),Y)$coef
 
-vi0 <- vibr::varimp(X,Y,delta=0.1,
-                   Y_learners = .default_continuous_learners(),
-                   Xdensity_learners = c(.default_density_learners()),
-                   Xbinary_learners = list(Lrnr_stepwise$new()), estimator="TMLE")
-vi1 <- vibr::varimp_refit(vi0,X,Y,delta=0.1, estimator="AIPW")
-vi2 <- vibr::varimp_refit(vi0,X,Y,delta=0.1, estimator="GCOMP")
-vi3 <- vibr::varimp_refit(vi0,X,Y,delta=0.1, estimator="IPW")
+pass <- function(){
+  tsk = sl3_Task$new(data = data.frame(cbind(vibr:::.scale_continuous(Xi),V)),
+                     covariates = names(Xi)[1:2],
+                     outcome=names(Xi)[3],
+                     outcome_type="continuous",
+                     weights="wtspo2yr")
+  head(tsk$X)
+  head(tsk$Y)
+  mean(V$wtspo2yr)
+  lnr = Lrnr_polspline$new(name="polymars", classify=FALSE)
+  trn <- lnr$train(tsk)
+  typeof(trn$get_outcome_type(tsk)$format(tsk$Y))
+  trn$predict()
+  trn$fit_object$call
+}
+
+(ncores <- future::availableCores())
+future::plan("multisession", workers=ncores/2)
+
+
+(viNULL <- vibr::varimp(X=Xi,Y=Y, V=V,delta=0.01, weights="wtspo2yr",
+                    Y_learners = .default_continuous_learners()[1:4],
+                    Xdensity_learners = .default_density_learners_big()[c(1)],
+                    Xbinary_learners = list(Lrnr_stepwise$new()), estimator="IPW"))
+
+vi0 <- vibr::varimp(X=Xi,Y=Y, V=V,delta=0.01, weights="wtspo2yr",
+                    Y_learners = .default_continuous_learners_big()[1:5],
+                    Xdensity_learners = .default_density_learners_big()[c(1:3,8)],
+                    Xbinary_learners = list(Lrnr_stepwise$new()), estimator="TMLE")
+vi1 <- vibr::varimp_refit(vi0,Xi,Y,delta=0.01, estimator="AIPW")
+vi2 <- vibr::varimp_refit(vi0,Xi,Y,delta=0.01, estimator="GCOMP")
+vi3 <- vibr::varimp_refit(vi0,Xi,Y,delta=0.01, estimator="IPW")
 vi0
 vi1
 vi2
 vi3
-vi0$gfits[[1]]
-vi0$gfits[[9]]
 
 
-ggplot(data=data.frame(x=vi0$rank, y=vi1$rank), aes(x=x,y=y)) + geom_smooth()+ geom_point() # tmle, aipw
-ggplot(data=data.frame(x=vi0$rank, y=vi2$rank), aes(x=x,y=y)) + geom_smooth()+ geom_point() # tmle, gcomp
-ggplot(data=data.frame(x=vi0$rank, y=vi3$rank), aes(x=x,y=y)) + geom_smooth()+ geom_point() # tmle, ipw
-ggplot(data=data.frame(x=vi1$rank, y=vi2$rank), aes(x=x,y=y)) + geom_smooth()+ geom_point() # aipw, gcomp
-ggplot(data=data.frame(x=vi1$rank, y=vi3$rank), aes(x=x,y=y)) + geom_smooth()+ geom_point() # aipw, ipw
-ggplot(data=data.frame(x=vi2$rank, y=vi3$rank), aes(x=x,y=y)) + geom_smooth()+ geom_point() # gcomp, ipw
-
-ggplot(data=data.frame(x=vi0$res$est, y=vi1$res$est), aes(x=x,y=y)) + geom_smooth()+ geom_point() # tmle, aipw
-ggplot(data=data.frame(x=vi0$res$est, y=vi2$res$est), aes(x=x,y=y)) + geom_smooth()+ geom_point() # tmle, gcomp
-ggplot(data=data.frame(x=vi0$res$est, y=vi3$res$est), aes(x=x,y=y)) + geom_smooth()+ geom_point() # tmle, ipw
-ggplot(data=data.frame(x=vi1$res$est, y=vi2$res$est), aes(x=x,y=y)) + geom_smooth()+ geom_point() # aipw, gcomp
-ggplot(data=data.frame(x=vi1$res$est, y=vi3$res$est), aes(x=x,y=y)) + geom_smooth()+ geom_point() # aipw, ipw
-ggplot(data=data.frame(x=vi2$res$est, y=vi3$res$est), aes(x=x,y=y)) + geom_smooth()+ geom_point() # gcomp, ipw
+round(cor(X), 2)
+X = dat[,c(mixturela, "ridageyr")]
+plotshift_scatter(vi0, Acol=12, Bcol=2, delta=.01)
+plotshift_dens(vi0, X, Acol=c(12), delta=.01)
+plotshift_dens(vi0, X, Acol=c(12,1:11,13:35), delta=.01)
 
 
+plotshift_scatter(vi0, Acol=13, Bcol=2)
+plotshift_dens(vi0, X, Acol=1, delta=.01)
+plotshift_wt(vi0, X, Acol=c(12), delta=.01)
+plotshift_wt(vi0, X, Acol=c(12,1:11), delta=0.00001)
+dx_dens(vi0, X, Acol=c(1), delta=.0001)
+
+
+
+ggplot(data=data.frame(x=vi0$rank, y=vi1$rank), aes(x=x,y=y)) + geom_smooth(method = "lm", se=FALSE) + geom_point() # tmle, aipw
+ggplot(data=data.frame(x=vi0$rank, y=vi2$rank), aes(x=x,y=y)) + geom_smooth(method = "lm", se=FALSE) + geom_point() # tmle, gcomp
+ggplot(data=data.frame(x=vi0$rank, y=vi3$rank), aes(x=x,y=y)) + geom_smooth(method = "lm", se=FALSE) + geom_point() # tmle, ipw
+ggplot(data=data.frame(x=vi1$rank, y=vi2$rank), aes(x=x,y=y)) + geom_smooth(method = "lm", se=FALSE) + geom_point() # aipw, gcomp
+ggplot(data=data.frame(x=vi1$rank, y=vi3$rank), aes(x=x,y=y)) + geom_smooth(method = "lm", se=FALSE) + geom_point() # aipw, ipw
+ggplot(data=data.frame(x=vi2$rank, y=vi3$rank), aes(x=x,y=y)) + geom_smooth(method = "lm", se=FALSE) + geom_point() # gcomp, ipw
+
+ggplot(data=data.frame(x=vi0$res$est, y=vi1$res$est), aes(x=x,y=y)) + geom_smooth(method = "lm", se=FALSE) + geom_point() # tmle, aipw
+ggplot(data=data.frame(x=vi0$res$est, y=vi2$res$est), aes(x=x,y=y)) + geom_smooth(method = "lm", se=FALSE) + geom_point() # tmle, gcomp
+ggplot(data=data.frame(x=vi0$res$est, y=vi3$res$est), aes(x=x,y=y)) + geom_smooth(method = "lm", se=FALSE) + geom_point() # tmle, ipw
+ggplot(data=data.frame(x=vi1$res$est, y=vi2$res$est), aes(x=x,y=y)) + geom_smooth(method = "lm", se=FALSE) + geom_point() # aipw, gcomp
+ggplot(data=data.frame(x=vi1$res$est, y=vi3$res$est), aes(x=x,y=y)) + geom_smooth(method = "lm", se=FALSE) + geom_point() # aipw, ipw
+ggplot(data=data.frame(x=vi2$res$est, y=vi3$res$est), aes(x=x,y=y)) + geom_smooth(method = "lm", se=FALSE) + geom_point() # gcomp, ipw
+
+
+# same effect direction
+top10 = which(vi0$rank %in% 1:10)
 cor(as.matrix(cbind(tmle=sign(vi0$res$est),
                     aipw=sign(vi1$res$est),
                     gcomp=sign(vi2$res$est),
                     ipw=sign(vi3$res$est))))
 
+cor(as.matrix(cbind(tmle=sign(vi0$res$est[top10]),
+                    aipw=sign(vi1$res$est[top10]),
+                    gcomp=sign(vi2$res$est[top10]),
+                    ipw=sign(vi3$res$est[top10]))))
+
+
 cor(as.matrix(cbind(tmle=vi0$rank, aipw=vi1$rank, gcomp=vi2$rank, ipw=vi3$rank)))
 cor(as.matrix(cbind(tmle=vi0$res$est, aipw=vi1$res$est, gcomp=vi2$res$est, ipw=vi3$res$est)))
 
 
-ridx <- which.max(vi$res$est)
-vi$res$est[ridx]
-vi$res[ridx,]
-predmod <- vi$gfits[[ridx]]
-hist(X[,ridx])
-plot(X[,ridx], predmod$predict()[[1]])
-crdat = data.frame(telomean=dat$telomean, X[,ridx])
-names(crdat)[2] <- names(X)[ridx]
-summary(glm(telomean~ ., data=crdat))
+(qgcft <- qgcomp::qgcomp(telomean~., expnms = mixturela, data=dat[,c("telomean", mixturela)]))
+(qgcft <- qgcomp::qgcomp(telomean~., expnms = pcbsla,  data=dat[,c("telomean", mixturela)]))
+(qgcft <- qgcomp::qgcomp(telomean~., expnms = furansla, data=dat[,c("telomean", mixturela)]))
+(qgcft <- qgcomp::qgcomp(telomean~., expnms = dioxinsla, data=dat[,c("telomean", mixturela)]))
 
-ridx <- which.min(vi$res$est)
-vi$res$est[ridx]
-rbind(tmle=vi$res[ridx,], aipw=vi1$res[ridx,], gcomp=vi2$res[ridx,], ipw=vi3$res[ridx,])
-predmod <- vi$gfits[[ridx]]
-predmod$learner_fits$Stack
-hist(X[,ridx])
-plot(X[,ridx], predmod$predict()[[1]])
-crdat = data.frame(telomean=dat$telomean, X[,ridx])
-names(crdat)[2] <- names(X)[ridx]
-summary(glm(telomean~ ., data=crdat))
-
-
-(lm(telomean~lbxf09la, data=dat[,c("telomean", mixture)]))
-(lm(telomean~lbxf01la, data=dat[,c("telomean", mixture)]))
-(lm(telomean~lbxf06la, data=dat[,c("telomean", mixture)]))
-(lm(telomean~lbxf02la, data=dat[,c("telomean", mixture)]))
-(lm(telomean~lbx153la, data=dat[,c("telomean", mixture)]))
-(lm(telomean~lbx189la, data=dat[,c("telomean", mixture)]))
-
-
-(qgcft <- qgcomp::qgcomp(telomean~., expnms = mixture, data=dat[,c("telomean", mixture)]))
-(qgcft <- qgcomp::qgcomp(telomean~., expnms = pcbsla,  data=dat[,c("telomean", mixture)]))
-(qgcft <- qgcomp::qgcomp(telomean~., expnms = furansla, data=dat[,c("telomean", mixture)]))
-(qgcft <- qgcomp::qgcomp(telomean~., expnms = dioxinsla, data=dat[,c("telomean", mixture)]))
-
-(qgcftadj <- qgcomp::qgcomp.noboot(telomean~.+I(ridageyr^2), expnms = mixture, data=dat[,c("telomean", mixture, "ridageyr")]))
-(qgcftadj <- qgcomp::qgcomp.noboot(telomean~.+I(ridageyr^2), expnms = pcbsla, data=dat[,c("telomean", mixture, "ridageyr")]))
-(qgcftadj <- qgcomp::qgcomp.noboot(telomean~.+I(ridageyr^2), expnms = furansla, data=dat[,c("telomean", mixture, "ridageyr")]))
-(qgcftadj <- qgcomp::qgcomp.noboot(telomean~.+I(ridageyr^2), expnms = dioxinsla, data=dat[,c("telomean", mixture, "ridageyr")]))
+(qgcftadj <- qgcomp::qgcomp.noboot(telomean~.+I(ridageyr^2), expnms = mixturela, data=dat[,c("telomean", mixturela, "ridageyr")]))
+(qgcftadj <- qgcomp::qgcomp.noboot(telomean~.+I(ridageyr^2), expnms = pcbsla, data=dat[,c("telomean", mixturela, "ridageyr")]))
+(qgcftadj <- qgcomp::qgcomp.noboot(telomean~.+I(ridageyr^2), expnms = furansla, data=dat[,c("telomean", mixturela, "ridageyr")]))
+(qgcftadj <- qgcomp::qgcomp.noboot(telomean~.+I(ridageyr^2), expnms = dioxinsla, data=dat[,c("telomean", mixturela, "ridageyr")]))
 qgcftadj$fit
 
 
@@ -110,5 +131,6 @@ head(wqft$final_weights)
 
 wqft2<- gWQS::gwqs(telomean~wqs, b1_pos = FALSE, rs=TRUE, n_vars=6, mix_name=mixture, data=dat[,c("telomean", mixture)])
 summary(wqft2)
+
 
 

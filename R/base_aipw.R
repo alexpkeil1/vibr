@@ -185,7 +185,8 @@
   isbin <- as.character((length(unique(Y))==2))
   ee <- new.env()
   for(b in 1:B){
-    ridx <- sample(seq_len(n), n, replace=TRUE)
+    #ridx <- sample(seq_len(n), n, replace=TRUE)
+    ridx <- .bootsample(n)
     ee[[paste0("iter",b)]] <- future::future( {
       if(showProgress) cat(".")
       Xi = X[ridx,,drop=FALSE]

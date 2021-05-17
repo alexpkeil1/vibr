@@ -29,8 +29,8 @@ dgm <- function(n, delta, beta, degree=1, zk = c(-1, 0, 1)){
   x <- rbinom(n,1,px)
   zint <- z+delta
   xint <- ifelse(x==0, rbinom(n,1,delta/(1-px)), x)
-  yfun <- function(z,x,beta){
-    zbasis <- simspline(zk, z, degree)
+  yfun <- function(z,x,beta,knots=zk){
+    zbasis <- simspline(knots, z, degree)
     pz <- ncol(zbasis)
     x*beta[1] + x*z*beta[2] + zbasis %*% beta[3:(3+pz-1)]
   }
@@ -40,7 +40,8 @@ dgm <- function(n, delta, beta, degree=1, zk = c(-1, 0, 1)){
   yintx <- yerr + yfun(z,xint,fullbeta)
   (trdiff <- c(mean(yintz-y), mean(yintx-y)))
   res = list(X = cbind(z,x), y=y, tr = trdiff)
-  attr(res, "yfun") <- function(z,x) yfun(z,x,beta)
+  attr(res, "yfun") = function(z,x) yfun(z,x,beta=fullbeta, knots=zk)
+  attr(res, "beta") = fullbeta
   res
 }
 
@@ -271,6 +272,8 @@ analyze <- function(i, B=1, outfile=NULL, ...){
     lmse = lmfit$coefficients[2:3, 2],
     tr = tr
   )
+  attr(res, "beta") <- attr(dat, "beta")
+  attr(res, "yfun") <- attr(dat, "yfun")
   if(!is.null(outfile)) write.table(t(res), outfile, append = TRUE, row.names = FALSE, sep=",", col.names = FALSE)
   res
 }
@@ -278,18 +281,32 @@ analyze <- function(i, B=1, outfile=NULL, ...){
 
 future::plan("sequential")
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
-(res1 <- analyze(1231321, n=100, B=5, delta = 0.1, beta = c(1, -.4, 1, 2,-1), degree=1, zk = c(-1.5, 0, 1.5)))
+(res1 <- analyze(1231321, n=100, B=1, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
+
+#attr(res1, "beta")
+z <- seq(-2,2,length.out=100)
+x <- rep(c(0,1),length.out=100)
+py1 <- attr(res1, "yfun")(z[x==1],x[x==1])
+py1a <- attr(res1, "yfun")(z[x==1]+0.1,x[x==1])
+mean(py1a-py1)
+py0 <- attr(res1, "yfun")(z[x==0],x[x==0])
+plot(z[x==1], py1, type="l", ylim=c(min(c(py1,py0)), max(c(py1,py0))))
+lines(z[x==0], py0)
+
+py1x <- attr(res1, "yfun")(z[x==1],x[x==1])
+py0x <- attr(res1, "yfun")(z[x==1],x[x==0])
+mean(py1x-py0x)*0.1
 
 
 (ncores <- future::availableCores())
 future::plan("multisession", workers=ncores/2)
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
-system.time(res1 <- analyze(1231321, n=100, B=100, delta = 0.1, beta = c(1, -.4, 1, 2,-1), degree=1, zk = c(-1.5, 0, 1.5)))
+system.time(res1 <- analyze(1231321, n=100, B=100, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
 
 csvout <- "/Users/akeil/temp/vimp_check.csv"
 write.table(t(res1), csvout, append = FALSE, row.names = FALSE, sep=",")
 
-resL = future.apply::future_lapply(1:1000, analyze, outfile=csvout, n=100, B=100, delta = 0.1, beta = c(1, -.4, 1, 2,-1), degree=1, zk = c(-1.5, 0, 1.5),
+resL = future.apply::future_lapply(1:1000, analyze, outfile=csvout, n=100, B=100, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0),
                                    future.seed=TRUE, future.packages=NULL)
 res = as.data.frame(do.call(rbind, resL))
 rm <- apply(res, 2, mean)

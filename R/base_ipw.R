@@ -52,10 +52,10 @@
 
   Haw <- .Hawb(g0, delta, X, Acol, retcols=1)
   psi <- mean(Haw*Y*wt) - mean(Y*(estimand != "mean")*wt)
-  dc1 <- Haw*(Y - 0)*wt
+  dc1 <- Haw*(Y - 0)
   dc2 <- 0
-  dc3 <- - psi - Y*(estimand != "mean")*wt                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
-  list(eif = as.vector(dc1 + dc2 + dc3), psi=psi)
+  dc3 <- - psi - Y*(estimand != "mean")                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
+  list(eif = as.vector(dc1 + dc2 + dc3)*wt, psi=psi)
 }
 
 
@@ -159,7 +159,8 @@
   isbin <- as.character((length(unique(Y))==2))
   ee <- new.env()
   for(b in 1:B){
-    ridx <- sample(seq_len(n), n, replace=TRUE)
+    #ridx <- sample(seq_len(n), n, replace=TRUE)
+    ridx <- .bootsample(n)
     ee[[paste0("iter",b)]] <- future::future( {
       if(showProgress) cat(".")
       Xi = X[ridx,,drop=FALSE]

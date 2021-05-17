@@ -34,7 +34,7 @@
 .create_tasks <- function(X,Y, V=NULL, delta=0.1, ...){
   X <- as.data.frame(X)
   p <- ncol(X)
-  nm = names(X)
+  nm <- names(X)
   slX <- list()
 #  slXpdelta <- list() # X + delta
 #  slXmdelta <- list() # X-delta
@@ -69,20 +69,33 @@
 #' @importFrom MASS ginv
 .stdres <- function(resids, df, Z, train=FALSE){
   sse <- sum(resids^2)
+  sig <- sqrt(sse/df) # sqrt of "usual" estimate of error variance if df = n-p
   if(train){
-    # yields studentized residuals, reflecting the fact that residuals at ends of domain
+    # yields standard error of residuals, reflecting the fact that residuals at ends of domain
     # will be more influential
     Z <- as.matrix(Z)
     itzz = MASS::ginv(t(Z) %*% Z)
     # leverage
     Hi <-  apply(Z, 1, function(zi) ((zi %*% itzz) %*% zi)[1])
-    ret = sqrt((1-Hi)*sse/df) # individual standard errors from fitted data
+    ret = sqrt(1-Hi)*sig # standard error of the residual
   } else{
-    ret = sqrt(sse/df) # for new data
+    ret = sig # for new data
   }
   ret
 }
 
+
+.bootsample <- function(n, strata=NULL, id=NULL){
+  if(is.null(strata)){
+    ridx <- sample(seq_len(n), n, replace=TRUE)
+  }
+  if(!is.null(strata)){
+    idx <- seq_len(n)
+    lidx <- tapply(idx,strata, function(x) sample(x, length(x), replace=TRUE))
+    ridx <- as.numeric(do.call(c, lidx))
+  }
+  ridx
+}
 
 
 ################################
@@ -112,9 +125,9 @@
   idx  = idx+1
   nm <- paste0("dens_hse_sw")
   density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_stepwise$new(name="Stepwise"), var_learner = Lrnr_stepwise$new(name="Stepwise"))
-  idx  = idx+1
-  nm <- paste0("dens_hse_mars")
-  density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_earth$new(name="MARS", family=gaussian()), var_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian"))
+  #idx  = idx+1
+  #nm <- paste0("dens_hse_polymars")
+  #density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_polspline$new(name="polymars", family=gaussian()), var_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian"))
   idx = idx + 1
   nm <- paste0("dens_hse_nnet")
   density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE), var_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian"))
@@ -152,19 +165,19 @@
 }
 
 
-#' @import sl3 glmnet earth stats nnet xgboost stats
+#' @import sl3 glmnet polspline stats nnet xgboost stats
 #' @export
 .default_continuous_learners_big <- function(){
   continuous_learners=list(
     Lrnr_glm$new(name="ols", family=gaussian()),
-    Lrnr_glmnet$new(name="CV elastic net", alpha=0.0, family="gaussian"),
+    Lrnr_glmnet$new(name="cv_elastic_net", alpha=0.0, family="gaussian"),
     Lrnr_stepwise$new(name="stepwise", family=gaussian()),
-    Lrnr_earth$new(name="mars", family=gaussian()),
-    Lrnr_xgboost$new(name="xgboost"),
+    #Lrnr_polspline$new(name="polymars", family=gaussian()),
+    Lrnr_xgboost$new(),
     Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE),
-    Lrnr_glmnet$new(name="CV lasso", alpha=1.0, family="gaussian"),
+    Lrnr_glmnet$new(name="cv_lasso", alpha=1.0, family="gaussian"),
     Pipeline$new(Lrnr_pca$new(name="pca"), Lrnr_glm$new(name="ols", family=gaussian())), # PCA plus glm
-    Pipeline$new(Lrnr_screener_coefs$new(name="lassocreen", learner=Lrnr_glmnet$new(name="lasso", alpha=1.0, family="gaussian")), Lrnr_earth$new(name="MARS", family=gaussian())), # screen by coefficient size then OLS
+    #Pipeline$new(Lrnr_screener_coefs$new(name="lassocreen", learner=Lrnr_glmnet$new(name="lasso", alpha=1.0, family="gaussian")), Lrnr_earth$new(name="MARS", family=gaussian())), # screen by coefficient size then OLS
     Pipeline$new(Lrnr_screener_coefs$new(name="coefscreen", learner=Lrnr_glm$new(name="ols", family=gaussian())), Lrnr_glm$new(name="OLS", family=gaussian())), # screen by coefficient size then OLS
     Pipeline$new(Lrnr_screener_importance$new(name="rfimpscreen", learner=Lrnr_randomForest$new()), Lrnr_glm$new(name="OLS", family=gaussian())) # screen by variable importance then OLS
   )
@@ -181,14 +194,14 @@
 .default_binary_learners_big <- function(){
   bin_learners=list(
     Lrnr_glm$new(name="logit", family=binomial()),
-    Lrnr_glmnet$new(name="lasso", alpha=1.0, family="binomial"),
+    Lrnr_glmnet$new(name="cv_elastic_net", alpha=0.0, family="binomial"),
     Lrnr_stepwise$new(name="stepwise", family=binomial()),
-    Lrnr_earth$new(name="mars", family=binomial()),
+    #Lrnr_polspline$new(name="polymars", family=binomial()),
     Lrnr_xgboost$new(),
     Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE),
-    Lrnr_glmnet$new(name="enet", alpha=0.0, family="binomial"),
+    Lrnr_glmnet$new(name="cv_lasso", alpha=1.0, family="binomial"),
     Pipeline$new(Lrnr_pca$new(name="pca"), Lrnr_glm$new(name="logit", family=binomial())), # PCA plus glm
-    Pipeline$new(Lrnr_screener_coefs$new(name="lassocreen", learner=Lrnr_glmnet$new(name="lasso", alpha=1.0, family="binomial")), Lrnr_earth$new(name="mars", family=binomial())), # screen by coefficient size then OLS
+    #Pipeline$new(Lrnr_screener_coefs$new(name="lassocreen", learner=Lrnr_glmnet$new(name="lasso", alpha=1.0, family="binomial")), Lrnr_polspline$new(name="polymars", family=binomial())), # screen by coefficient size then OLS
     Pipeline$new(Lrnr_screener_coefs$new(name="coefscreen", learner=Lrnr_glm$new(name="logit", family=binomial())), Lrnr_glm$new(name="logit", family=binomial())), # screen by coefficient size then OLS
     Pipeline$new(Lrnr_screener_importance$new(name="rfimpscreen", learner=Lrnr_randomForest$new()), Lrnr_glm$new(name="logit", family=binomial())) # screen by variable importance then LOGIT
   )
@@ -306,19 +319,30 @@
 
 
 #' @import sl3
+#' @importFrom future future value
+#' @export
 .train_allX <- function(X, tasks, bin_learners, density_learners, metalearner=NULL, verbose=TRUE, V=NULL){
   # TODO: check for data frame X
   vartype = ifelse(apply(X, 2, function(x) length(unique(x))==2), "b", "c")
   p = ncol(X)
-  trained_models <- list()
+  #trained_models <- list()
+  nmseq <- names(X)
+  ee <- new.env()
   for(j in 1:p){
     if(verbose) cat(paste0("Training: ", names(X)[j], "(", ifelse(vartype[j]=="b", "binomial", "continuous, density"), ")\n"))
-    trained_models[[j]] <- switch(vartype[j],
-                                  b = .train_fullstack( tasks[[j]],bin_learners, metalearner=metalearner[[bin_learners]], type="prob"),
-                                  c = .train_fullstack( tasks[[j]],density_learners, metalearner=metalearner[[density_learners]], type="density")
-    )
-  }
+    ee[[nmseq[j]]] <- future::future( {
+      #trained_models[[j]] <-
+      switch(vartype[j],
+             b = .train_fullstack( tasks[[j]],bin_learners, metalearner=metalearner[[bin_learners]], type="prob"),
+             c = .train_fullstack( tasks[[j]],density_learners, metalearner=metalearner[[density_learners]], type="density")
+      )
+    }, seed=TRUE, lazy=FALSE)
+}
+  trained_models <-  as.list(future::value(ee))
+  trained_models <- trained_models[names(X)]
+  names(trained_models) <- NULL
   trained_models
+
 }
 
 ################################
@@ -330,13 +354,13 @@
 #.gfunction <- function(X=NULL,Acol=1,gfits=sl.gfits, ...){
 .gfunction_sl <- function(X=NULL,Acol=1,gfits=NULL, ...){
     if(!is.null(X)){
-    XX <- sl3_Task$new(
-      data=data.frame(X),
-      covariates=names(X)[-Acol],
-      outcome=names(X)[Acol],
-      ...
-    )
-    pred <- gfits[[Acol]]$predict(XX)
+      XX <- sl3_Task$new(
+        data=data.frame(X),
+        covariates=names(X)[-Acol],
+        outcome=names(X)[Acol],
+        ...
+      )
+      pred <- gfits[[Acol]]$predict(XX)
   }
   if(is.null(X)){
     pred <- gfits[[Acol]]$predict()
@@ -438,7 +462,7 @@
     wt <- rep(1.0, n)
   }
   if(!is.logical(all.equal(sum(wt),as.double(n)))){
-    if(verbose) cat("Normalizing weights to sum to length(Y)")
+    if(verbose) cat("Normalizing weights to sum to length(Y)\n")
     wt <- wt/mean(wt)
   }
   tasklist = .create_tasks(X,Y,V,delta, ...)
@@ -492,3 +516,5 @@
   if(!is.null(B)) obj$rank = rank(-abs(obj$est$res$est))
   obj
 }
+
+

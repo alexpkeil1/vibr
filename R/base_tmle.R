@@ -27,14 +27,14 @@
   if(.link(.3)!=.ilink(.3)) fam <- binomial()
   if(weighted){
     #
-    #epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = Haw*wt, family=fam)$coefficients[1])
-    epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = pmax(0,Haw), family=fam)$coefficients[1])
+    epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = pmax(0,Haw*wt), family=fam)$coefficients[1])
+    #epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = pmax(0,Haw), family=fam)$coefficients[1])
     # 2. update Qk
     Qk1 <- .ilink(.link(Qinit) + epsk)        # Q(A       | W) + eps*H(A      |W)
     Qdawk1 <- .ilink(.link(Qdawinit) + epsk) # Q(A+delta | W) + eps*H(A+delta|W)
   } else{
-    #epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, weights=wt, family=fam)$coefficients[1])
-    epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, family=fam)$coefficients[1])
+    epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, weights=wt, family=fam)$coefficients[1])
+    #epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, family=fam)$coefficients[1])
     # 2. update Qk
     Qk1 <- .ilink(.link(Qinit) + epsk*Haw)        # Q(A       | W) + eps*H(A      |W)
     Qdawk1 <- .ilink(.link(Qdawinit) + epsk*Hdaw) # Q(A+delta | W) + eps*H(A+delta|W)
@@ -61,15 +61,15 @@
   if(.link(.3)==.ilink(.3)) fam <- gaussian()
   if(.link(.3)!=.ilink(.3)) fam <- binomial()
   if(weighted){
-    #epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = Haw*wt, family=fam)$coefficients[1])
-    epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = pmax(0,Haw), family=fam)$coefficients[1])
+    epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = pmax(0,Haw*wt), family=fam)$coefficients[1])
+    #epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = pmax(0,Haw), family=fam)$coefficients[1])
     # 2. update Qk
     Qk1 <- .ilink(.link(Qinit) + epsk)
     Q1k1 <- .ilink(.link(Q1init) + epsk)
     Q0k1 <- .ilink(.link(Q0init) + epsk)
   } else{
-    #epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, weights=wt, family=fam)$coefficients[1])
-    epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, family=fam)$coefficients[1])
+    epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, weights=wt, family=fam)$coefficients[1])
+    #epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, family=fam)$coefficients[1])
     # 2. update Qk
     Qk1 <- .ilink(.link(Qinit) + epsk*Haw)
     Q1k1 <- .ilink(.link(Q1init) + epsk*H1)
@@ -127,11 +127,11 @@
   #eqfb = predict(lm(y~., data.frame(y=qfb, X=X[,-Acol])))   # simple linear regression on W to get E_g[Q | W]
   # TODO: FIGURE OUT WEIGHTS!
   eqfb <- 0 # cancels out
-  psi <- mean((Qdawupdate - Y*(estimand != "mean")))
+  psi <- mean(wt*(Qdawupdate - Y*(estimand != "mean")))
   dc1 <- Haw*(Y - Qupdate)
   dc2 <- Qdawupdate - eqfb
   dc3 <- eqfb - Y*(estimand != "mean") - psi               # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
-  list(eif = as.vector(dc1 + dc2 + dc3), psi=psi)
+  list(eif = as.vector(dc1 + dc2 + dc3)*wt, psi=psi)
 }
 
 
@@ -174,11 +174,11 @@
   #.OneStepTmleBin(Y,qinit,Haw,Hdaw,isbin=FALSE)
   #eqfb = predict(lm(y~., data.frame(y=qfb, X=X[,-Acol])))   # simple linear regression on W to get E_g[Q | W]
   eqfb <- 0 # cancels out
-  psi <- mean((Qupdate + delta*(Q1update - Q0update) - Y*(estimand != "mean")))
+  psi <- mean(wt*(Qupdate + delta*(Q1update - Q0update) - Y*(estimand != "mean")))
   dc1 <- Haw*(Y - Qupdate)
   dc2 <- Qupdate - eqfb
   dc3 <- delta*(Q1update - Q0update) + eqfb - Y*(estimand != "mean") - psi                # Y doesn't show up in Diaz,vdl 2012 b/c they are estimating mean Y|A+delta
-  list(eif = as.vector(dc1 + dc2 + dc3), psi=psi)
+  list(eif = as.vector(dc1 + dc2 + dc3)*wt, psi=psi)
 }
 
 ################################
@@ -211,6 +211,7 @@
   isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
+
     if(isbin_vec[Acol]){
       dphi <- .DbTMLE(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded,wt,updatetype)
     } else{
@@ -293,7 +294,8 @@
   isbin <- as.character((length(unique(Y))==2))
   ee <- new.env()
   for(b in 1:B){
-    ridx <- sample(seq_len(n), n, replace=TRUE)
+    #ridx <- sample(seq_len(n), n, replace=TRUE)
+    ridx <- .bootsample(n)
     ee[[paste0("iter",b)]] <- future::future( {
       if(showProgress) cat(".")
       Xi = X[ridx,,drop=FALSE]
