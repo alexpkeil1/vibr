@@ -266,14 +266,15 @@ analyze <- function(i, B=1, outfile=NULL, ...){
   (vimp2 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="IPW", delta = .1))
   (vimp3 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .1))
   (vimp4 <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners()[1],
-                  Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
-                  verbose=FALSE, estimator="TMLE", scale_continuous = FALSE, B=B))
+                   Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
+                   verbose=FALSE, estimator="TMLEX", scale_continuous = FALSE, xfitfolds=5, foldrepeats=10))
   #
   obj <- as.matrix(vimp$res)
   obj2 <- as.matrix(vimp2$res)
   obj3 <- as.matrix(vimp3$res)
-  obj4 <- as.matrix(vimp4$est$res)
-  obj4se <- apply(vimp4$boots, 2, sd)
+  obj4 <- as.matrix(vimp4$res)
+  #obj4 <- as.matrix(vimp4$est$res)
+  #obj4se <- apply(vimp4$boots, 2, sd)
   tr = dat$tr
   names(tr) <- colnames(dat$X)
   lmfit <- summary(lm(y~., data.frame(y=dat$y, dat$X/0.1)))
@@ -282,8 +283,10 @@ analyze <- function(i, B=1, outfile=NULL, ...){
   res = c(
     TMLEest = obj[1:2,1],
     TMLEse = obj[1:2,2],
-    TMLEbootest = obj4[1:2,1],
-    TMLEbootse = obj4se,#apply(vimp3$boots, 2, sd)
+    TMLEXest = obj4[1:2,1],
+    TMLEXse = obj4[1:2,2],
+    #TMLEbootest = obj4[1:2,1],
+    #TMLEbootse = obj4se,#apply(vimp3$boots, 2, sd)
     IPWest = obj2[1:2,1],
     IPWse = obj2[1:2,2],
     GCOMPest = obj3[1:2,1],
@@ -300,7 +303,7 @@ analyze <- function(i, B=1, outfile=NULL, ...){
 
 
 future::plan("sequential")
-#dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
+#dat = dgm(n=300, delta = 0.1, beta = c(2,1, .0))
 (res1 <- analyze(1231321, n=500, B=1, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
 
 #attr(res1, "beta")
@@ -408,7 +411,7 @@ print(apply(res[, grep("cover", names(res))], 2, function(x) c(mean=mean(x))))
 
 jointtest <- function(){
   set.seed(12312)
-  dat = dgm( n=10000, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
+  dat = dgm( n=1000, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
   #dat = dgm( n=1000, delta = 0.01, beta = c(1,-2,2,0,0,0), degree=3, zk = c(-1.0, 0, 1.0))
   vi <- varimp(X=data.frame(dat$X),
                Y=dat$y,

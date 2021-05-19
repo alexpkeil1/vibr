@@ -29,8 +29,9 @@ rsconnect/
 .DS_Store
 
 
-private*
-private*/
+#private*
+#private*/
+*.Rout
 
 private_sims/basic_test.R
 private_sims/bayes_importance.R

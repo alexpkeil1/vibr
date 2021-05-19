@@ -307,7 +307,6 @@
   nms = names(df)
   pp1 <- ncol(df)
   if(!is.null(V[1])) df = data.frame(cbind(df, V))
-  isbin <- length(unique(Y))==2
   XY <- sl3_Task$new(data=df,
                      outcome_type=variable_type(type=ifelse(isbin, "binomial", "continuous")),
                      covariates=nms[-pp1],
@@ -452,6 +451,8 @@
   stopifnot(is.data.frame(X))
   if(!is.null(V[1])) stopifnot(is.data.frame(V))
 
+  doX = !(is.null(Xbinary_learners) & is.null(Xdensity_learners))
+  doY = !(is.null(Y_learners))
   n = length(Y)
   args = list(...)
   # checking for weights
@@ -465,17 +466,18 @@
     if(verbose) cat("Normalizing weights to sum to length(Y)\n")
     wt <- wt/mean(wt)
   }
-  tasklist = .create_tasks(X,Y,V,delta, ...)
+  tasklist <- NULL
+  if(doX) tasklist = .create_tasks(X,Y,V,delta, ...)
   isbin <- as.character((length(unique(Y))==2))
   if(verbose) cat(paste0("delta = ", delta, "\n")) # TODO: better interpretation
   yb = .bound_zero_one(Y)
   Ybound = yb[[1]]
   sl.qfit <- sl.gfits <- NULL
-  if(!is.null(Y_learners)){
+  if(doY){
     #yb = .bound_zero_one(Y)
     sl.qfit <- .train_Y(X,Y, Y_learners, verbose=verbose, isbin, V=V, ...)
   }
-  if(!is.null(Xbinary_learners) || !is.null(Xdensity_learners)){
+  if(doX){
     sl.gfits <- .train_allX(X, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose, V=V)
   }
   list(n=n, Ybound=Ybound, tasklist = tasklist, sl.qfit = sl.qfit, sl.gfits=sl.gfits, isbin = isbin, weights=wt)

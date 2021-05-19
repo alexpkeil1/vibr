@@ -31,7 +31,7 @@
     #epsk <- as.numeric(glm(Y~ offset(.link(Qinit)), weights = pmax(0,Haw), family=fam)$coefficients[1])
     # 2. update Qk
     Qk1 <- .ilink(.link(Qinit) + epsk)        # Q(A       | W) + eps*H(A      |W)
-    Qdawk1 <- .ilink(.link(Qdawinit) + epsk) # Q(A+delta | W) + eps*H(A+delta|W)
+    Qdawk1 <- .ilink(.link(Qdawinit) + epsk)  # Q(A+delta | W) + eps*H(A+delta|W)
   } else{
     epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, weights=wt, family=fam)$coefficients[1])
     #epsk <- as.numeric(glm(Y~ -1 + offset(.link(Qinit)) + Haw, family=fam)$coefficients[1])
@@ -113,8 +113,8 @@
   gb <- gfun(Xb,Acol,gfits=gfits)
   gbb <- gfun(Xbb,Acol,gfits=gfits)
   #
-  qinit = qfun(X, Acol,qfit=qfit)
-  qbinit = qfun(Xb, Acol,qfit=qfit)
+  qinit = qfun(X, Acol, qfit=qfit)
+  qbinit = qfun(Xb, Acol, qfit=qfit)
   #
   #ga = .enforce_min_dens(ga,eps=1e-8)
   Haw = .Haw(gn, ga, gb)  # evaluated at A_i (ga/gn) + I(gb=0)
@@ -153,7 +153,7 @@
   # define shifts
   X0 <- .shift(X,Acol, -X[,Acol])
   X1 <- .shift(X,Acol,  (1-X[,Acol]))
-  g0 <- 1-gfun(NULL,Acol,gfits=gfits)
+  g0 <- 1-gfun(X,Acol,gfits=gfits)
 
   #
   qinit = qfun(X, Acol,qfit=qfit)
