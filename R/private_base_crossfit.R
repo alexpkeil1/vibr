@@ -97,8 +97,7 @@
   est <- apply(ests, 2, median)
 
   resid <- sweep(ests, 2, est, check.margin = FALSE)
-  vars <- +
-          resid^2
+  vars <- vars + resid^2
 
 
   #var <-apply(vars, 2, mean)
