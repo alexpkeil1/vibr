@@ -48,6 +48,7 @@
                          foldrepeats=10,
                          ...){
   ee = new.env()
+  # todo: ensure that outcome is always typed correctly (isbin should be set locally)
   n = length(Y)
   if(.checkeven(xfitfolds) || xfitfolds < 3) stop("xfitfolds must be an odd number >2")
   allpartitions <- lapply(seq_len(foldrepeats), .xfitsplit,n=n,V=xfitfolds)
@@ -69,12 +70,12 @@
         Y3 = Y[fold$set3]
         V3 = V[fold$set3,,drop=FALSE]
 
-        obj_G = vibr:::.prelims(X=X1, Y=Y1, V=V1, delta=delta, Y_learners=NULL, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
-        obj_Y = vibr:::.prelims(X=X2, Y=Y2, V=V2, delta=delta, Y_learners, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
-        obj <- vibr:::.prelims(X=X3, Y=Y3, V=V3, delta=delta, Y_learners=NULL, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
+        obj_G = .prelims(X=X1, Y=Y1, V=V1, delta=delta, Y_learners=NULL, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
+        obj_Y = .prelims(X=X2, Y=Y2, V=V2, delta=delta, Y_learners, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
+        obj <- .prelims(X=X3, Y=Y3, V=V3, delta=delta, Y_learners=NULL, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
         obj$sl.qfit = obj_Y$sl.qfit
         obj$sl.gfits = obj_G$sl.gfits
-        fittable <- vibr:::.EstEqTMLE(n=obj$n,X=X3,Y=Y3,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights,updatetype=updatetype)
+        fittable <- .EstEqTMLE(n=obj$n,X=X3,Y=Y3,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights,updatetype=updatetype)
         fittable[,1:2]
       }, seed=TRUE, lazy=TRUE)
     }
@@ -108,7 +109,7 @@
     res = resmat,
     qfit = NULL,
     gfits = NULL,
-    binomial = obj$isbin,
+    binomial = NULL,
     type = "TMLEX",
     weights=NULL
   )
