@@ -58,9 +58,9 @@ pass <- function(){
   vijointb <- vibr:::.varimp_gcomp_joint_boot(X=Xi,Y=Y, V=V,
                                              expnms=c(mixturela),
                                              delta=.01,
-                                             weights="wtspo2yr",
+                                             #weights="wtspo2yr",
                                              estimand="diff",
-                                             Y_learners = .default_continuous_learners_big()[1:4],
+                                             Y_learners = .default_continuous_learners_big()[1],
                                              Xdensity_learners = NULL,
                                              Xbinary_learners = NULL,
                                              B=200, verbose=FALSE)
@@ -68,6 +68,7 @@ pass <- function(){
 
   vijoint
   vijointb
+  vijointb$est$qfit$coefficients
 }
 
 (ncores <- future::availableCores())

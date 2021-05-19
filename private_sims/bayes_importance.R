@@ -22,8 +22,8 @@ dat <- read.csv("/Users/akeil/EpiProjects/NHANES/pcbs_furans_dioxins/mitro_data_
 Y = dat$telomean
 Xcr = dat[,c(mixturela)]
 X = dat[,c(mixturela, "ridageyr")]
-
-
+X = vibr:::.scale_continuous(X)
+apply(X, 2, sd)
 
 stanmod <- "
 data{
@@ -65,7 +65,7 @@ generated quantities{
    vimp[v] -= mean(b0 + X * beta);
    vimp[v] *= 100.;
  }
- ovimp = sum(vimp);
+ ovimp = sum(vimp[1:34]);
  pcbimp = sum(vimp[1:18]);
  dioxinimp = sum(vimp[19:25]);
  furanimp = sum(vimp[26:34]);
@@ -82,18 +82,34 @@ standat <- list(
   Y=Y,
   N=length(Y),
   P=ncol(X),
-  delta = 0.1
+  delta = 0.01
 )
 
 smod <- rstan::stan_model(model_code=stanmod)
 sfit <- rstan::sampling(smod, data = standat)
 sfit
 
-print(sfit, pars = "pimp") # 9, 27, 8
-mixturela[c(9,27,8)]
-print(sfit, pars = "vimp") # 9, 27, 8
+print(sfit, pars = "pimp") # 35, 11, 6
+mixturela[c(35, 11, 6)]
+print(sfit, pars = "vimp") # 35, 11, 27,
+mixturela[c(35, 11, 27)]
 print(sfit, pars = c("ovimp", "pcbimp", "dioxinimp", "furanimp")) # 9, 27, 8
 
+
+lmx = cbind(intercept=rep(1, length(standat$Y)), standat$X)
+lmy = standat$Y
+
+vi <- vibr::varimp(standat$X, standat$Y, delta=0.01,
+             Y_learners = .default_continuous_learners()[1],
+             Xdensity_learners = .default_density_learners(),
+             Xbinary_learners = NULL,
+             estimator = "TMLE"
+             )
+100*cbind(
+   100*vi$res$est,
+   glm.fit(x=lmx, y=lmy)$coefficients[-1],
+   summary(sfit, pars=c("beta"))$summary[,'mean']
+)
 stan_dens(sfit,  c("ovimp", "pcbimp", "dioxinimp", "furanimp"))
 stan_dens(sfit,  c("beta[9]"))
 stan_dens(sfit,  c("vimp[9]"))

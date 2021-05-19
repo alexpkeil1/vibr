@@ -27,3 +27,11 @@ rsconnect/
 .Rproj.user
 .DS_Store
 .DS_Store
+
+
+private*
+private*/
+
+private_sims/basic_test.R
+private_sims/bayes_importance.R
+private_sims/nhanes_test.R

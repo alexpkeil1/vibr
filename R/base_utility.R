@@ -173,7 +173,7 @@
     Lrnr_glmnet$new(name="cv_elastic_net", alpha=0.0, family="gaussian"),
     Lrnr_stepwise$new(name="stepwise", family=gaussian()),
     #Lrnr_polspline$new(name="polymars", family=gaussian()),
-    Lrnr_xgboost$new(),
+    #Lrnr_xgboost$new(),
     Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE),
     Lrnr_glmnet$new(name="cv_lasso", alpha=1.0, family="gaussian"),
     Pipeline$new(Lrnr_pca$new(name="pca"), Lrnr_glm$new(name="ols", family=gaussian())), # PCA plus glm
@@ -197,7 +197,7 @@
     Lrnr_glmnet$new(name="cv_elastic_net", alpha=0.0, family="binomial"),
     Lrnr_stepwise$new(name="stepwise", family=binomial()),
     #Lrnr_polspline$new(name="polymars", family=binomial()),
-    Lrnr_xgboost$new(),
+    #Lrnr_xgboost$new(),
     Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE),
     Lrnr_glmnet$new(name="cv_lasso", alpha=1.0, family="binomial"),
     Pipeline$new(Lrnr_pca$new(name="pca"), Lrnr_glm$new(name="logit", family=binomial())), # PCA plus glm

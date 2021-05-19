@@ -20,12 +20,11 @@ simspline <- function(k, x, degree=1){
 #simspline(c(-1, 0, 1), rnorm(100), degree=1)
 
 
-options(mc.cores=12)
 dgm <- function(n, delta, beta, degree=1, zk = c(-1, 0, 1)){
   fullbeta <- rep(0, 20)
   fullbeta[1:length(beta)] <- beta
   px <- 0.2
-  z <- rnorm(n)
+  z <- rnorm(n,0,3)
   x <- rbinom(n,1,px)
   zint <- z+delta
   xint <- ifelse(x==0, rbinom(n,1,delta/(1-px)), x)
@@ -43,6 +42,27 @@ dgm <- function(n, delta, beta, degree=1, zk = c(-1, 0, 1)){
   attr(res, "yfun") = function(z,x) yfun(z,x,beta=fullbeta, knots=zk)
   attr(res, "beta") = fullbeta
   res
+}
+
+
+
+dgm_ks <- function(n, delta){
+ #kang and schafer
+  Z <- do.call(cbind, lapply(1:4, function(x) rnorm(n, 0, 1)))
+  X = Z
+  yerr <- rnorm(n)
+  pyfun <- function(Z){
+    210 + 27.4*Z[,1] + 13.7*Z[,2] + 13.7*Z[,3] + 13.7*Z[,4]
+  }
+  pxfun <- function(Z){
+    vibr:::.expit(-Z[,1] + 0.5*Z[,2] - 0.25*Z[,3] - 0.1*Z[,4])
+  }
+  y <- pyfun(Z) + yerr
+  X[,1] = exp(Z[,1]/2)
+  X[,2] = Z[,2]/ 1 + exp(Z[,1]) + 10
+  X[,3] = (Z[,1]*Z[,3]/25 + 0.6)^3
+  X[,4] = (Z[,2] +Z[,4] +20)^2
+  list(y=y,X=X)
 }
 
 density_learners <- function(n_bins=c(3,8), histtypes=c("equal.mass")){
@@ -240,13 +260,13 @@ stabilitytest <- function(...){
 analyze <- function(i, B=1, outfile=NULL, ...){
   dat = dgm(...)
   #set.seed(12312); dat = dgm( n=1000, delta = 0.1, beta = c(2,1, .3))
-  (vimp <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
-                  Xdensity_learners=.default_density_learners()[-3], Xbinary_learners=.default_binary_learners(),
+  (vimp <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners()[1],
+                  Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
                   verbose=FALSE, estimator="TMLE", scale_continuous = FALSE))
   (vimp2 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="IPW", delta = .1))
   (vimp3 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .1))
-  (vimp4 <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
-                  Xdensity_learners=.default_density_learners()[-3], Xbinary_learners=.default_binary_learners(),
+  (vimp4 <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners()[1],
+                  Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
                   verbose=FALSE, estimator="TMLE", scale_continuous = FALSE, B=B))
   #
   obj <- as.matrix(vimp$res)
@@ -281,49 +301,70 @@ analyze <- function(i, B=1, outfile=NULL, ...){
 
 future::plan("sequential")
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
-(res1 <- analyze(1231321, n=100, B=1, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
+(res1 <- analyze(1231321, n=500, B=1, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
 
 #attr(res1, "beta")
-z <- seq(-2,2,length.out=100)
-x <- rep(c(0,1),length.out=100)
+z <- seq(-5,5,length.out=500)
+testz <- rnorm(100, 0, 3)
+x <- rep(c(0,1),length.out=500)
 py1 <- attr(res1, "yfun")(z[x==1],x[x==1])
 py1a <- attr(res1, "yfun")(z[x==1]+0.1,x[x==1])
+testy <- attr(res1, "yfun")(testz+0.1,0)+rnorm(100)
 mean(py1a-py1)
 py0 <- attr(res1, "yfun")(z[x==0],x[x==0])
 plot(z[x==1], py1, type="l", ylim=c(min(c(py1,py0)), max(c(py1,py0))))
 lines(z[x==0], py0)
-
-py1x <- attr(res1, "yfun")(z[x==1],x[x==1])
-py0x <- attr(res1, "yfun")(z[x==1],x[x==0])
-mean(py1x-py0x)*0.1
+points(testz,testy)
 
 
 (ncores <- future::availableCores())
 future::plan("multisession", workers=ncores/2)
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
-system.time(res1 <- analyze(1231321, n=100, B=100, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
+system.time(res1 <- analyze(1231321, n=500, B=100, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
 
 csvout <- "/Users/akeil/temp/vimp_check.csv"
 write.table(t(res1), csvout, append = FALSE, row.names = FALSE, sep=",")
 
-resL = future.apply::future_lapply(1:1000, analyze, outfile=csvout, n=100, B=100, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0),
+resL = future.apply::future_lapply(1:1000, analyze, outfile=csvout, n=500, B=100, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0),
                                    future.seed=TRUE, future.packages=NULL)
-res = as.data.frame(do.call(rbind, resL))
-rm <- apply(res, 2, mean)
 
-cipow <- function(res, root="AIPW", exp="x", type="cover"){
+readana <- function(file=csvout){
+  fl <- read.csv(file)
+  fl
+}
+
+res = readana()
+dim(res)
+#res = as.data.frame(do.call(rbind, resL))
+(rm <- apply(res, 2, mean))
+
+cipow <- function(res, root="TMLE", exp="x", type="cover"){
   nm = paste0(root, type, ".", exp)
   est = res[,paste0(root, "est.", exp)]
   se = res[,paste0(root, "se.", exp)]
-  tr = rm[paste0("tr.", exp)] # truth based on average across simulations
+  #tr = rm[paste0("tr.", exp)] # truth based on average across simulations
+  dat <- dgm(n=100, delta=0.1,beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0))
+  ztest <- seq(-10,10,.002)
+  xtest <- rep(c(0,1), length.out=length(ztest))
+  pxz <- dnorm(ztest,0,3)*dbinom(xtest, 1, .2)
+  pxzd <- dnorm(ztest-0.1,0,3)*dbinom(xtest, 1, .2)
+  ey <- attr(dat, "yfun")(ztest,xtest)
+  ey0 <- attr(dat, "yfun")(ztest,0)
+  ey1 <- attr(dat, "yfun")(ztest,1)
+  pym <- sum(ey*pxz)/sum(pxz)
+  pyz <- sum(ey*pxzd)/sum(pxzd)
+  pyx <- pym+.1*(sum(ey1*pxz)/sum(pxz)- sum(ey0*pxz)/sum(pxz))
+  (trA <- c(tr.z=pyz,tr.x=pyx)-pym)
+  tr <- trA[paste0("tr.", exp)]
   res[,nm] <<- switch(type,
                    cover= as.numeric(((est + 1.96*se) > tr) & ((est - 1.96*se) < tr)),
                    power= as.numeric(((est - 1.96*se) > 0) | ((est + 1.96*se) < 0)),
-                   bias= as.numeric(est-tr)
+                   bias= as.numeric(est-tr),
+                   pctBias = 100*as.numeric(est-tr)/tr
   )
 }
 
-for(stat in c("cover", "power", "bias")){
+for(stat in c("cover", "power", "bias", "pctBias")){
   for(estim in c("TMLE", "TMLEboot", "IPW", "GCOMP", "lm")){
     for(var in c("z", "x")){
       cipow(res, estim, var, stat)
@@ -335,6 +376,7 @@ for(stat in c("cover", "power", "bias")){
 rm[c("tr.z", "tr.x")]
 print(apply(res[,  grep("est.", names(res))], 2, function(x) c(mean=mean(x), sd=sd(x))))
 print(apply((res)[,grep("bias", names(res))], 2, function(x) c(bias=mean(x), mse=mean(x^2), sd.bias=sd(x))))
+print(apply((res)[,grep("pctBias", names(res))], 2, function(x) c(mean=mean(x), median=median(x))))
 print(apply(res[,grep("se[a]*", names(res))], 2, function(x) c(mean=mean(x))))
 print(apply(res[, grep("cover", names(res))], 2, function(x) c(mean=mean(x))))
 
@@ -360,3 +402,43 @@ print(apply(res[, grep("cover", names(res))], 2, function(x) c(mean=mean(x))))
 #                Xdensity_learners=.default_density_learners(), Xbinary_learners=binary_learners(),
 #                verbose=FALSE, estimator="GCOMP", estimand="diff", scale_continuous = FALSE))
 #
+
+
+
+
+jointtest <- function(){
+  set.seed(12312)
+  dat = dgm( n=10000, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
+  #dat = dgm( n=1000, delta = 0.01, beta = c(1,-2,2,0,0,0), degree=3, zk = c(-1.0, 0, 1.0))
+  vi <- varimp(X=data.frame(dat$X),
+               Y=dat$y,
+               delta=0.01,
+               estimator="GCOMP",
+               Y_learners = c(sl3::Lrnr_glm$new())
+  )
+  vij <- vibr:::.varimp_gcomp_joint(
+    X=data.frame(dat$X),
+    Y=dat$y,
+    expnms = c("x", "z"),
+    delta=0.01,
+    Y_learners = c(sl3::Lrnr_glm$new()),
+    estimand="diff",
+    verbose=FALSE
+  )
+  vijb <- vibr:::.varimp_gcomp_joint_boot(
+    X=data.frame(dat$X),
+    Y=dat$y,
+    expnms = c("x", "z"),
+    delta=0.01,
+    Y_learners = c(sl3::Lrnr_glm$new()),
+    estimand="diff",
+    verbose=FALSE
+  )
+  vi
+  vij
+  vijb
+  (coefs <- lm(dat$y~., data = data.frame(vibr:::.scale_continuous(dat$X)))$coefficients[-1]*0.01)
+  sum(coefs)
+  (coefs <- lm(dat$y~.+.^2, data = data.frame(vibr:::.scale_continuous(dat$X)))$coefficients[-1])
+}
+
