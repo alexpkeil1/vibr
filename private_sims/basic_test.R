@@ -299,15 +299,14 @@ jointtest <- function(){
 analyze <- function(i, B=1, outfile=NULL, ...){
   dat = dgm(...)
   #set.seed(12312); dat = dgm( n=1000, delta = 0.1, beta = c(2,1, .3))
-  (vimp <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners()[1],
+  (vimp <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
                   Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
-                  verbose=FALSE, estimator="TMLE", scale_continuous = FALSE,
-                  xfitfolds = 5, foldrepeats = B))
+                  verbose=FALSE, estimator="TMLE", scale_continuous = FALSE))
   (vimp2 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="IPW", delta = .1))
   (vimp3 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .1))
-  (vimp4 <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners()[1],
+  (vimp4 <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
                    Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
-                   verbose=FALSE, estimator="TMLEX", scale_continuous = FALSE, xfitfolds=5, foldrepeats=10))
+                   verbose=FALSE, estimator="TMLEX", scale_continuous = FALSE, xfitfolds=5, foldrepeats=B))
   #
   obj <- as.matrix(vimp$res)
   obj2 <- as.matrix(vimp2$res)
@@ -344,7 +343,7 @@ analyze <- function(i, B=1, outfile=NULL, ...){
 
 future::plan("sequential")
 #dat = dgm(n=300, delta = 0.1, beta = c(2,1, .0))
-(res1 <- analyze(1231321, n=500, B=1, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
+(res1 <- analyze(1231321, n=3000, B=5, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
 
 #attr(res1, "beta")
 z <- seq(-5,5,length.out=500)
@@ -363,7 +362,7 @@ points(testz,testy)
 (ncores <- future::availableCores())
 future::plan("multisession", workers=ncores/2)
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
-system.time(res1 <- analyze(1231321, n=500, B=20, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
+system.time(res1 <- analyze(1231321, n=3000, B=20, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
 
 csvout <- "/Users/akeil/temp/vimp_check.csv"
 write.table(t(res1), csvout, append = FALSE, row.names = FALSE, sep=",")
@@ -398,16 +397,18 @@ cipow <- function(res, root="TMLE", exp="x", type="cover"){
   pyz <- sum(ey*pxzd)/sum(pxzd)
   pyx <- pym+.1*(sum(ey1*pxz)/sum(pxz)- sum(ey0*pxz)/sum(pxz))
   (trA <- c(tr.z=pyz,tr.x=pyx)-pym)
+  #cat(paste("truth: ", trA, "\n"))
   tr <- trA[paste0("tr.", exp)]
   res[,nm] <<- switch(type,
-                   cover= as.numeric(((est + 1.96*se) > tr) & ((est - 1.96*se) < tr)),
-                   power= as.numeric(((est - 1.96*se) > 0) | ((est + 1.96*se) < 0)),
-                   bias= as.numeric(est-tr),
-                   pctBias = 100*as.numeric(est-tr)/tr
+                      cover95= as.numeric(((est + 1.96*se) > tr) & ((est - 1.96*se) < tr)),
+                      cover80= as.numeric(((est + 1.28*se) > tr) & ((est - 1.28*se) < tr)),
+                      power= as.numeric(((est - 1.96*se) > 0) | ((est + 1.96*se) < 0)),
+                      bias= as.numeric(est-tr),
+                      pctBias = 100*as.numeric(est-tr)/tr
   )
 }
 
-for(stat in c("cover", "power", "bias", "pctBias")){
+for(stat in c("cover95", "cover80", "power", "bias", "pctBias")){
   for(estim in c("TMLE", "TMLEX", "IPW", "GCOMP", "lm")){
     for(var in c("z", "x")){
       cipow(res, estim, var, stat)
@@ -421,7 +422,8 @@ print(apply(res[,  grep("est.", names(res))], 2, function(x) c(mean=mean(x), sd=
 print(apply((res)[,grep("bias", names(res))], 2, function(x) c(bias=mean(x), rmse=sqrt(mean(x^2)), sd.bias=sd(x))))
 print(apply((res)[,grep("pctBias", names(res))], 2, function(x) c(mean=mean(x), median=median(x))))
 print(apply(res[,grep("se[a]*", names(res))], 2, function(x) c(mean=mean(x))))
-print(apply(res[, grep("cover", names(res))], 2, function(x) c(mean=mean(x))))
+print(apply(res[, grep("cover95", names(res))], 2, function(x) c(mean=mean(x))))
+print(apply(res[, grep("cover80", names(res))], 2, function(x) c(mean=mean(x))))
 
 
 

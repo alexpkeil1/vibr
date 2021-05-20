@@ -106,45 +106,21 @@
 #' @import sl3
 #' @export
 .default_density_learners_big <- function(n_bins=c(7, 12), histtypes=c("equal.mass", "equal.length")){
-  density_learners=list()
-  idx  = 1
-  nm <- paste0("dens_gaussian_glm")
-  density_learners[[idx]] <- Lrnr_density_gaussian$new(name=nm)
-  idx  = idx+1
-  nm <- paste0("dens_gaussian_glmlogy")
-  density_learners[[idx]] <- Lrnr_density_gaussian$new(name=nm, transfun = log)
-  idx  = idx+1
-  nm <- paste0("hist_multinom_10")
-  density_learners[[idx]] <- Lrnr_density_discretize$new(name=nm, categorical_learner = Lrnr_multinom$new(trace=FALSE), n_bins = 10, bin_method="equal.mass")
-  idx  = idx+1
-  nm <- paste0("dens_hse_glm")
-  density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_glm$new(), var_learner = Lrnr_glm$new())
-  idx  = idx+1
-  nm <- paste0("dens_hse_lasso")
-  density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian"), var_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian"))
-  idx  = idx+1
-  nm <- paste0("dens_hse_sw")
-  density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_stepwise$new(name="Stepwise"), var_learner = Lrnr_stepwise$new(name="Stepwise"))
-  #idx  = idx+1
-  #nm <- paste0("dens_hse_polymars")
-  #density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_polspline$new(name="polymars", family=gaussian()), var_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian"))
-  idx = idx + 1
-  nm <- paste0("dens_hse_nnet")
-  density_learners[[idx]] <- Lrnr_density_hse$new(name=nm, mean_learner = Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE), var_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian"))
-  idx  = idx+1
-  density_learners[[idx]] <- Pipeline$new(Lrnr_pca$new(name="pca"),
-                                          Lrnr_density_gaussian$new(name="dens_gaussian_glm"))
-  idx  = idx+1
-  density_learners[[idx]] <- Pipeline$new(Lrnr_pca$new(name="pca"),
-                                          Lrnr_density_gaussian$new(name="dens_gaussian_glmlogtrans", transfun=log))
-  idx  = idx+1
-  nm <- paste0("dens_sp_unadj")
-  # uniform marginal with kernel density estimator
-  density_learners[[idx]] <- Lrnr_density_semiparametric$new(name=nm, mean_learner = Lrnr_mean$new(), var_learner = NULL)
-  idx  = idx+1
-  nm <- paste0("dens_sp_glm")
-  density_learners[[idx]] <- Lrnr_density_semiparametric$new(name=nm, mean_learner = Lrnr_glm$new(), var_learner = NULL)
-  idx  = idx+1
+  density_learners=list(
+     Lrnr_density_gaussian$new(name="dens_gaussian_glm"),
+     Lrnr_density_discretize$new(name="hist_multinom_10", categorical_learner = Lrnr_multinom$new(trace=FALSE), n_bins = 10, bin_method="equal.mass"),
+     Lrnr_density_gaussian$new(name="dens_gaussian_glmlogy", transfun = log),
+     Lrnr_density_hse$new(name="dens_hse_glm", mean_learner = Lrnr_glm$new(), var_learner = Lrnr_glm$new()),
+     Lrnr_density_hse$new(name="dens_hse_lasso", mean_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian"), var_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian")),
+     Lrnr_density_hse$new(name="dens_hse_sw", mean_learner = Lrnr_stepwise$new(name="Stepwise"), var_learner = Lrnr_stepwise$new(name="Stepwise")),
+     Lrnr_density_hse$new(name="dens_hse_polymars", mean_learner = Lrnr_polspline$new(name="polymars", family=gaussian()), var_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian")),
+     Lrnr_density_hse$new(name="dens_hse_nnet", mean_learner = Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE), var_learner = Lrnr_glmnet$new(name="Lasso", alpha=1.0, family="gaussian")),
+     Pipeline$new(Lrnr_pca$new(name="pca"), Lrnr_density_gaussian$new(name="dens_gaussian_glm")),
+     Pipeline$new(Lrnr_pca$new(name="pca"),Lrnr_density_gaussian$new(name="dens_gaussian_glmlogtrans", transfun=log)),
+     Lrnr_density_semiparametric$new(name="dens_sp_unadj", mean_learner = Lrnr_mean$new(), var_learner = NULL),
+     Lrnr_density_semiparametric$new(name="dens_sp_glm", mean_learner = Lrnr_glm$new(), var_learner = NULL)
+  )
+  idx  = length(density_learners)+1
   for(nb in n_bins){
     for(histtype in histtypes){
       nm <- paste0("hist_rf_", nb, histtype)
@@ -169,10 +145,12 @@
 #' @export
 .default_continuous_learners_big <- function(){
   continuous_learners=list(
+    Lrnr_mean$new(name="mean"),
     Lrnr_glm$new(name="ols", family=gaussian()),
     Lrnr_glmnet$new(name="cv_elastic_net", alpha=0.0, family="gaussian"),
+    Lrnr_polspline$new(name="polymars", family=gaussian()),
+    Lrnr_gam$new(name="gam"),
     Lrnr_stepwise$new(name="stepwise", family=gaussian()),
-    #Lrnr_polspline$new(name="polymars", family=gaussian()),
     #Lrnr_xgboost$new(),
     Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE),
     Lrnr_glmnet$new(name="cv_lasso", alpha=1.0, family="gaussian"),
@@ -193,15 +171,16 @@
 #' @export
 .default_binary_learners_big <- function(){
   bin_learners=list(
+    Lrnr_mean$new(name="mean"),
     Lrnr_glm$new(name="logit", family=binomial()),
-    Lrnr_glmnet$new(name="cv_elastic_net", alpha=0.0, family="binomial"),
+    Lrnr_polspline$new(name="polymars", family=binomial()),
     Lrnr_stepwise$new(name="stepwise", family=binomial()),
-    #Lrnr_polspline$new(name="polymars", family=binomial()),
+    Lrnr_glmnet$new(name="cv_elastic_net", alpha=0.0, family="binomial"),
     #Lrnr_xgboost$new(),
     Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE),
     Lrnr_glmnet$new(name="cv_lasso", alpha=1.0, family="binomial"),
     Pipeline$new(Lrnr_pca$new(name="pca"), Lrnr_glm$new(name="logit", family=binomial())), # PCA plus glm
-    #Pipeline$new(Lrnr_screener_coefs$new(name="lassocreen", learner=Lrnr_glmnet$new(name="lasso", alpha=1.0, family="binomial")), Lrnr_polspline$new(name="polymars", family=binomial())), # screen by coefficient size then OLS
+    Pipeline$new(Lrnr_screener_coefs$new(name="lassocreen", learner=Lrnr_glmnet$new(name="lasso", alpha=1.0, family="binomial")), Lrnr_polspline$new(name="polymars", family=binomial())), # screen by coefficient size then OLS
     Pipeline$new(Lrnr_screener_coefs$new(name="coefscreen", learner=Lrnr_glm$new(name="logit", family=binomial())), Lrnr_glm$new(name="logit", family=binomial())), # screen by coefficient size then OLS
     Pipeline$new(Lrnr_screener_importance$new(name="rfimpscreen", learner=Lrnr_randomForest$new()), Lrnr_glm$new(name="logit", family=binomial())) # screen by variable importance then LOGIT
   )
