@@ -17,6 +17,7 @@ varimp(
   bounded = FALSE,
   updatetype = "weighted",
   estimand = "diff",
+  family = gaussian(),
   xfitfolds = 3,
   foldrepeats = 10,
   B = NULL,
@@ -49,6 +50,8 @@ varimp(
 \item{updatetype}{(character) (used for estimator = "TMLE" only) "weighted" or any other valid character. If "weighted" then uses weighting by clever covariate in update step of TMLE, otherwise fits a generalized linear model with no intercept and clever covariate as a sole predictor}
 
 \item{estimand}{(character) "diff" (default, estimate mean difference comparing Y under intervention with observed Y), "mean" (estimate mean Y under intervention)}
+
+\item{family}{(character or glm families binomial or gaussian, default = gaussian()) Outcome type: can be gaussian(), binomial(), "gaussian" or "binomial"; will be guessed if left NULL}
 
 \item{xfitfolds}{(odd integer, default=3) (used for estimator = "TMLEX" only) number of cross-fit folds (must be odd number - last fold is used for validation while the rest of the data are split in two for fitting treatment or outcome models)}
 

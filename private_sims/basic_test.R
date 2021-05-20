@@ -134,10 +134,17 @@ testtxshift <- function(){
     fitted$predict()
   }
 
+
+  dat$X = cbind(dat$X, q=runif(length(dat$y)))
+  polspline::polymars(dat$y, dat$X)
   V = data.frame(wt=rep(1,length(dat$y)))
-  (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
-                  Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
-                  verbose=FALSE, estimator="TMLE", estimand="diff", weights="wt", scale_continuous = FALSE))
+  (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.05, Y_learners=list(Lrnr_glm$new()),
+                 Xdensity_learners=c(Lrnr_density_gaussian$new()), Xbinary_learners=c(Lrnr_glm$new()),
+                 verbose=FALSE, estimator="TMLE", estimand="diff", weights="wt", scale_continuous = FALSE))
+  (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.05, Y_learners=list(Lrnr_glm$new()),
+                  Xdensity_learners=c(Lrnr_density_gaussian$new()), Xbinary_learners=c(Lrnr_glm$new()),
+                  verbose=FALSE, estimator="TMLEX", estimand="diff", weights="wt", scale_continuous = FALSE,
+                 foldrepeats = 50))
   (vi1<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="AIPW", delta = .05))
   (vi3<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="IPW", delta = .05))
   (vi2<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .05))

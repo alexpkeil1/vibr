@@ -15,6 +15,7 @@
                 estimand,
                 bounded,
                 wt,
+                isbin=FALSE,
                 ...){
   # define shifts
   Xa <- .shift(X,Acol, -delta)
@@ -51,6 +52,7 @@
                 estimand,
                 bounded,
                 wt,
+                isbin=FALSE,
                 ...){
   # define shifts
   X0 <- .shift(X,Acol, -X[,Acol])
@@ -100,14 +102,15 @@
                        estimand,
                        bounded=FALSE, # future use
                        wt=rep(1,n),
+                       isbin=FALSE,
                        ...){
   isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
-      dphi <- .DbAIPW(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand, bounded, wt)
+      dphi <- .DbAIPW(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand, bounded, wt,isbin=isbin)
     } else{
-      dphi <- .DcAIPW( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand, bounded, wt)
+      dphi <- .DcAIPW( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand, bounded, wt,isbin=isbin)
     }
     tm <- .MakeiAipwEst(dphi)
     resmat[Acol,] <- tm
@@ -134,7 +137,7 @@
                           estimand,
                           bounded,
                           updatetype){
-  fittable <- .EstEqAIPW(obj$n,X,Y,delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand, bounded=FALSE,wt=obj$weights)
+  fittable <- .EstEqAIPW(obj$n,X,Y,delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand, bounded=FALSE,wt=obj$weights,isbin=obj$isbin)
   res <- list(
     res = fittable,
     qfit = obj$sl.qfit,
@@ -158,8 +161,9 @@
                          verbose=TRUE,
                          estimand,
                          bounded=FALSE,
+                         isbin=FALSE,
                          ...){
-  obj = .prelims(X, Y, V, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
+  obj = .prelims(X, Y, V, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose,isbin=isbin, ...)
   res = .trained_aipw(obj,X,Y,delta,qfun,gfun,estimand,bounded,updatetype)
   res
 }
@@ -179,10 +183,10 @@
                               B=100,
                               showProgress=TRUE,
                               ...){
-  est <- .varimp_aipw(X,Y,V,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,...)
+  if(is.null(isbin)) isbin <- as.logical((length(unique(Y))==2))
+  est <- .varimp_aipw(X,Y,V,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,isbin=isbin,...)
   rn <- rownames(est$res)
   n = length(Y)
-  isbin <- as.character((length(unique(Y))==2))
   ee <- new.env()
   for(b in 1:B){
     #ridx <- sample(seq_len(n), n, replace=TRUE)
@@ -192,8 +196,8 @@
       Xi = X[ridx,,drop=FALSE]
       Yi = Y[ridx]
       Vi = V[ridx,,drop=FALSE]
-      obj = .prelims(X=Xi, Y=Yi, V=Vi, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
-      fittable <- .EstEqAIPW(n=obj$n,X=Xi,Y=Yi,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights)
+      obj = .prelims(X=Xi, Y=Yi, V=Vi, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose,isbin=isbin, ...)
+      fittable <- .EstEqAIPW(n=obj$n,X=Xi,Y=Yi,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights,isbin=obj$isbin)
       fittable$est
     }, seed=TRUE, lazy=TRUE)
   }

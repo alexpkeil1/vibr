@@ -101,6 +101,7 @@
                 bounded,
                 wt,
                 updatetype="weighted",
+                isbin=FALSE,
                 ...
                 ){
   # define shifts
@@ -120,7 +121,11 @@
   Haw = .Haw(gn, ga, gb)  # evaluated at A_i (ga/gn) + I(gb=0)
   Hdaw = .Haw(gb, gn, gbb) # evaluated at d(A_i,W_i)
   #
-  QuMat <- .OneStepTmleCont(Y=Y,Qinit=qinit,Qdawinit=qbinit,Haw=Haw,Hdaw=Hdaw,isbin=FALSE, weighted=(updatetype=="weighted"), wt=wt, .link=.identity, .ilink=.invidentity)
+  if(!isbin){
+    QuMat <- .OneStepTmleCont(Y=Y,Qinit=qinit,Qdawinit=qbinit,Haw=Haw,Hdaw=Hdaw,isbin=FALSE, weighted=(updatetype=="weighted"), wt=wt, .link=.identity, .ilink=.invidentity)
+  } else{
+    QuMat <- .OneStepTmleCont(Y=Y,Qinit=qinit,Qdawinit=qbinit,Haw=Haw,Hdaw=Hdaw,isbin=FALSE, weighted=(updatetype=="weighted"), wt=wt, .link=.logit, .ilink=.expit)
+  }
   Qupdate <- QuMat[,1,drop=TRUE]     # predict at observed A
   Qdawupdate <- QuMat[,2,drop=TRUE]  # predict at observed A + delta
   #.OneStepTmleBin(Y,qinit,Haw,Hdaw,isbin=FALSE)
@@ -148,6 +153,7 @@
                     bounded,
                     wt,
                     updatetype="weighted",
+                    isbin=FALSE,
                     ...
 ){
   # define shifts
@@ -167,7 +173,11 @@
   H1 <- Hawmat[,2]
   H0 <- Hawmat[,3]
 
-  QuMat <- .OneStepTmleBin(Y=Y,Qinit=qinit, Q1init=q1init, Q0init=q0init,Haw=Haw,H1=H1,H0=H0,isbin=FALSE, weighted=(updatetype=="weighted"), wt=wt,.link=.identity, .ilink=.invidentity)
+  if(!isbin){
+    QuMat <- .OneStepTmleBin(Y=Y,Qinit=qinit, Q1init=q1init, Q0init=q0init,Haw=Haw,H1=H1,H0=H0,isbin=FALSE, weighted=(updatetype=="weighted"), wt=wt,.link=.identity, .ilink=.invidentity)
+  } else{
+    QuMat <- .OneStepTmleBin(Y=Y,Qinit=qinit, Q1init=q1init, Q0init=q0init,Haw=Haw,H1=H1,H0=H0,isbin=FALSE, weighted=(updatetype=="weighted"), wt=wt,.link=.logit, .ilink=.expit)
+  }
   Qupdate <- QuMat[,1,drop=TRUE]
   Q1update <- QuMat[,2,drop=TRUE]
   Q0update <- QuMat[,3,drop=TRUE]
@@ -207,15 +217,16 @@
                        bounded,
                        wt=rep(1,n),
                        updatetype="weighted",
+                       isbin=FALSE,
                        ...){
   isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
 
     if(isbin_vec[Acol]){
-      dphi <- .DbTMLE(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded,wt,updatetype)
+      dphi <- .DbTMLE(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded,wt,updatetype,isbin=isbin)
     } else{
-      dphi <- .DcTMLE( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded,wt,updatetype)
+      dphi <- .DcTMLE( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded,wt,updatetype,isbin=isbin)
     }
     tm <- .MakeTmleEst(dphi)
     resmat[Acol,] <- tm
@@ -239,8 +250,9 @@
                           gfun,
                           estimand,
                           bounded,
-                          updatetype){
-  fittable <- .EstEqTMLE(n=obj$n,X=X,Y=Y,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights,updatetype=updatetype)
+                          updatetype
+                          ){
+  fittable <- .EstEqTMLE(n=obj$n,X=X,Y=Y,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights,updatetype=updatetype, isbin=obj$isbin)
   res <- list(
     res = fittable,
     qfit = obj$sl.qfit,
@@ -265,8 +277,9 @@
                          estimand,
                          bounded=FALSE,
                          updatetype="weighted",
+                         isbin=FALSE,
                          ...){
-  obj = .prelims(X=X, Y=Y, V=V, delta=delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
+  obj = .prelims(X=X, Y=Y, V=V, delta=delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, isbin=isbin, ...)
   res = .trained_tmle(obj,X,Y,delta,qfun,gfun,estimand,bounded,updatetype)
   res
 }
@@ -282,16 +295,17 @@
                               Xbinary_learners=NULL,
                               verbose=TRUE,
                               estimand="diff",
+                              isbin=NULL,
                               bounded=FALSE,
                               updatetype="weighted",
                               B=100,
                               showProgress=TRUE,
                               ...){
-  est <- .varimp_tmle(X,Y,V,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,updatetype,...)
+  if(is.null(isbin)) isbin <- as.logical((length(unique(Y))==2))
+  est <- .varimp_tmle(X,Y,V,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,updatetype, isbin=isbin,...)
   rn <- rownames(est$res)
   #bootests <- matrix(NA, nrow=B, ncol = length(rn))
   n = length(Y)
-  isbin <- as.character((length(unique(Y))==2))
   ee <- new.env()
   for(b in 1:B){
     #ridx <- sample(seq_len(n), n, replace=TRUE)
@@ -301,8 +315,8 @@
       Xi = X[ridx,,drop=FALSE]
       Yi = Y[ridx]
       Vi = V[ridx,,drop=FALSE]
-      obj = .prelims(X=Xi, Y=Yi, V=Vi, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
-      fittable <- .EstEqTMLE(n=obj$n,X=Xi,Y=Yi,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights,updatetype=updatetype)
+      obj = .prelims(X=Xi, Y=Yi, V=Vi, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, isbin=isbin, ...)
+      fittable <- .EstEqTMLE(n=obj$n,X=Xi,Y=Yi,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights,updatetype=updatetype, isbin=obj$isbin)
       fittable$est
     }, seed=TRUE, lazy=TRUE)
   }

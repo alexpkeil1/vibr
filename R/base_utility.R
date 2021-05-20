@@ -148,7 +148,7 @@
     Lrnr_mean$new(name="mean"),
     Lrnr_glm$new(name="ols", family=gaussian()),
     Lrnr_gam$new(name="gam"),
-    Lrnr_polspline$new(name="polymars", family=gaussian()),
+    Lrnr_polspline2$new(name="polymars"),
     Lrnr_glmnet$new(name="cv_elastic_net", alpha=0.0, family="gaussian"),
     Lrnr_stepwise$new(name="stepwise", family=gaussian()),
     #Lrnr_xgboost$new(),
@@ -173,7 +173,7 @@
   bin_learners=list(
     Lrnr_mean$new(name="mean"),
     Lrnr_glm$new(name="logit", family=binomial()),
-    Lrnr_polspline$new(name="polymars", family=binomial()),
+    Lrnr_polspline2$new(name="polymars", family=binomial()),
     Lrnr_stepwise$new(name="stepwise", family=binomial()),
     Lrnr_glmnet$new(name="cv_elastic_net", alpha=0.0, family="binomial"),
     #Lrnr_xgboost$new(),
@@ -355,6 +355,7 @@
     XX <- sl3_Task$new(
       data=data.frame(X),
       covariates=names(X),
+      outcome_type = qfit$training_task$outcome_type,
       ...
     )
     pred <- qfit$predict(XX)
@@ -424,7 +425,7 @@
 ##########
 # prelim functions
 #########
-.prelims <- function(X, Y, V=NULL, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...){
+.prelims <- function(X, Y, V=NULL, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, isbin=NULL, ...){
   #.prelims(X, Y, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
   # basic error checking
   stopifnot(is.data.frame(X))
@@ -432,6 +433,7 @@
 
   doX = !(is.null(Xbinary_learners) & is.null(Xdensity_learners))
   doY = !(is.null(Y_learners))
+  if(is.null(isbin)) isbin <- as.logical((length(unique(Y))==2))
   n = length(Y)
   args = list(...)
   # checking for weights
@@ -447,14 +449,13 @@
   }
   tasklist <- NULL
   if(doX) tasklist = .create_tasks(X,Y,V,delta, ...)
-  isbin <- as.character((length(unique(Y))==2))
   if(verbose) cat(paste0("delta = ", delta, "\n")) # TODO: better interpretation
   yb = .bound_zero_one(Y)
   Ybound = yb[[1]]
   sl.qfit <- sl.gfits <- NULL
   if(doY){
     #yb = .bound_zero_one(Y)
-    sl.qfit <- .train_Y(X,Y, Y_learners, verbose=verbose, isbin, V=V, ...)
+    sl.qfit <- .train_Y(X,Y, Y_learners, verbose=verbose, isbin=isbin, V=V, ...)
   }
   if(doX){
     sl.gfits <- .train_allX(X, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose, V=V)
@@ -480,7 +481,7 @@
        sl.qfit=obj$qfit,
        sl.gfits=obj$gfit,
        tasklist=tasklist,
-       binomial=obj$binomial,
+       isbin=obj$binomial,
        oldtype=obj$type,
        scaled =obj$scaled,
        weights=obj$weights,
