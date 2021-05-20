@@ -17,6 +17,8 @@ varimp(
   bounded = FALSE,
   updatetype = "weighted",
   estimand = "diff",
+  xfitfolds = 3,
+  foldrepeats = 10,
   B = NULL,
   showProgress = TRUE,
   scale_continuous = TRUE,
@@ -40,15 +42,19 @@ varimp(
 
 \item{verbose}{(logical) print extra information}
 
-\item{estimator}{(character) "AIPW" (default), "TMLE", "GCOMP", "IPW"}
+\item{estimator}{(character) "AIPW" (default), "TMLE", "GCOMP", "IPW", "TMLEX"}
 
 \item{bounded}{(logical) not used}
 
-\item{updatetype}{(character) (used for estimator = "TMLE" only) weighted" or any other valid character. If "weighted" then uses weighting by clever covariate in update step of TMLE, otherwise fits a generalized linear model with no intercept and clever covariate as a sole predictor}
+\item{updatetype}{(character) (used for estimator = "TMLE" only) "weighted" or any other valid character. If "weighted" then uses weighting by clever covariate in update step of TMLE, otherwise fits a generalized linear model with no intercept and clever covariate as a sole predictor}
 
 \item{estimand}{(character) "diff" (default, estimate mean difference comparing Y under intervention with observed Y), "mean" (estimate mean Y under intervention)}
 
-\item{B}{(NULL or integer) Numer of bootstrap iterations (NULL = asymptotic variance only)}
+\item{xfitfolds}{(odd integer, default=3) (used for estimator = "TMLEX" only) number of cross-fit folds (must be odd number - last fold is used for validation while the rest of the data are split in two for fitting treatment or outcome models)}
+
+\item{foldrepeats}{(integer, default=10) (used for estimator = "TMLEX" only) number of times to repeat cross-fitting (higher numbers = more stable)}
+
+\item{B}{(NULL or integer) Number of bootstrap iterations (NULL = asymptotic variance only)}
 
 \item{showProgress}{show progress of bootstrapping (only relevant if B is not NULL)}
 

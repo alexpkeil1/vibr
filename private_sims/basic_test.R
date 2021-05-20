@@ -257,12 +257,52 @@ stabilitytest <- function(...){
   plot(vimp$res$est-vimp2$res$est, vimp$res$se-vimp2$res$se)
 }
 
+
+jointtest <- function(){
+  set.seed(12312)
+  dat = dgm( n=1000, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
+  #dat = dgm( n=1000, delta = 0.01, beta = c(1,-2,2,0,0,0), degree=3, zk = c(-1.0, 0, 1.0))
+  vi <- varimp(X=data.frame(dat$X),
+               Y=dat$y,
+               delta=0.01,
+               estimator="GCOMP",
+               Y_learners = c(sl3::Lrnr_glm$new())
+  )
+  vij <- vibr:::.varimp_gcomp_joint(
+    X=data.frame(dat$X),
+    Y=dat$y,
+    expnms = c("x", "z"),
+    delta=0.01,
+    Y_learners = c(sl3::Lrnr_glm$new()),
+    estimand="diff",
+    verbose=FALSE
+  )
+  vijb <- vibr:::.varimp_gcomp_joint_boot(
+    X=data.frame(dat$X),
+    Y=dat$y,
+    expnms = c("x", "z"),
+    delta=0.01,
+    Y_learners = c(sl3::Lrnr_glm$new()),
+    estimand="diff",
+    verbose=FALSE
+  )
+  vi
+  vij
+  vijb
+  (coefs <- lm(dat$y~., data = data.frame(vibr:::.scale_continuous(dat$X)))$coefficients[-1]*0.01)
+  sum(coefs)
+  (coefs <- lm(dat$y~.+.^2, data = data.frame(vibr:::.scale_continuous(dat$X)))$coefficients[-1])
+}
+
+
+
 analyze <- function(i, B=1, outfile=NULL, ...){
   dat = dgm(...)
   #set.seed(12312); dat = dgm( n=1000, delta = 0.1, beta = c(2,1, .3))
   (vimp <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners()[1],
                   Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
-                  verbose=FALSE, estimator="TMLE", scale_continuous = FALSE))
+                  verbose=FALSE, estimator="TMLE", scale_continuous = FALSE,
+                  xfitfolds = 5, foldrepeats = B))
   (vimp2 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="IPW", delta = .1))
   (vimp3 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .1))
   (vimp4 <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners()[1],
@@ -323,12 +363,12 @@ points(testz,testy)
 (ncores <- future::availableCores())
 future::plan("multisession", workers=ncores/2)
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
-system.time(res1 <- analyze(1231321, n=500, B=100, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
+system.time(res1 <- analyze(1231321, n=500, B=20, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
 
 csvout <- "/Users/akeil/temp/vimp_check.csv"
 write.table(t(res1), csvout, append = FALSE, row.names = FALSE, sep=",")
 
-resL = future.apply::future_lapply(1:1000, analyze, outfile=csvout, n=500, B=100, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0),
+resL = future.apply::future_lapply(1:1000, analyze, outfile=csvout, n=500, B=20, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0),
                                    future.seed=TRUE, future.packages=NULL)
 
 readana <- function(file=csvout){
@@ -368,7 +408,7 @@ cipow <- function(res, root="TMLE", exp="x", type="cover"){
 }
 
 for(stat in c("cover", "power", "bias", "pctBias")){
-  for(estim in c("TMLE", "TMLEboot", "IPW", "GCOMP", "lm")){
+  for(estim in c("TMLE", "TMLEX", "IPW", "GCOMP", "lm")){
     for(var in c("z", "x")){
       cipow(res, estim, var, stat)
     }
@@ -378,7 +418,7 @@ for(stat in c("cover", "power", "bias", "pctBias")){
 
 rm[c("tr.z", "tr.x")]
 print(apply(res[,  grep("est.", names(res))], 2, function(x) c(mean=mean(x), sd=sd(x))))
-print(apply((res)[,grep("bias", names(res))], 2, function(x) c(bias=mean(x), mse=mean(x^2), sd.bias=sd(x))))
+print(apply((res)[,grep("bias", names(res))], 2, function(x) c(bias=mean(x), rmse=sqrt(mean(x^2)), sd.bias=sd(x))))
 print(apply((res)[,grep("pctBias", names(res))], 2, function(x) c(mean=mean(x), median=median(x))))
 print(apply(res[,grep("se[a]*", names(res))], 2, function(x) c(mean=mean(x))))
 print(apply(res[, grep("cover", names(res))], 2, function(x) c(mean=mean(x))))
@@ -407,41 +447,4 @@ print(apply(res[, grep("cover", names(res))], 2, function(x) c(mean=mean(x))))
 #
 
 
-
-
-jointtest <- function(){
-  set.seed(12312)
-  dat = dgm( n=1000, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
-  #dat = dgm( n=1000, delta = 0.01, beta = c(1,-2,2,0,0,0), degree=3, zk = c(-1.0, 0, 1.0))
-  vi <- varimp(X=data.frame(dat$X),
-               Y=dat$y,
-               delta=0.01,
-               estimator="GCOMP",
-               Y_learners = c(sl3::Lrnr_glm$new())
-  )
-  vij <- vibr:::.varimp_gcomp_joint(
-    X=data.frame(dat$X),
-    Y=dat$y,
-    expnms = c("x", "z"),
-    delta=0.01,
-    Y_learners = c(sl3::Lrnr_glm$new()),
-    estimand="diff",
-    verbose=FALSE
-  )
-  vijb <- vibr:::.varimp_gcomp_joint_boot(
-    X=data.frame(dat$X),
-    Y=dat$y,
-    expnms = c("x", "z"),
-    delta=0.01,
-    Y_learners = c(sl3::Lrnr_glm$new()),
-    estimand="diff",
-    verbose=FALSE
-  )
-  vi
-  vij
-  vijb
-  (coefs <- lm(dat$y~., data = data.frame(vibr:::.scale_continuous(dat$X)))$coefficients[-1]*0.01)
-  sum(coefs)
-  (coefs <- lm(dat$y~.+.^2, data = data.frame(vibr:::.scale_continuous(dat$X)))$coefficients[-1])
-}
 
