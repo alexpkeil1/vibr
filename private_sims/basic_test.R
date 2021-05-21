@@ -230,7 +230,7 @@ stabilitytest <- function(...){
 jointtest <- function(){
   set.seed(12312)
   dat = dgm( n=1000, delta = 0.05, beta = c(1,0,1), degree=2, zk = c(-1.5, 0, 1.5))
-  #dat = dgm( n=1000, delta = 0.01, beta = c(1,-2,2,0,0,0), degree=2, zk = c(-1.5,-0.75,0.0))
+  #dat = dgm( n=1000, delta = 0.01, beta = c(1,-2,2,0,0,0), degree=2, zk = c(-1.5,-.25,0.25), sigma=.5))
   vi <- varimp(X=data.frame(dat$X),
                Y=dat$y,
                delta=0.01,
@@ -308,10 +308,10 @@ analyze <- function(i, B=1, outfile=NULL, ...){
 future::plan("sequential")
 #dat = dgm(n=300, delta = 0.1, beta = c(2,1, .0))
 set.seed(1231)
-(res1 <- analyze(1231321, n=200, B=2, delta = 0.1, beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-0.75,0.0)))
+(res1 <- analyze(1231321, n=200, B=2, delta = 0.1, beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-.25,0.25), sigma=.5)))
 
 set.seed(1231)
-(res2 <- analyze(1231321, n=200, B=20, delta = 0.1, beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-0.75,0.0)))
+(res2 <- analyze(1231321, n=200, B=20, delta = 0.1, beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-.25,0.25), sigma=.5)))
 
 #attr(res1, "beta")
 
@@ -342,12 +342,12 @@ lm(dat$y~x+z, data = data.frame(dat$X))$coefficients*0.1
 (ncores <- future::availableCores())
 future::plan("multisession", workers=ncores/2)
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
-system.time(res1 <- analyze(1231321, n=200, B=20, delta = 0.1, beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-0.75,0.0)))
+system.time(res1 <- analyze(1231321, n=200, B=20, delta = 0.1, beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-.25,0.25), sigma=.5)))
 
 csvout <- "/Users/akeil/temp/vimp_check.csv"
 write.table(t(res1), csvout, append = FALSE, row.names = FALSE, sep=",")
 
-resL = future.apply::future_lapply(1:1000, analyze, outfile=csvout, n=500, B=20, delta = 0.1, beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-0.75,0.0),
+resL = future.apply::future_lapply(1:1000, analyze, outfile=csvout, n=500, B=20, delta = 0.1, beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-.25,0.25), sigma=.5),
                                    future.seed=TRUE, future.packages=NULL)
 
 readana <- function(file=csvout){
@@ -365,7 +365,7 @@ cipow <- function(res, root="TMLE", exp="x", type="cover"){
   est = res[,paste0(root, "est.", exp)]
   se = res[,paste0(root, "se.", exp)]
   #tr = rm[paste0("tr.", exp)] # truth based on average across simulations
-  dat <- dgm(n=100, delta=0.1,beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-0.75,0.0))
+  dat <- dgm(n=100, delta=0.1,beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-.25,0.25), sigma=.5))
   ztest <- seq(-10,10,.002)
   xtest <- rep(c(0,1), length.out=length(ztest))
   pxz <- dnorm(ztest,0,3)*dbinom(xtest, 1, .2)
