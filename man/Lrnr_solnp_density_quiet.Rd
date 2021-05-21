@@ -38,7 +38,7 @@ parameters is printed at every major iteration (default 0).}
 Other Learners: 
 \code{\link{Lrnr_density_gaussian}},
 \code{\link{Lrnr_multinom}},
-\code{\link{Lrnr_polspline2}},
+\code{\link{Lrnr_polspline_quiet}},
 \code{\link{Lrnr_solnp_quiet}},
 \code{\link{Lrnr_stepwise}}
 }

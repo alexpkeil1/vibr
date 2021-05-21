@@ -2,7 +2,8 @@
 
 #' Variable importance in cross-sectional data
 #'
-#' @param X data frame of predictors
+#' @param X data frame of variables for which variable importance will be estimated
+#' @param W data frame of covariates (e.g. potential confounders) for which variable importance will not be estimated
 #' @param Y outcome
 #' @param V (default NULL) a data frame of other variables that contain weights or offsets, if used ("weights" and "offset" are both passed to other functions via extra arguments represented by ...: see example below)
 #' @param delta change in each column of X corresponding to
@@ -10,7 +11,7 @@
 #' @param Xdensity_learners list of sl3 learners used to estimate the density of continuous predictors, conditional on all other predictors in X
 #' @param Xbinary_learners list of sl3 learners used to estimate the probability mass of continuous predictors, conditional on all other predictors in X
 #' @param verbose (logical) print extra information
-#' @param estimator (character) "AIPW" (default), "TMLE", "GCOMP", "IPW", "TMLEX"
+#' @param estimator (character) "AIPW" (default), "TMLE", "GCOMP", "IPW", "TMLEX" (cross fit TMLE), "AIPWX" (cross fit AIPW)
 #' @param bounded (logical) not used
 #' @param updatetype (character) (used for estimator = "TMLE" only) "weighted" or any other valid character. If "weighted" then uses weighting by clever covariate in update step of TMLE, otherwise fits a generalized linear model with no intercept and clever covariate as a sole predictor
 #' @param estimand (character) "diff" (default, estimate mean difference comparing Y under intervention with observed Y), "mean" (estimate mean Y under intervention)
@@ -41,6 +42,7 @@
 #' viw
 #' }
 varimp <- function(X,
+                   W = NULL,
                    Y,
                    V = NULL,
                    delta=0.1,
@@ -72,34 +74,38 @@ varimp <- function(X,
     }
   }
   if(scale_continuous){
-    if(verbose) cat("Scaling all continuous variables by 2*sd\n")
+    if(verbose) cat("Scaling all continuous variables in X by 2*sd\n")
     # divide continuous by 2*sd
     X = .scale_continuous(X)
+  }
+  whichcols = seq_len(ncol(X))
+  if(!is.null(W)){
+    X = data.frame(X,W)
   }
   if(is.null(Y_learners)) Y_learners = .default_continuous_learners()
   if(is.null(Xbinary_learners)) Xbinary_learners = .default_binary_learners()
   if(is.null(Xdensity_learners)) Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
   if(is.null(B)){
     res = switch(estimator,
-                 AIPW=.varimp_aipw(        X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin,...),
-                 GCOMP=.varimp_gcomp(      X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin,...),
-                 IPW=.varimp_ipw(          X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin,...),
-                 TMLE=.varimp_tmle(        X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype,...),
-                 AIPWX=.varimp_aipw(       X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats,...),
-                 TMLEX=.varimp_tmle_xfit(  X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, xfitfolds=xfitfolds,foldrepeats=foldrepeats,...)
+                 AIPW=.varimp_aipw(        X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin,...),
+                 GCOMP=.varimp_gcomp(      X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin,...),
+                 IPW=.varimp_ipw(          X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin,...),
+                 TMLE=.varimp_tmle(        X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype,...),
+                 AIPWX=.varimp_aipw_xfit(  X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats,...),
+                 TMLEX=.varimp_tmle_xfit(  X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, xfitfolds=xfitfolds,foldrepeats=foldrepeats,...)
     )
   } else{
     res = switch(estimator,
-                 AIPW=.varimp_aipw_boot(        X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
-                 GCOMP=.varimp_gcomp_boot(      X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
-                 IPW=.varimp_ipw_boot(          X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
-                 TMLE=.varimp_tmle_boot(        X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, B=B, showProgress=showProgress,...),
-                 AIPWX=.varimp_aipw_boot(       X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...),
-                 TMLEX=.varimp_tmle_xfit_boot(  X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...)
+                 AIPW=.varimp_aipw_boot(        X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
+                 GCOMP=.varimp_gcomp_boot(      X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
+                 IPW=.varimp_ipw_boot(          X=X,Y=Y,V=V, dewhichcols=whichcols, lta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
+                 TMLE=.varimp_tmle_boot(        X=X,Y=Y,V=V, whichcols=whichcols, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, B=B, showProgress=showProgress,...),
+                 AIPWX=.varimp_aipw_xfit_boot(  X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...),
+                 TMLEX=.varimp_tmle_xfit_boot(  X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...)
     )
-    res$est <- .attach_misc(res$est, scale_continuous=scale_continuous, delta=delta, B=NULL)
+    res$est <- .attach_misc(res$est, scale_continuous=scale_continuous, delta=delta, B=NULL, whichcols=whichcols)
   }
-  res <- .attach_misc(res, scale_continuous=scale_continuous, delta=delta, B)
+  res <- .attach_misc(res, scale_continuous=scale_continuous, delta=delta, B, whichcols=whichcols)
   res
 }
 
@@ -108,7 +114,8 @@ varimp <- function(X,
 #'
 #' @description Refitting a variable importance model with outcome regression and propensity scores trained from another model
 #' @param vibr.fit a vibr.fit object
-#' @param X data frame of predictors
+#' @param X data frame of variables for which variable importance will be estimated
+#' @param W data frame of covariates (e.g. potential confounders) for which variable importance will not be estimated
 #' @param Y outcome
 #' @param delta change in each column of X corresponding to
 #' @param verbose (logical) print extra information
@@ -154,6 +161,7 @@ varimp <- function(X,
 #' }
 varimp_refit <- function(vibr.fit,
                          X,
+                         W = NULL,
                          Y,
                          delta=0.1,
                          verbose=TRUE,
@@ -164,7 +172,7 @@ varimp_refit <- function(vibr.fit,
                          ){
   obj <- .ChExstractFit(vibr.fit)
   if(obj$scaled){
-    if(verbose) cat("Scaling all continuous variables by 2*sd\n")
+    if(verbose) cat("Scaling all continuous variables in X by 2*sd\n")
     # divide continuous by 2*sd
     X = .scale_continuous(X)
   }
@@ -173,6 +181,10 @@ varimp_refit <- function(vibr.fit,
   if(!is.na(match(estimator, c("TMLE", "AIPW")))){
     stopifnot(obj$yfit & obj$xfit)
     stopifnot(length(obj$sl.gfits) == ncol(X))
+  }
+  whichcols = obj$whichcols
+  if(!is.null(W)){
+    X = data.frame(X,W)
   }
   if(!is.na(match(estimator, c("GCOMP")))) stopifnot(obj$yfit)
   if(!is.na(match(estimator, c("IPW")))) stopifnot(obj$xfit)
@@ -183,7 +195,7 @@ varimp_refit <- function(vibr.fit,
                AIPW =   .trained_aipw(obj=obj,X=X,Y=Y,delta=delta,qfun=.qfunction,gfun=.gfunction,estimand=estimand,bounded=bounded,updatetype=updatetype),
                TMLE =  .trained_tmle(obj=obj,X=X,Y=Y,delta=delta,qfun=.qfunction,gfun=.gfunction,estimand=estimand,bounded=bounded , updatetype=updatetype)
   )
-  res <- .attach_misc(res, scale_continuous=obj$scaled, delta=delta)
+  res <- .attach_misc(res, scale_continuous=obj$scaled, delta=delta, whichcols=obj$whichcols)
   res
 }
 

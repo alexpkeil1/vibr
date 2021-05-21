@@ -1,3 +1,6 @@
+# todo:
+#  allow "whichcols" variables
+
 ################################################################################
 #
 #    g-computation for joint effects
@@ -18,7 +21,9 @@
   ...
 ){
   #cat(paste0("column ", names(X)[Acol], ": binary\n"))
-  isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
+  if(length(ncol(X)>1)) {
+    isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
+  } else isbin_vec = length(unique(X[,1]))==2
   X1 <- X0 <- X1b <- X0b <- Xb <- X
   nmx = names(X)
   for(Acol in seq_len(length(isbin_vec))){

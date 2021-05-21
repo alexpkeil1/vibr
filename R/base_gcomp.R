@@ -58,6 +58,7 @@
 .EstimatorGcomp <- function(n,
                             X,
                             Y,
+                       whichcols=seq_len(ncol(X)),
                             delta,
                             qfun,
                             gfun,
@@ -68,7 +69,10 @@
                             wt=rep(1,n),
                             isbin=FALSE,
                             ...){
-  isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
+  if(length(whichcols>1)) {
+    isbin_vec <- apply(X[,whichcols, drop=FALSE], 2, function(x) length(unique(x))==2)
+  } else isbin_vec = length(unique(X[,whichcols]))==2
+
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
@@ -80,7 +84,7 @@
     resmat[Acol,] <- tm
   }
   colnames(resmat) <- names(tm)
-  rownames(resmat) <- names(X)
+  rownames(resmat) <- names(X[,whichcols,drop=FALSE])
   resmat <- data.frame(resmat)
   resmat$p <- pnorm(-abs(resmat$z))*2
   resmat
@@ -99,7 +103,7 @@
                          estimand,
                          bounded,
                          updatetype){
-  fittable <- .EstimatorGcomp(obj$n,X,Y,delta,qfun=.qfunction,gfun=NULL,qfit=obj$sl.qfit,gfits=NULL, estimand, bounded,wt=obj$weights, isbin=obj$isbin)
+  fittable <- .EstimatorGcomp(n=obj$n,X=X,Y=Y,whichcols=obj$whichcols,delta,qfun=.qfunction,gfun=NULL,qfit=obj$sl.qfit,gfits=NULL, estimand, bounded,wt=obj$weights, isbin=obj$isbin)
   res <- list(
     res = fittable,
     qfit = obj$sl.qfit,
@@ -117,6 +121,7 @@
 .varimp_gcomp <- function(X,
                           Y,
                           V=NULL,
+                         whichcols=seq_len(ncol(X)),
                           delta=0.1,
                           Y_learners=NULL,
                           Xdensity_learners=NULL,
@@ -126,7 +131,7 @@
                           bounded=FALSE,
                           isbin=NULL,
                           ...){
-  obj = .prelims(X, Y, V, delta, Y_learners, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, isbin=isbin, ...)
+  obj = .prelims(X=X, Y=Y, V=V, whichcols=whichcols, delta, Y_learners, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, isbin=isbin, ...)
   res = .trained_gcomp(obj,X,Y,delta,qfun,gfun,estimand,bounded,updatetype)
   res
 }
@@ -137,6 +142,7 @@
 .varimp_gcomp_boot <- function(X,
                                Y,
                                V=NULL,
+                              whichcols=seq_len(ncol(X)),
                                delta=0.1,
                                Y_learners=NULL,
                                Xdensity_learners=NULL,
@@ -149,7 +155,7 @@
                                showProgress=TRUE,
                                ...){
   if(is.null(isbin)) isbin <- as.logical((length(unique(Y))==2))
-  est <- .varimp_gcomp(X,Y,V,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,isbin=isbin,...)
+  est <- .varimp_gcomp(X=X,Y=Y,V=V,whichcols=whichcols,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded,isbin=isbin,...)
   rn <- rownames(est$res)
   n = length(Y)
   ee <- new.env()
@@ -161,8 +167,8 @@
       Xi = X[ridx,,drop=FALSE]
       Yi = Y[ridx]
       Vi = V[ridx,,drop=FALSE]
-      obj = .prelims(X=Xi, Y=Yi, V=Vi, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose,isbin=isbin, ...)
-      fittable <- .EstimatorGcomp(obj$n,Xi,Yi,delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand,bounded,wt=obj$weights, isbin=obj$isbin)
+      obj = .prelims(X=Xi, Y=Yi, V=Vi, whichcols=whichcols, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose,isbin=isbin, ...)
+      fittable <- .EstimatorGcomp(n=obj$n,X=Xi,Y=Yi,whichcols=obj$whichcols,delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand,bounded,wt=obj$weights, isbin=obj$isbin)
       fittable$est
     }, seed=TRUE, lazy=TRUE)
   }

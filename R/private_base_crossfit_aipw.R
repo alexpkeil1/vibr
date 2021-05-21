@@ -4,6 +4,7 @@
 .varimp_aipw_xfit <- function(X,
                          Y,
                          V=NULL,
+                         whichcols=seq_len(ncol(X)),
                          delta=0.1,
                          Y_learners=NULL,
                          Xdensity_learners=NULL,
@@ -17,7 +18,8 @@
   ee = new.env()
   # todo: ensure that outcome is always typed correctly (isbin should be set locally)
   n = length(Y)
-  if(.checkeven(xfitfolds) || xfitfolds < 3) stop("xfitfolds must be an odd number >2")
+  if(.checkeven(xfitfolds)) stop("xfitfolds must be an odd number >2")
+  if(xfitfolds==1) message("xfitfolds = 1 implies averaging over multiple standard AIPW fits (determined by fold repeats), rather than cross fitting")
   allpartitions <- lapply(seq_len(foldrepeats), .xfitsplit,n=n,V=xfitfolds)
   order = list()
   idx = 1
@@ -37,12 +39,12 @@
         Y3 = Y[fold$set3]
         V3 = V[fold$set3,,drop=FALSE]
 
-        obj_G = .prelims(X=X1, Y=Y1, V=V1, delta=delta, Y_learners=NULL, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
-        obj_Y = .prelims(X=X2, Y=Y2, V=V2, delta=delta, Y_learners, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
-        obj <- .prelims(X=X3, Y=Y3, V=V3, delta=delta, Y_learners=NULL, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
+        obj_G = .prelims(X=X1, Y=Y1, V=V1, whichcols=whichcols, delta=delta, Y_learners=NULL, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
+        obj_Y = .prelims(X=X2, Y=Y2, V=V2, whichcols=whichcols, delta=delta, Y_learners, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
+        obj <- .prelims(X=X3, Y=Y3, V=V3, whichcols=whichcols, delta=delta, Y_learners=NULL, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
         obj$sl.qfit = obj_Y$sl.qfit
         obj$sl.gfits = obj_G$sl.gfits
-        fittable <- .EstEqAIPW(n=obj$n,X=X3,Y=Y3,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=FALSE,wt=obj$weights,isbin=obj$isbin)
+        fittable <- .EstEqAIPW(n=obj$n,X=X3,Y=Y3,whichcols=obj$whichcols,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=FALSE,wt=obj$weights,isbin=obj$isbin)
         ft <- fittable[,1:2]
         ft[,2] <- obj$n*ft[,2]^2 # asymptotic variance of sqrt(n)(psi_0 - psi_n)
         names(ft)[2] <- "sumd2"
@@ -91,6 +93,7 @@
 .varimp_aipw_xfit_boot <- function(X,
                               Y,
                               V=NULL,
+                              whichcols=seq_len(ncol(X)),
                               delta=0.1,
                               Y_learners=NULL,
                               Xdensity_learners=NULL,
@@ -103,7 +106,7 @@
                               B=100,
                               showProgress=TRUE,
                               ...){
-  est <- .varimp_aipw_xfit(X=X,Y=Y,V=V,delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners=Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded,
+  est <- .varimp_aipw_xfit(X=X,Y=Y,V=V,whichcols=whichcols,delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners=Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded,
                            foldrepeats=foldrepeats,
                            xfitfolds=xfitfolds, ...)
   rn <- rownames(est$res)
@@ -119,7 +122,7 @@
       Xi = X[ridx,,drop=FALSE]
       Yi = Y[ridx]
       Vi = V[ridx,,drop=FALSE]
-      bootfit <- .varimp_aipw_xfit(X=Xi,Y=Yi,V=Vi,delta=delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded,foldrepeats=foldrepeats,
+      bootfit <- .varimp_aipw_xfit(X=Xi,Y=Yi,V=Vi,whichcols=whichcols,delta=delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded,foldrepeats=foldrepeats,
                                    xfitfolds=xfitfolds,...)
       fittable <- bootfit$res
       fittable$est

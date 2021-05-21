@@ -57,7 +57,8 @@
 
 .scale_continuous <- function(X){
   p <- ncol(X)
-  isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
+  isbin_vec = c(TRUE)
+  if(p>1) isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
   for(j in seq_len(p)){
     if(!isbin_vec[j]){
       X[,j] <- X[,j]/(2*sd(X[,j]))
@@ -301,8 +302,10 @@
 #' @export
 .train_allX <- function(X, tasks, bin_learners, density_learners, metalearner=NULL, verbose=TRUE, V=NULL){
   # TODO: check for data frame X
-  vartype = ifelse(apply(X, 2, function(x) length(unique(x))==2), "b", "c")
   p = ncol(X)
+  if(p==1) vartype = ifelse(length(unique(X[,1]))==2, "b", "c")
+  if(p>1) vartype = ifelse(apply(X, 2, function(x) length(unique(x))==2), "b", "c")
+
   #trained_models <- list()
   nmseq <- names(X)
   ee <- new.env()
@@ -425,7 +428,7 @@
 ##########
 # prelim functions
 #########
-.prelims <- function(X, Y, V=NULL, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, isbin=NULL, ...){
+.prelims <- function(X, Y, V=NULL, whichcols=seq_len(ncol(X)), delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, isbin=NULL, ...){
   #.prelims(X, Y, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
   # basic error checking
   stopifnot(is.data.frame(X))
@@ -448,7 +451,7 @@
     wt <- wt/mean(wt)
   }
   tasklist <- NULL
-  if(doX) tasklist = .create_tasks(X,Y,V,delta, ...)
+  if(doX) tasklist = .create_tasks(X[,whichcols, drop=FALSE],Y,V,delta, ...)
   if(verbose) cat(paste0("delta = ", delta, "\n")) # TODO: better interpretation
   yb = .bound_zero_one(Y)
   Ybound = yb[[1]]
@@ -458,9 +461,9 @@
     sl.qfit <- .train_Y(X,Y, Y_learners, verbose=verbose, isbin=isbin, V=V, ...)
   }
   if(doX){
-    sl.gfits <- .train_allX(X, tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose, V=V)
+    sl.gfits <- .train_allX(X[,whichcols, drop=FALSE], tasklist$slX, Xbinary_learners, Xdensity_learners, verbose=verbose, V=V)
   }
-  list(n=n, Ybound=Ybound, tasklist = tasklist, sl.qfit = sl.qfit, sl.gfits=sl.gfits, isbin = isbin, weights=wt)
+  list(n=n, Ybound=Ybound, tasklist = tasklist, sl.qfit = sl.qfit, sl.gfits=sl.gfits, isbin = isbin, weights=wt, whichcols=whichcols)
 }
 
 
@@ -479,24 +482,65 @@
   list(yfit=yfit,
        xfit=xfit,
        sl.qfit=obj$qfit,
-       sl.gfits=obj$gfit,
+       sl.gfits=obj$gfits,
        tasklist=tasklist,
        isbin=obj$binomial,
        oldtype=obj$type,
        scaled =obj$scaled,
        weights=obj$weights,
        n = length(obj$weights),
-       rank = obj$rank
+       rank = obj$rank,
+       whichcols=obj$whichcols
        )
 }
 
 
-.attach_misc <- function(obj, scale_continuous, delta, B=NULL){
+.attach_misc <- function(obj, scale_continuous, delta, B=NULL, whichcols=seq_len(length(obj$gfits))){
   obj$scaled = scale_continuous
   obj$delta = delta
+  obj$whichcols = whichcols
   if(is.null(B)) obj$rank = rank(-abs(obj$res$est))
   if(!is.null(B)) obj$rank = rank(-abs(obj$est$res$est))
   obj
 }
 
+################################################################################
+#
+#  cross-fitting functions
+#
+################################################################################
 
+.make_xfit_folds <- function(fold, set1, set2, set3){
+  fold <- list(fold = fold,
+               set1 = set1,
+               set2 = set2,
+               set3 = set3
+  )
+  fold
+}
+
+.xfitfolds_from_foldvec <- function (r, folds, ordermat)
+{
+  nfolds <- length(unique(folds))
+  remfolds = (nfolds-1)/2
+  set1 <- which(folds %in% ordermat[1:remfolds,r])
+  set2 <- which(folds %in% ordermat[(remfolds+1):(2*remfolds),r])
+  set3 <- which(folds == ordermat[nfolds,r])
+  .make_xfit_folds(r, set1, set2, set3)
+}
+
+# cross fitting (nothing here yet)
+.xfitsplit <- function(r=1,n, V=5){
+  folds <- rep(seq_len(V), length = n)
+  folds <- sample(folds)
+  combinations <- combn(V,V-1)
+  combinations <- rbind(combinations, apply(combinations, 2, function(x) setdiff(1:V,x)))
+  if(V>1) foldobj = lapply(1:V, .xfitfolds_from_foldvec, folds=folds, ordermat=combinations)
+  # degenerate case where we just average across multiple fits to the same data
+  if(V==1) foldobj = list(.make_xfit_folds(fold=1, set1 = 1:n, set2 = 1:n, set3 = 1:n))
+  foldobj
+}
+
+.checkeven <- function(val){
+  !as.logical(val %% 2)
+}

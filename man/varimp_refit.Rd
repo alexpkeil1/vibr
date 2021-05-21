@@ -7,6 +7,7 @@
 varimp_refit(
   vibr.fit,
   X,
+  W = NULL,
   Y,
   delta = 0.1,
   verbose = TRUE,
@@ -19,7 +20,9 @@ varimp_refit(
 \arguments{
 \item{vibr.fit}{a vibr.fit object}
 
-\item{X}{data frame of predictors}
+\item{X}{data frame of variables for which variable importance will be estimated}
+
+\item{W}{data frame of covariates (e.g. potential confounders) for which variable importance will not be estimated}
 
 \item{Y}{outcome}
 

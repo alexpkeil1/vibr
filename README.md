@@ -19,8 +19,13 @@ Flexible modeling of the target is farmed out to the sl3 package, but some defau
 - [x] binary predictors
 - [x] Super learner based prediction for target variables
 - [x] Super learner based prediction for predictors
+- [x] GLM based prediction for outcome
 - [x] GLM based prediction for predictors
-- [x] GLM based prediction for predictors
+- [x] TMLE
+- [x] AIPW
+- [x] IPW
+- [x] G COMPUTATION
+- [x] DOUBLE CROSS FITTING
 - [ ] GLM with individually specified models for each predictor (e.g. omitting some variables, specifying functional forms)
 - [ ] GLM with individually specified models for the target  (e.g. specifying functional forms)
 
@@ -41,7 +46,7 @@ Alternatively, you can clone it locally, open the R project associated with this
     vdat <- spldat$validdata
     
     Y_learners = .default_continuous_learners()
-    Xbinary_learners = list(Lrnr_stepwise$new(name="SW"))
+    Xbinary_learners = list(sl3::Lrnr_glm$new(name="logit"))
     Xdensity_learners = .default_density_learners(n_bins=c(10))
 
     X = trdat[,1:23]
@@ -55,9 +60,101 @@ Alternatively, you can clone it locally, open the R project associated with this
                  Xbinary_learners=Xbinary_learners,
                  estimator="TMLE"
                  )
-    # if vi measure is > 0, then exposure increases the outcome
+                 
+    # this will generate error messages from sl3 when various learners do not work
+    # with the data. These can be safely ignored because sl3 handles failed learners
+    # gracefully.
+
+    # now view vi object: if vi measure is > 0, then exposure increases the outcome
     vi
+
+# variable importance/treatment effects for a subset of covariates
+
+    # one can also look at variable importance for a basic subset of the data
+    # Note: this uses the full data in X and W, but estimates are only created
+    # for X, which can save considerable time if inverse probability weights
+    # are required and one is only interested in a small number of specific
+    # variables: here we look at "mage35"
+    Xsub = X[,23, drop=FALSE]
+    W = X[,-c(23), drop=FALSE]
+    vi_sub <- varimp(
+                 X=Xsub,   
+                 W=W,   
+                 Y=Y, 
+                 delta=0.1, 
+                 Y_learners = Y_learners,
+                 Xdensity_learners=Xdensity_learners[1:2],
+                 Xbinary_learners=Xbinary_learners,
+                 estimator="TMLE"
+                 )
+    vi_sub
+    vi$res[23,]
+
+# Cross fitting
+
+    # cross fitted TMLE can be invoked with estimator = TMLEX
+    # this estimator ought to perform asymptotically better
+    # and has faster convergence rates than standard TMLE and so
+    # may also perform better at moderate sample sizes.
+    # estimates will generally be more stable. It will take much more time.
+    vi_subXfit <- varimp(
+                 X=Xsub,   
+                 W=W,   
+                 Y=Y, 
+                 delta=0.1, 
+                 Y_learners = Y_learners,
+                 Xdensity_learners=Xdensity_learners[1:2],
+                 Xbinary_learners=Xbinary_learners,
+                 estimator="TMLEX",
+                 xfitfolds=3,
+                 foldrepeats = 10,
+                 )
+    vi_subXfit
     
+# More stable estimates with machine learning based learners
+    
+    # note that if you just want a more stable estimator (e.g. if using superlearner
+    # and you get substantially different answers between runs, you can average
+    # TMLE over multiple runs and calculate a variance based on the average estimated
+    # variance across runs plus the variance of the estimates between runs)
+    # This is accomplished by setting xfitfolds to 1, so this routine will average
+    # over 10 fits (this number is chosen arbitrarily and is not a recommendation)
+    #
+    vi_sub2avg <- varimp(
+                 X=Xsub,   
+                 W=W,   
+                 Y=Y, 
+                 delta=0.1, 
+                 Y_learners = Y_learners,
+                 Xdensity_learners=Xdensity_learners[1:2],
+                 Xbinary_learners=Xbinary_learners,
+                 estimator="TMLEX",
+                 xfitfolds=1,
+                 foldrepeats = 10,
+                 )
+    vi_sub2avg
+    
+
+    # and this can be done with the entire covariate set to get more stable
+    # estimates of variable importance
+    vi_avg <- varimp(
+                 X=X,   
+                 W=NULL,   
+                 Y=Y, 
+                 delta=0.1, 
+                 Y_learners = Y_learners,
+                 Xdensity_learners=Xdensity_learners[1:2],
+                 Xbinary_learners=Xbinary_learners,
+                 estimator="TMLEX",
+                 xfitfolds=1,
+                 foldrepeats = 10,
+                 )
+    # compare with original             
+    vi_avg
+    vi
+
+# utilizing existing fits to efficiently (compute-wise) estimate new quantities
+
     # estimate mean outcome after each "intervention" (p value not very useful here)
     mean(Y)
     varimp_refit(vi,X=X, 
@@ -67,7 +164,7 @@ Alternatively, you can clone it locally, open the R project associated with this
                  estimand="mean"
                  )
     
-    # change intervnetion strength
+    # change intervention strength
     vibr::plotshift_dens(vi, 1, delta=0.1)
     vibr::plotshift_scatter(vi, Acol=1, Bcol=2, delta=0.1)
     varimp_refit(vi,X=X, 
@@ -84,7 +181,9 @@ Alternatively, you can clone it locally, open the R project associated with this
                  estimator="GCOMP",
                  estimand="diff"
                  )
-    # GETTING BETTER STANDARD ERRORS             
+
+# bootstrapping for better standard errors (can be combined with stabilization/cross fitting)
+
     viB <- varimp(X=X, 
                  Y=Y, 
                  delta=0.1, 
@@ -95,7 +194,9 @@ Alternatively, you can clone it locally, open the R project associated with this
                  B=10
                  )
     viB
-    
+
+# utilizing underlying (nuisance) models
+
     # getting predictions (not bootstrapped)
     outcome_model <- vi$qfit
     outcome_model$predict() # predictions at observed values
@@ -114,19 +215,9 @@ Alternatively, you can clone it locally, open the R project associated with this
     
 
 
-# reusing model fits from another vibr object to obtain an alternative estimator
-
-    vi2 <- varimp_refit(vi, X=X,Y=Y, delta=0.1,
-                    estimator="")
-
-    vi3 <- varimp_refit(vi, X=X,Y=Y, delta=0.1,
-                    estimator="IPW")
-
-    vi2
-    vi3
-
 
 # using weights (under construction - use with caution)
+
     V = data.frame(wt=runif(nrow(metals)))
     viw <- varimp(X=XYlist$X,Y=XYlist$Y, V=V, delta=0.1, 
        Y_learners = Y_learners,

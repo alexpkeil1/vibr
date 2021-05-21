@@ -6,6 +6,7 @@
 \usage{
 varimp(
   X,
+  W = NULL,
   Y,
   V = NULL,
   delta = 0.1,
@@ -27,7 +28,9 @@ varimp(
 )
 }
 \arguments{
-\item{X}{data frame of predictors}
+\item{X}{data frame of variables for which variable importance will be estimated}
+
+\item{W}{data frame of covariates (e.g. potential confounders) for which variable importance will not be estimated}
 
 \item{Y}{outcome}
 
@@ -43,7 +46,7 @@ varimp(
 
 \item{verbose}{(logical) print extra information}
 
-\item{estimator}{(character) "AIPW" (default), "TMLE", "GCOMP", "IPW", "TMLEX"}
+\item{estimator}{(character) "AIPW" (default), "TMLE", "GCOMP", "IPW", "TMLEX" (cross fit TMLE), "AIPWX" (cross fit AIPW)}
 
 \item{bounded}{(logical) not used}
 

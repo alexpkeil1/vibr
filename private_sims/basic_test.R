@@ -136,18 +136,24 @@ testtxshift <- function(){
   }
 
   dat = dgm( n=100, delta = 0.1, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
-
+  W = dat$X[,2:3]
+  Xsub = dat$X[,1,drop=FALSE]
   V = data.frame(wt=rep(1,length(dat$y)))
-  (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
+  (vi0 <- varimp(data.frame(dat$X),Y=dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
+                 Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
+                 verbose=FALSE, estimator="TMLE", estimand="diff", weights="wt", scale_continuous = FALSE))
+  (vi01 <- varimp(X=Xsub, W=W,Y=dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
                  Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
                  verbose=FALSE, estimator="TMLE", estimand="diff", weights="wt", scale_continuous = FALSE))
   (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
                  Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
                  verbose=FALSE, estimator="TMLEX", estimand="diff", weights="wt", scale_continuous = FALSE,
                  foldrepeats =10, xfitfolds=5))
-  (vi1<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="AIPW", delta = .05))
-  (vi3<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="IPW", delta = .05))
-  (vi2<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .05))
+  (vi11<-varimp_refit(vi01, Xsub,W,Y=dat$y, estimator="AIPW", delta = .05))
+  (vi12<-varimp_refit(vi01, Xsub,W,Y=dat$y, estimator="IPW", delta = .05))
+  (vi1<-varimp_refit(vi0, X=data.frame(dat$X),Y=dat$y, estimator="AIPW", delta = .05))
+  (vi3<-varimp_refit(vi0, X=data.frame(dat$X),Y=dat$y, estimator="IPW", delta = .05))
+  (vi2<-varimp_refit(vi0, X=data.frame(dat$X),Y=dat$y, estimator="GCOMP", delta = .05))
   cor(as.matrix(cbind(tmle=vi0$rank, aipw=vi1$rank, gcomp=vi2$rank, ipw=vi3$rank)))
 
   #

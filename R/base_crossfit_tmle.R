@@ -1,41 +1,11 @@
-.make_xfit_folds <- function(fold, set1, set2, set3){
-  fold <- list(fold = fold,
-               set1 = set1,
-               set2 = set2,
-               set3 = set3
-               )
-  fold
-}
 
-
-.xfitfolds_from_foldvec <- function (r, folds, ordermat)
-{
-  nfolds <- length(unique(folds))
-  remfolds = (nfolds-1)/2
-  set1 <- which(folds %in% ordermat[1:remfolds,r])
-  set2 <- which(folds %in% ordermat[(remfolds+1):(2*remfolds),r])
-  set3 <- which(folds == ordermat[nfolds,r])
-  .make_xfit_folds(r, set1, set2, set3)
-}
-
-# cross fitting (nothing here yet)
-.xfitsplit <- function(r=1,n, V=5){
-  folds <- rep(seq_len(V), length = n)
-  folds <- sample(folds)
-  combinations <- combn(V,V-1)
-  combinations <- rbind(combinations, apply(combinations, 2, function(x) setdiff(1:V,x)))
-  lapply(1:V, .xfitfolds_from_foldvec, folds=folds, ordermat=combinations)
-}
-
-.checkeven <- function(val){
-  !as.logical(val %% 2)
-}
 # efficient influence curve + estimate from generalized cross fit
 # 3 splits: train IPW, Train GCOMP, fit both
 
 .varimp_tmle_xfit <- function(X,
                          Y,
                          V=NULL,
+                         whichcols=seq_len(ncol(X)),
                          delta=0.1,
                          Y_learners=NULL,
                          Xdensity_learners=NULL,
@@ -50,8 +20,9 @@
   ee = new.env()
   # todo: ensure that outcome is always typed correctly (isbin should be set locally)
   n = length(Y)
-  if(.checkeven(xfitfolds) || xfitfolds < 3) stop("xfitfolds must be an odd number >2")
-  allpartitions <- lapply(seq_len(foldrepeats), .xfitsplit,n=n,V=xfitfolds)
+  if(.checkeven(xfitfolds)) stop("xfitfolds must be an odd number >2")
+  if(xfitfolds==1) message("xfitfolds = 1 implies averaging over multiple standard TMLE fits (determined by fold repeats), rather than cross fitting")
+  allpartitions <- lapply(seq_len(foldrepeats), vibr:::.xfitsplit,n=n,V=xfitfolds)
   order = list()
   idx = 1
   for(r in seq_len(foldrepeats)){
@@ -70,12 +41,12 @@
         Y3 = Y[fold$set3]
         V3 = V[fold$set3,,drop=FALSE]
 
-        obj_G = .prelims(X=X1, Y=Y1, V=V1, delta=delta, Y_learners=NULL, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
-        obj_Y = .prelims(X=X2, Y=Y2, V=V2, delta=delta, Y_learners, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
-        obj <- .prelims(X=X3, Y=Y3, V=V3, delta=delta, Y_learners=NULL, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
+        obj_G = .prelims(X=X1, Y=Y1, V=V1, whichcols=whichcols, delta=delta, Y_learners=NULL, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
+        obj_Y = .prelims(X=X2, Y=Y2, V=V2, whichcols=whichcols, delta=delta, Y_learners, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
+        obj <- .prelims(X=X3, Y=Y3, V=V3, whichcols=whichcols, delta=delta, Y_learners=NULL, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
         obj$sl.qfit = obj_Y$sl.qfit
         obj$sl.gfits = obj_G$sl.gfits
-        fittable <- .EstEqTMLE(n=obj$n,X=X3,Y=Y3,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights,isbin=obj$isbin, updatetype=updatetype)
+        fittable <- vibr:::.EstEqTMLE(n=obj$n,X=X3,Y=Y3,whichcols=obj$whichcols,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights,isbin=obj$isbin, updatetype=updatetype)
         ft <- fittable[,1:2]
         ft[,2] <- obj$n*ft[,2]^2 # asymptotic variance of sqrt(n)(psi_0 - psi_n)
         names(ft)[2] <- "sumd2"
@@ -124,6 +95,7 @@
 .varimp_tmle_xfit_boot <- function(X,
                               Y,
                               V=NULL,
+                              whichcols=seq_len(ncol(X)),
                               delta=0.1,
                               Y_learners=NULL,
                               Xdensity_learners=NULL,
@@ -137,7 +109,7 @@
                               B=100,
                               showProgress=TRUE,
                               ...){
-  est <- .varimp_tmle_xfit(X=X,Y=Y,V=V,delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners=Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded,updatetype=updatetype,
+  est <- .varimp_tmle_xfit(X=X,Y=Y,V=V,whichcols=whichcols,delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners=Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded,updatetype=updatetype,
                            foldrepeats=foldrepeats,
                            xfitfolds=xfitfolds, ...)
   rn <- rownames(est$res)
@@ -153,7 +125,7 @@
       Xi = X[ridx,,drop=FALSE]
       Yi = Y[ridx]
       Vi = V[ridx,,drop=FALSE]
-      bootfit <- .varimp_tmle_xfit(X=Xi,Y=Yi,V=Vi,delta=delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded,updatetype=updatetype,foldrepeats=foldrepeats,
+      bootfit <- .varimp_tmle_xfit(X=Xi,Y=Yi,V=Vi,whichcols=whichcols,delta=delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded,updatetype=updatetype,foldrepeats=foldrepeats,
                                    xfitfolds=xfitfolds,...)
       fittable <- bootfit$res
       fittable$est

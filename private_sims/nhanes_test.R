@@ -72,7 +72,7 @@ pass <- function(){
 }
 
 (ncores <- future::availableCores())
-future::plan("multisession", workers=ncores/2)
+future::plan("multisession", workers=ncores)
 
 
 (viNULL <- vibr::varimp(X=Xi,Y=Y, V=V,delta=0.01, weights="wtspo2yr",
@@ -91,6 +91,11 @@ vi0
 vi1
 vi2
 vi3
+
+vi0x <- vibr::varimp(X=Xi,Y=Y, V=V,delta=0.01, weights="wtspo2yr",
+                    Y_learners = .default_continuous_learners_big()[1:5],
+                    Xdensity_learners = .default_density_learners_big()[c(1:3,8)],
+                    Xbinary_learners = list(Lrnr_stepwise$new()), estimator="TMLEX")
 
 
 round(cor(X), 2)

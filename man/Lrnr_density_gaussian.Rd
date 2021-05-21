@@ -26,7 +26,7 @@ and then the errors are assumed normally distributed epsilon_i ~ Normal(0, sigma
 \seealso{
 Other Learners: 
 \code{\link{Lrnr_multinom}},
-\code{\link{Lrnr_polspline2}},
+\code{\link{Lrnr_polspline_quiet}},
 \code{\link{Lrnr_solnp_density_quiet}},
 \code{\link{Lrnr_solnp_quiet}},
 \code{\link{Lrnr_stepwise}}
