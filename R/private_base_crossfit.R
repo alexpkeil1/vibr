@@ -44,7 +44,7 @@
                          estimand="diff",
                          bounded=FALSE,
                          updatetype="weighted",
-                         xfitfolds=5,
+                         xfitfolds=3,
                          foldrepeats=10,
                          ...){
   ee = new.env()
@@ -76,7 +76,10 @@
         obj$sl.qfit = obj_Y$sl.qfit
         obj$sl.gfits = obj_G$sl.gfits
         fittable <- .EstEqTMLE(n=obj$n,X=X3,Y=Y3,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights,updatetype=updatetype)
-        fittable[,1:2]
+        ft <- fittable[,1:2]
+        ft[,2] <- obj$n*ft[,2]^2 # asymptotic variance of sqrt(n)(psi_0 - psi_n)
+        names(ft)[2] <- "sumd2"
+        ft
       }, seed=TRUE, lazy=TRUE)
     }
   }
@@ -85,11 +88,11 @@
   xfitres <- xfitres[ord]
   varnm <- rownames(xfitres[[1]])
   allests <- do.call(rbind, lapply(xfitres, function(x) x$est))
-  allvars <- do.call(rbind, lapply(xfitres, function(x) x$se^2))
+  allvars <- do.call(rbind, lapply(xfitres, function(x) x$sumd2))
   partitions <- as.numeric(gsub("p([0-9]+)_([0-9]+)", "\\1", names(xfitres)))
   # take means of every three rows for estimates and variances
   ests <- apply(allests, 2, function (x) tapply(x, partitions, mean))
-  vars <- apply(allvars, 2, function (x) tapply(x, partitions, mean))
+  vars <- apply(allvars, 2, function (x) tapply(x, partitions, mean)) # each partition has sum IF^2 rather than 1/n*sum IF^2
   ##
   #
   colnames(ests) <- varnm
@@ -97,12 +100,12 @@
   est <- apply(ests, 2, median)
 
   resid <- sweep(ests, 2, est, check.margin = FALSE)
-  vars <- vars + resid^2
+  vars <- vars/n + resid^2
 
 
   #var <-apply(vars, 2, mean)
-  var <-apply(vars, 2, median)
-  resmat <- data.frame(est=est, se=sqrt(var), z = est/sqrt(var))
+  V <- apply(vars, 2, median)
+  resmat <- data.frame(est=est, se=sqrt(V), z = est/sqrt(V))
   resmat$p <- pnorm(-abs(resmat$z))*2
   res <- list(
     res = resmat,

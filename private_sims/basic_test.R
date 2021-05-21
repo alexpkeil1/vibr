@@ -26,6 +26,7 @@ dgm <- function(n, delta, beta, degree=1, zk = c(-1, 0, 1)){
   px <- 0.2
   z <- rnorm(n,0,3)
   x <- rbinom(n,1,px)
+  q <- rnorm(n,0,3)
   zint <- z+delta
   xint <- ifelse(x==0, rbinom(n,1,delta/(1-px)), x)
   yfun <- function(z,x,beta,knots=zk){
@@ -38,7 +39,7 @@ dgm <- function(n, delta, beta, degree=1, zk = c(-1, 0, 1)){
   yintz <- yerr + yfun(zint,x,fullbeta)
   yintx <- yerr + yfun(z,xint,fullbeta)
   (trdiff <- c(mean(yintz-y), mean(yintx-y)))
-  res = list(X = cbind(z,x), y=y, tr = trdiff)
+  res = list(X = cbind(z,x,q), y=y, tr = trdiff)
   attr(res, "yfun") = function(z,x) yfun(z,x,beta=fullbeta, knots=zk)
   attr(res, "beta") = fullbeta
   res
@@ -110,7 +111,7 @@ binary_learners <- function(){
 
 testtxshift <- function(){
   set.seed(12312)
-  dat = dgm( n=100, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
+  dat = dgm( n=3000, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
   dat$tr
   lm(dat$y~., data=data.frame(dat$X/.05))
   task = sl3_Task$new(data=data.frame(dat$X), outcome="z", covariates="x")
@@ -134,17 +135,16 @@ testtxshift <- function(){
     fitted$predict()
   }
 
+  dat = dgm( n=100, delta = 0.1, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
 
-  dat$X = cbind(dat$X, q=runif(length(dat$y)))
-  polspline::polymars(dat$y, dat$X)
   V = data.frame(wt=rep(1,length(dat$y)))
-  (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.05, Y_learners=list(Lrnr_glm$new()),
-                 Xdensity_learners=c(Lrnr_density_gaussian$new()), Xbinary_learners=c(Lrnr_glm$new()),
+  (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
+                 Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
                  verbose=FALSE, estimator="TMLE", estimand="diff", weights="wt", scale_continuous = FALSE))
-  (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.05, Y_learners=list(Lrnr_glm$new()),
-                  Xdensity_learners=c(Lrnr_density_gaussian$new()), Xbinary_learners=c(Lrnr_glm$new()),
-                  verbose=FALSE, estimator="TMLEX", estimand="diff", weights="wt", scale_continuous = FALSE,
-                 foldrepeats = 50))
+  (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
+                 Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
+                 verbose=FALSE, estimator="TMLEX", estimand="diff", weights="wt", scale_continuous = FALSE,
+                 foldrepeats =10, xfitfolds=5))
   (vi1<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="AIPW", delta = .05))
   (vi3<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="IPW", delta = .05))
   (vi2<-varimp_refit(vi0, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .05))
