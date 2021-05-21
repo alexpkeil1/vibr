@@ -336,7 +336,7 @@ plot(ztest[xtest==0], ey0[xtest==0], type="l", ylim=c(min(c(ey0,ey1)), max(c(ey0
 lines(ztest[xtest==1], ey1[xtest==1], type="l", ylim=c(min(c(ey0,ey1)), max(c(ey0,ey1))))
 ridx = sample(length(ztest), 200)
 points(ztest[ridx],ytest[ridx])
-lm(dat$y~x+z, data = data.frame(dat$X))$coefficients*0.1
+lm(res1$y~x+z, data = data.frame(res1$X))$coefficients*0.1
 
 
 (ncores <- future::availableCores())
