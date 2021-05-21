@@ -340,7 +340,7 @@ lm(res1$y~x+z, data = data.frame(res1$X))$coefficients*0.1
 
 
 (ncores <- future::availableCores())
-future::plan("multisession", workers=ncores/2)
+future::plan("multisession", workers=ncores)
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
 system.time(res1 <- analyze(1231321, n=500, B=20, delta = 0.1, beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-.25,0.25), sigma=1.0))
 
