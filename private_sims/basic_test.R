@@ -4,7 +4,7 @@ library(vibr)
 library(sl3)
 library(future)
 
-simspline <- function(k, x, degree=1){
+simspline <- function(k, x, degree=2){
   basis.mat <- matrix(NA,nrow=length(x), ncol=(1+length(k))*degree)
   colidx = 1
   for(knot in 0:length(k)){
@@ -17,10 +17,10 @@ simspline <- function(k, x, degree=1){
   }
   basis.mat
 }
-#simspline(c(-1, 0, 1), rnorm(100), degree=1)
+#simspline(c(-1, 0, 1), rnorm(100), degree=2)
 
 
-dgm <- function(n, delta, beta, degree=1, zk = c(-1, 0, 1)){
+dgm <- function(n, delta, beta, degree=2, zk = c(-1, 0, 1), sigma=3){
   fullbeta <- rep(0, 20)
   fullbeta[1:length(beta)] <- beta
   px <- 0.2
@@ -32,9 +32,9 @@ dgm <- function(n, delta, beta, degree=1, zk = c(-1, 0, 1)){
   yfun <- function(z,x,beta,knots=zk){
     zbasis <- simspline(knots, z, degree)
     pz <- ncol(zbasis)
-    x*beta[1] + x*z*beta[2] + zbasis %*% beta[3:(3+pz-1)]
+    x*beta[1] + x*(5+z)*beta[2] + zbasis %*% beta[3:(3+pz-1)]
   }
-  yerr <- rnorm(n,0,1)
+  yerr <- rnorm(n,0,sigma)
   y <- yerr + yfun(z,x,fullbeta)
   yintz <- yerr + yfun(zint,x,fullbeta)
   yintx <- yerr + yfun(z,xint,fullbeta)
@@ -42,6 +42,7 @@ dgm <- function(n, delta, beta, degree=1, zk = c(-1, 0, 1)){
   res = list(X = cbind(z,x,q), y=y, tr = trdiff)
   attr(res, "yfun") = function(z,x) yfun(z,x,beta=fullbeta, knots=zk)
   attr(res, "beta") = fullbeta
+  attr(res, "sigma") = sigma
   res
 }
 
@@ -111,7 +112,7 @@ binary_learners <- function(){
 
 testtxshift <- function(){
   set.seed(12312)
-  dat = dgm( n=200, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
+  dat = dgm( n=200, delta = 0.05, beta = c(1,0,1), degree=2, zk = c(-1.5, 0, 1.5))
   dat$tr
   lm(dat$y~., data=data.frame(dat$X/.05))
 
@@ -228,8 +229,8 @@ stabilitytest <- function(...){
 
 jointtest <- function(){
   set.seed(12312)
-  dat = dgm( n=1000, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
-  #dat = dgm( n=1000, delta = 0.01, beta = c(1,-2,2,0,0,0), degree=3, zk = c(-1.0, 0, 1.0))
+  dat = dgm( n=1000, delta = 0.05, beta = c(1,0,1), degree=2, zk = c(-1.5, 0, 1.5))
+  #dat = dgm( n=1000, delta = 0.01, beta = c(1,-2,2,0,0,0), degree=2, zk = c(-1.5,-0.75,0.0))
   vi <- varimp(X=data.frame(dat$X),
                Y=dat$y,
                delta=0.01,
@@ -266,13 +267,12 @@ jointtest <- function(){
 
 analyze <- function(i, B=1, outfile=NULL, ...){
   dat = dgm(...)
-  set.seed(12312); dat = dgm( n=1000, delta = 0.1, beta = c(2,1, .3))
-  (vimp <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
+  (vimp <- varimp(X=data.frame(dat$X),Y=dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
                   Xdensity_learners=.default_density_learners()[-3], Xbinary_learners=.default_binary_learners(),
                   verbose=FALSE, estimator="TMLE", scale_continuous = FALSE))
-  (vimp2 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="IPW", delta = .1))
-  (vimp3 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .1))
-  (vimp4 <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
+  (vimp2 <- varimp_refit(vimp, X=data.frame(dat$X),Y=dat$y, estimator="IPW", delta = .1))
+  (vimp3 <- varimp_refit(vimp, X=data.frame(dat$X),Y=dat$y, estimator="GCOMP", delta = .1))
+  (vimp4 <- varimp(X=data.frame(dat$X),Y=dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
                    Xdensity_learners=.default_density_learners()[-3], Xbinary_learners=.default_binary_learners(),
                    verbose=FALSE, estimator="TMLEX", scale_continuous = FALSE, xfitfolds=5, foldrepeats=B))
   #
@@ -308,34 +308,46 @@ analyze <- function(i, B=1, outfile=NULL, ...){
 future::plan("sequential")
 #dat = dgm(n=300, delta = 0.1, beta = c(2,1, .0))
 set.seed(1231)
-(res1 <- analyze(1231321, n=200, B=2, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
+(res1 <- analyze(1231321, n=200, B=2, delta = 0.1, beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-0.75,0.0)))
 
 set.seed(1231)
-(res2 <- analyze(1231321, n=200, B=20, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
+(res2 <- analyze(1231321, n=200, B=20, delta = 0.1, beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-0.75,0.0)))
 
 #attr(res1, "beta")
-z <- seq(-5,5,length.out=500)
-testz <- rnorm(100, 0, 3)
-x <- rep(c(0,1),length.out=500)
-py1 <- attr(res1, "yfun")(z[x==1],x[x==1])
-py1a <- attr(res1, "yfun")(z[x==1]+0.1,x[x==1])
-testy <- attr(res1, "yfun")(testz+0.1,0)+rnorm(100)
-mean(py1a-py1)
-py0 <- attr(res1, "yfun")(z[x==0],x[x==0])
-plot(z[x==1], py1, type="l", ylim=c(min(c(py1,py0)), max(c(py1,py0))))
-lines(z[x==0], py0)
-points(testz,testy)
+
+#bb = round(runif(12,-1,1), 2)
+res1 <- dgm(100,delta = 0.1, beta =c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-.25,0.25), sigma=.5)
+#ztest <- seq(-10,10,.002)
+ztest <- sort(rnorm(10000))
+xtest <- rep(c(0,1), length.out=length(ztest))
+pxz <- dnorm(ztest,0,3)*dbinom(xtest, 1, .2)
+pxzd <- dnorm(ztest-0.1,0,3)*dbinom(xtest, 1, .2)
+s <- attr(res1, "sigma")
+ey <- attr(res1, "yfun")(ztest,xtest)
+ytest <- ey + rnorm(length(ztest), 0, 1)
+ey0 <- attr(res1, "yfun")(ztest,0)
+ey1 <- attr(res1, "yfun")(ztest,1)
+pym <- sum(ey*pxz)/sum(pxz)
+pyz <- sum(ey*pxzd)/sum(pxzd)
+pyx <- pym+.1*(sum(ey1*pxz)/sum(pxz)- sum(ey0*pxz)/sum(pxz))
+(trA <- c(tr.z=pyz,tr.x=pyx,tr.q=pym)-pym)
+
+plot(ztest[xtest==0], ey0[xtest==0], type="l", ylim=c(min(c(ey0,ey1)), max(c(ey0,ey1))))
+lines(ztest[xtest==1], ey1[xtest==1], type="l", ylim=c(min(c(ey0,ey1)), max(c(ey0,ey1))))
+ridx = sample(length(ztest), 200)
+points(ztest[ridx],ytest[ridx])
+lm(dat$y~x+z, data = data.frame(dat$X))$coefficients*0.1
 
 
 (ncores <- future::availableCores())
 future::plan("multisession", workers=ncores/2)
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
-system.time(res1 <- analyze(1231321, n=200, B=20, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
+system.time(res1 <- analyze(1231321, n=200, B=20, delta = 0.1, beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-0.75,0.0)))
 
 csvout <- "/Users/akeil/temp/vimp_check.csv"
 write.table(t(res1), csvout, append = FALSE, row.names = FALSE, sep=",")
 
-resL = future.apply::future_lapply(1:1000, analyze, outfile=csvout, n=500, B=20, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0),
+resL = future.apply::future_lapply(1:1000, analyze, outfile=csvout, n=500, B=20, delta = 0.1, beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-0.75,0.0),
                                    future.seed=TRUE, future.packages=NULL)
 
 readana <- function(file=csvout){
@@ -353,7 +365,7 @@ cipow <- function(res, root="TMLE", exp="x", type="cover"){
   est = res[,paste0(root, "est.", exp)]
   se = res[,paste0(root, "se.", exp)]
   #tr = rm[paste0("tr.", exp)] # truth based on average across simulations
-  dat <- dgm(n=100, delta=0.1,beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0))
+  dat <- dgm(n=100, delta=0.1,beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-0.75,0.0))
   ztest <- seq(-10,10,.002)
   xtest <- rep(c(0,1), length.out=length(ztest))
   pxz <- dnorm(ztest,0,3)*dbinom(xtest, 1, .2)
