@@ -58,7 +58,7 @@
 .EstimatorGcomp <- function(n,
                             X,
                             Y,
-                       whichcols=seq_len(ncol(X)),
+                            whichcols=seq_len(ncol(X)),
                             delta,
                             qfun,
                             gfun,

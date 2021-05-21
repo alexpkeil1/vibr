@@ -39,7 +39,7 @@ Alternatively, you can clone it locally, open the R project associated with this
 ## variable importance for a set of mainly continuous predictors on a continuous target
 	
     data(metals, package="qgcomp")
-    XYlist = data.frame(metals[,1:23], Y=metals$y)
+    XYlist = data.frame(metals[,1:23], Y=metals$y+10) # adding constant to Y purely for illustration
     # split 
     spldat <- qgcomp::split_data(XYlist)
     trdat <- spldat$traindata
@@ -52,6 +52,7 @@ Alternatively, you can clone it locally, open the R project associated with this
     X = trdat[,1:23]
     Y = trdat$Y
 
+    # basic variable importance using targeted maximum likelihood
     vi <- varimp(X=X, 
                  Y=Y, 
                  delta=0.1, 
@@ -89,10 +90,13 @@ Alternatively, you can clone it locally, open the R project associated with this
                  )
     vi_sub
     vi$res[23,]
+    
+    # these might differ by quite a bit - machine learning based esimators
+    # can be numerically unstable: we can address this via cross fitting
 
-# Cross fitting
+# Cross fitting, double cross fitting
 
-    # cross fitted TMLE can be invoked with estimator = TMLEX
+    # double-cross fitted TMLE can be invoked with estimator = TMLEX
     # this estimator ought to perform asymptotically better
     # and has faster convergence rates than standard TMLE and so
     # may also perform better at moderate sample sizes.
@@ -102,7 +106,7 @@ Alternatively, you can clone it locally, open the R project associated with this
                  W=W,   
                  Y=Y, 
                  delta=0.1, 
-                 Y_learners = Y_learners,
+                 Y_learners = c(Y_learners, list(Lrnr_xgboost$new(), Lrnr_randomForest$new())),
                  Xdensity_learners=Xdensity_learners[1:2],
                  Xbinary_learners=Xbinary_learners,
                  estimator="TMLEX",
@@ -125,18 +129,90 @@ Alternatively, you can clone it locally, open the R project associated with this
                  W=W,   
                  Y=Y, 
                  delta=0.1, 
-                 Y_learners = Y_learners,
+                 Y_learners = c(Y_learners, list(Lrnr_xgboost$new(), Lrnr_randomForest$new())),
                  Xdensity_learners=Xdensity_learners[1:2],
                  Xbinary_learners=Xbinary_learners,
                  estimator="TMLEX",
                  xfitfolds=1,
                  foldrepeats = 10,
                  )
+                 
+    vi_sub
+    vi_subXfit                 
     vi_sub2avg
+    
+    # can look at estimates of each repeated run (partition) to get a sense of the 
+    # stability of the estimate
+    # here: the estimate is very stable!
+    vi_sub2avg$ests
+    
+    # now examine stability with a continuous variable, which ought to be more unstable
+
+    Xsub2 = X[,4,drop=FALSE]
+    W2 = X[,-4,drop=FALSE]
+    # single run
+    vi_sub2cont <- varimp(
+                 X=Xsub2,   
+                 W=W2,   
+                 Y=Y, 
+                 delta=0.1, 
+                 Y_learners = c(Y_learners, list(Lrnr_xgboost$new(), Lrnr_randomForest$new())),
+                 Xdensity_learners=Xdensity_learners,
+                 Xbinary_learners=Xbinary_learners,
+                 estimator="TMLE",
+                 )
+    vi_sub2cont
+    
+    # cross fit
+    vi_sub2Xcont <- varimp(
+                 X=Xsub2,   
+                 W=W2,   
+                 Y=Y, 
+                 delta=0.1, 
+                 Y_learners = c(Y_learners, list(Lrnr_xgboost$new(), Lrnr_randomForest$new())),
+                 Xdensity_learners=Xdensity_learners,
+                 Xbinary_learners=Xbinary_learners,
+                 estimator="TMLEX",
+                 xfitfolds=3,
+                 foldrepeats = 5,
+                )
+    vi_sub2Xcont
+    
+    # multi-run average
+    vi_sub2avgcont <- varimp(
+                 X=Xsub2,   
+                 W=W2,   
+                 Y=Y, 
+                 delta=0.1, 
+                 Y_learners = c(Y_learners, list(Lrnr_xgboost$new(), Lrnr_randomForest$new())),
+                 Xdensity_learners=Xdensity_learners,
+                 Xbinary_learners=Xbinary_learners,
+                 estimator="TMLEX",
+                 xfitfolds=1,
+                 foldrepeats = 5,
+                 )
+
+    vi_sub2cont
+    vi_sub2avgcont
+    vi_sub2Xcont
+
+  
+    # variation between runs (multirun vs. cross fit)
+    # variation of in sample estimates
+     vi_sub2avgcont$ests   
+     sd(vi_sub2avgcont$ests)
+    # variation of out of sample estimates
+     vi_sub2Xcont$ests
+     sd(vi_sub2Xcont$ests)
+
+    vi_sub2avgcont$vars # variance at each run
+    vi_sub2Xcont$vars # variance at each run, cross fit
+
     
 
     # and this can be done with the entire covariate set to get more stable
-    # estimates of variable importance
+    # estimates of variable importance + ranking for all variables at once
+    # this will take a while
     vi_avg <- varimp(
                  X=X,   
                  W=NULL,   
@@ -147,11 +223,12 @@ Alternatively, you can clone it locally, open the R project associated with this
                  Xbinary_learners=Xbinary_learners,
                  estimator="TMLEX",
                  xfitfolds=1,
-                 foldrepeats = 10,
+                 foldrepeats = 5,
                  )
     # compare with original             
     vi_avg
     vi
+    vi_avg$ests
 
 # utilizing existing fits to efficiently (compute-wise) estimate new quantities
 

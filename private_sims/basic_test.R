@@ -114,28 +114,7 @@ testtxshift <- function(){
   dat = dgm( n=200, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
   dat$tr
   lm(dat$y~., data=data.frame(dat$X/.05))
-  task = sl3_Task$new(data=data.frame(dat$X), outcome="z", covariates="x")
-  Lrnr_density_gaussian$new()$train(task)$predict()
-  # bounded estimator in progress, will look like tmle package
-  #set.seed(123123)
-  dat$X <- cbind(dat$X, z2=exp(runif(length(dat$y))))
-  subtest <- function() {
-    task <- sl3::sl3_Task$new(data = data.frame(dat$X), covariates="x", outcome="z")
-    ft <- Lrnr_density_gaussian$new(transfun = function(x) x)
-    fun = list()
-    is.null(fun$factor)
-    fitted <- ft$train(task)
-    fitted$predict()
-    #
-    task <- sl3::sl3_Task$new(data = data.frame(dat$X), covariates="x", outcome="z2")
-    ft <- Lrnr_density_gaussian$new(transfun = log)
-    fun = list()
-    is.null(fun$factor)
-    fitted <- ft$train(task)
-    fitted$predict()
-  }
 
-  dat = dgm( n=100, delta = 0.1, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
   W = dat$X[,2:3]
   Xsub = dat$X[,1,drop=FALSE]
   V = data.frame(wt=rep(1,length(dat$y)))
@@ -145,6 +124,11 @@ testtxshift <- function(){
   (vi01 <- varimp(X=Xsub, W=W,Y=dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
                  Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
                  verbose=FALSE, estimator="TMLE", estimand="diff", weights="wt", scale_continuous = FALSE))
+  # plug in cross fit estimator
+  (vi01b <- varimp(X=Xsub, W=W,Y=dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
+                  Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
+                  verbose=FALSE, estimator="GCOMPX", estimand="diff", weights="wt", scale_continuous = FALSE,
+                  foldrepeats =10, xfitfolds=2))
   (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
                  Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
                  verbose=FALSE, estimator="TMLEX", estimand="diff", weights="wt", scale_continuous = FALSE,

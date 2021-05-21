@@ -23,12 +23,14 @@
   allpartitions <- lapply(seq_len(foldrepeats), .xfitsplit,n=n,V=xfitfolds)
   order = list()
   idx = 1
+  sd = runif(foldrepeats*xfitfolds, -.Machine$integer.max, .Machine$integer.max)
   for(r in seq_len(foldrepeats)){
     partitions <- allpartitions[[r]]
     for(fold in partitions){ # xfitfolds combinations
       order[[idx]] = paste0("p",r, "_", fold$fold)
       idx = idx + 1
       ee[[paste0("p",r, "_", fold$fold)]] <- future::future( {
+        set.seed(sd[idx-1])
         X1 = X[fold$set1,,drop=FALSE]
         Y1 = Y[fold$set1]
         V1 = V[fold$set1,,drop=FALSE]
@@ -82,7 +84,9 @@
     gfits = NULL,
     binomial = NULL,
     type = "AIPWX",
-    weights=NULL
+    weights=NULL,
+    ests = ests,
+    vars = vars
   )
   class(res) <- c("vibr.fit", class(res))
   res

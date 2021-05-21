@@ -510,6 +510,8 @@
 #
 ################################################################################
 
+
+# double cross fitting
 .make_xfit_folds <- function(fold, set1, set2, set3){
   fold <- list(fold = fold,
                set1 = set1,
@@ -543,4 +545,35 @@
 
 .checkeven <- function(val){
   !as.logical(val %% 2)
+}
+
+
+# plug in cross fit estimators
+.make_xfit_folds_plugin <- function(fold, set1, set2){
+  fold <- list(fold = fold,
+               set1 = set1,
+               set2 = set2
+  )
+  fold
+}
+
+.xfitfolds_from_foldvec_plugin <- function (r, folds, ordermat)
+{
+  nfolds <- length(unique(folds))
+  remfolds = (nfolds-1)/2
+  set1 <- which(folds %in% ordermat[1:(remfolds-1),r])
+  set2 <- which(folds == ordermat[nfolds,r])
+  .make_xfit_folds_plugin(r, set1, set2)
+}
+
+
+.xfitsplit_plugin <- function(r=1,n, V=5){
+  folds <- rep(seq_len(V), length = n)
+  folds <- sample(folds)
+  combinations <- combn(V,V-1)
+  combinations <- rbind(combinations, apply(combinations, 2, function(x) setdiff(1:V,x)))
+  if(V>1) foldobj = lapply(1:V, .xfitfolds_from_foldvec_plugin, folds=folds, ordermat=combinations)
+  # degenerate case where we just average across multiple fits to the same data
+  if(V==1) foldobj = list(.make_xfit_folds_plugin(fold=1, set1 = 1:n, set2 = 1:n))
+  foldobj
 }

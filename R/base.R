@@ -87,19 +87,27 @@ varimp <- function(X,
   if(is.null(Xdensity_learners)) Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
   if(is.null(B)){
     res = switch(estimator,
-                 AIPW=.varimp_aipw(        X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin,...),
-                 GCOMP=.varimp_gcomp(      X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin,...),
+                 # standard estimators
                  IPW=.varimp_ipw(          X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin,...),
+                 GCOMP=.varimp_gcomp(      X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin,...),
+                 AIPW=.varimp_aipw(        X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin,...),
                  TMLE=.varimp_tmle(        X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype,...),
+                 # cross fit estimators
+                 IPWX=.varimp_ipw_xfit(    X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats,...),
+                 GCOMPX=.varimp_gcomp_xfit(X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats,...),
                  AIPWX=.varimp_aipw_xfit(  X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats,...),
                  TMLEX=.varimp_tmle_xfit(  X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, xfitfolds=xfitfolds,foldrepeats=foldrepeats,...)
     )
   } else{
     res = switch(estimator,
-                 AIPW=.varimp_aipw_boot(        X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
-                 GCOMP=.varimp_gcomp_boot(      X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
+                 # standard estimators
                  IPW=.varimp_ipw_boot(          X=X,Y=Y,V=V, dewhichcols=whichcols, lta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
+                 GCOMP=.varimp_gcomp_boot(      X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
+                 AIPW=.varimp_aipw_boot(        X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
                  TMLE=.varimp_tmle_boot(        X=X,Y=Y,V=V, whichcols=whichcols, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, B=B, showProgress=showProgress,...),
+                 # cross fit estimators
+                 IPWX=.varimp_ipw_xfit_boot(    X=X,Y=Y,V=V, dewhichcols=whichcols, lta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...),
+                 GCOMPX=.varimp_gcomp_xfit_boot(X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...),
                  AIPWX=.varimp_aipw_xfit_boot(  X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...),
                  TMLEX=.varimp_tmle_xfit_boot(  X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...)
     )
