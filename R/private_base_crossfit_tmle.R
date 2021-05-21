@@ -75,7 +75,7 @@
         obj <- .prelims(X=X3, Y=Y3, V=V3, delta=delta, Y_learners=NULL, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
         obj$sl.qfit = obj_Y$sl.qfit
         obj$sl.gfits = obj_G$sl.gfits
-        fittable <- .EstEqTMLE(n=obj$n,X=X3,Y=Y3,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights,updatetype=updatetype)
+        fittable <- .EstEqTMLE(n=obj$n,X=X3,Y=Y3,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights,isbin=obj$isbin, updatetype=updatetype)
         ft <- fittable[,1:2]
         ft[,2] <- obj$n*ft[,2]^2 # asymptotic variance of sqrt(n)(psi_0 - psi_n)
         names(ft)[2] <- "sumd2"

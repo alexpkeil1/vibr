@@ -38,7 +38,7 @@ dgm <- function(n, delta, beta, degree=1, zk = c(-1, 0, 1)){
   y <- yerr + yfun(z,x,fullbeta)
   yintz <- yerr + yfun(zint,x,fullbeta)
   yintx <- yerr + yfun(z,xint,fullbeta)
-  (trdiff <- c(mean(yintz-y), mean(yintx-y)))
+  (trdiff <- c(mean(yintz-y), mean(yintx-y), 0.0))
   res = list(X = cbind(z,x,q), y=y, tr = trdiff)
   attr(res, "yfun") = function(z,x) yfun(z,x,beta=fullbeta, knots=zk)
   attr(res, "beta") = fullbeta
@@ -111,7 +111,7 @@ binary_learners <- function(){
 
 testtxshift <- function(){
   set.seed(12312)
-  dat = dgm( n=3000, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
+  dat = dgm( n=200, delta = 0.05, beta = c(1,0,1), degree=1, zk = c(-1.5, 0, 1.5))
   dat$tr
   lm(dat$y~., data=data.frame(dat$X/.05))
   task = sl3_Task$new(data=data.frame(dat$X), outcome="z", covariates="x")
@@ -184,67 +184,38 @@ stabilitytest <- function(...){
   data(metals, package="qgcomp")
   dat = list(X=metals[,1:10], y=metals$y) # up t 23
 
-  density_learners <- function(n_bins=c(3,8), histtypes=c("equal.mass")){
-    #sl3::sl3_list_learners("density") # see all available
-    density_learners=list()
-    idx = 1
-    nm <- paste0("dens_sp_gam_")
-    density_learners[[idx]] <- Lrnr_density_semiparametric$new(name=nm, mean_learner = Lrnr_gam$new(), var_learner = NULL)
-    idx  = idx+1
-    nm <- paste0("dens_sp_mean_")
-    density_learners[[idx]] <- Lrnr_density_semiparametric$new(name=nm, mean_learner = Lrnr_mean$new(), var_learner = NULL)
-    idx  = idx+1
-    for(nb in n_bins){
-      for(histtype in histtypes){
-        nm = paste0("hist_Unadj_", nb, histtype)
-        density_learners[[idx]] <- Lrnr_density_discretize$new(name=nm, categorical_learner = Lrnr_mean$new(), n_bins = nb, bin_method=histtype)
-        idx  = idx+1
-      }
-    }
-    density_learners
-  }
-
-  continuous_learners <- function(){
-    #sl3::sl3_list_learners("continuous")
-    continuous_learners=list(
-      Lrnr_mean$new(name="Mean"),
-      Lrnr_glm$new(name="OLS", family=gaussian()),
-      #Pipeline$new(Lrnr_define_interactions$new(name="INT", list(c("x", "z"), c("z", "z"))), Lrnr_glmnet$new(name="LASSO", alpha=1.0)),
-      Lrnr_gam$new(name="GAM")
-      #Pipeline$new(Lrnr_define_interactions$new(name="INT", list(c("x", "z"), c("z", "z"))), Lrnr_glm$new(name="OLS"))
-    )
-    continuous_learners
-  }
-
-  binary_learners <- function(){
-    #sl3::sl3_list_learners("binomial")
-    bin_learners=list(
-      Lrnr_glm$new(name="LOGIT", family=binomial()),
-      Lrnr_mean$new(name="Mean")
-    )
-    bin_learners
-  }
-
   set.seed(NULL)
   #set.seed(1231)
-  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
-                  Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
-                  verbose=FALSE, estimator="TMLE", estimand="diff", folds=20))
+  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1,
+                  Y_learners=.default_continuous_learners(),
+                  Xdensity_learners=.default_density_learners(),
+                  Xbinary_learners=.default_binary_learners(),
+                  verbose=FALSE, estimator="TMLE", estimand="diff"))
 
 
   #set.seed(1231)
-  (vimp2 <- varimp(data.frame(dat$X[,1:3]),dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
-                  Xdensity_learners=density_learners()[1:2], Xbinary_learners=binary_learners()[1:2],
-                  verbose=FALSE, estimator="TMLE", estimand="diff", folds=5))
+  (vimp2 <- varimp(data.frame(dat$X),dat$y, delta=.1,
+                   Y_learners=.default_continuous_learners(),
+                   Xdensity_learners=.default_density_learners(),
+                   Xbinary_learners=.default_binary_learners(),
+                   verbose=FALSE, estimator="TMLEX", estimand="diff",
+                   xfitfolds = 3, foldrepeats = 10))
 
 
   set.seed(1231)
-  t2 <- sl3::sl3_Task$new(data = dat$X, folds = 20, covariates = names(dat$X))
+  t2 <- sl3::sl3_Task$new(data = data.frame(dat$X, y=dat$y), folds = 20, covariates = names(dat$X), outcome="y")
   set.seed(1231)
-  t1 <- sl3::sl3_Task$new(data = dat$X, folds = 20, covariates = names(dat$X))
+  t1 <- sl3::sl3_Task$new(data = data.frame(dat$X, y=dat$y), folds = 20, covariates = names(dat$X), outcome="y")
   t1$folds[[10]]$validation_set
   t2$folds[[10]]$validation_set
 
+  pipe <- Pipeline$new(Lrnr_screener_importance$new(name="rfimpscreen", learner=Lrnr_randomForest$new()), Lrnr_glm$new(name="OLS", family=gaussian()))
+  screen = Lrnr_screener_importance$new(name="rfimpscreen", learner=Lrnr_randomForest$new(importance=TRUE))
+  screen = Lrnr_screener_importance$new(learner =Lrnr_randomForest$new() )
+  fr = Lrnr_xgboost$new()
+  fr$train(t1)
+  screen$train(t1)
+  pipe$train(t1)
   #outcome
   plot(vimp$qfit$predict(), vimp2$qfit$predict()) # stable under a seed
   plot(vimp$qfit$learner_fits$Stack$predict(), vimp2$qfit$learner_fits$Stack$predict()) # stable under a seed
@@ -305,40 +276,36 @@ jointtest <- function(){
 
 analyze <- function(i, B=1, outfile=NULL, ...){
   dat = dgm(...)
-  #set.seed(12312); dat = dgm( n=1000, delta = 0.1, beta = c(2,1, .3))
+  set.seed(12312); dat = dgm( n=1000, delta = 0.1, beta = c(2,1, .3))
   (vimp <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
-                  Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
+                  Xdensity_learners=.default_density_learners()[-3], Xbinary_learners=.default_binary_learners(),
                   verbose=FALSE, estimator="TMLE", scale_continuous = FALSE))
   (vimp2 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="IPW", delta = .1))
   (vimp3 <- varimp_refit(vimp, data.frame(dat$X),dat$y, estimator="GCOMP", delta = .1))
   (vimp4 <- varimp(data.frame(dat$X),dat$y, delta=0.1, Y_learners=.default_continuous_learners(),
-                   Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
+                   Xdensity_learners=.default_density_learners()[-3], Xbinary_learners=.default_binary_learners(),
                    verbose=FALSE, estimator="TMLEX", scale_continuous = FALSE, xfitfolds=5, foldrepeats=B))
   #
   obj <- as.matrix(vimp$res)
   obj2 <- as.matrix(vimp2$res)
   obj3 <- as.matrix(vimp3$res)
   obj4 <- as.matrix(vimp4$res)
-  #obj4 <- as.matrix(vimp4$est$res)
-  #obj4se <- apply(vimp4$boots, 2, sd)
   tr = dat$tr
   names(tr) <- colnames(dat$X)
   lmfit <- summary(lm(y~., data.frame(y=dat$y, dat$X/0.1)))
-  # vimp$qfit$learner_fits$Stack$learner_fits$OLS$fit_object$R
-  # chol(solve(lmfit$cov)) # close to cholesky decomposition of the Hessian, but varying in signs
   res = c(
-    TMLEest = obj[1:2,1],
-    TMLEse = obj[1:2,2],
-    TMLEXest = obj4[1:2,1],
-    TMLEXse = obj4[1:2,2],
-    #TMLEbootest = obj4[1:2,1],
+    TMLEest = obj[1:3,1],
+    TMLEse = obj[1:3,2],
+    TMLEXest = obj4[1:3,1],
+    TMLEXse = obj4[1:3,2],
+    #TMLEbootest = obj4[1:3,1],
     #TMLEbootse = obj4se,#apply(vimp3$boots, 2, sd)
-    IPWest = obj2[1:2,1],
-    IPWse = obj2[1:2,2],
-    GCOMPest = obj3[1:2,1],
-    GCOMPse = obj3[1:2,2],
-    lmest = lmfit$coefficients[2:3, 1],
-    lmse = lmfit$coefficients[2:3, 2],
+    IPWest = obj2[1:3,1],
+    IPWse = obj2[1:3,2],
+    GCOMPest = obj3[1:3,1],
+    GCOMPse = obj3[1:3,2],
+    lmest = lmfit$coefficients[2:4, 1],
+    lmse = lmfit$coefficients[2:4, 2],
     tr = tr
   )
   attr(res, "beta") <- attr(dat, "beta")
@@ -350,7 +317,11 @@ analyze <- function(i, B=1, outfile=NULL, ...){
 
 future::plan("sequential")
 #dat = dgm(n=300, delta = 0.1, beta = c(2,1, .0))
-(res1 <- analyze(1231321, n=3000, B=5, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
+set.seed(1231)
+(res1 <- analyze(1231321, n=200, B=2, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
+
+set.seed(1231)
+(res2 <- analyze(1231321, n=200, B=20, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
 
 #attr(res1, "beta")
 z <- seq(-5,5,length.out=500)
@@ -369,7 +340,7 @@ points(testz,testy)
 (ncores <- future::availableCores())
 future::plan("multisession", workers=ncores/2)
 #dgm(n=1000000, delta = 0.1, beta = c(2,1, .0))$tr
-system.time(res1 <- analyze(1231321, n=3000, B=20, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
+system.time(res1 <- analyze(1231321, n=200, B=20, delta = 0.1, beta = c(.5, -.8, .5, .2,-.1), degree=3, zk = c(-1.0, 0, 1.0)))
 
 csvout <- "/Users/akeil/temp/vimp_check.csv"
 write.table(t(res1), csvout, append = FALSE, row.names = FALSE, sep=",")
@@ -403,7 +374,7 @@ cipow <- function(res, root="TMLE", exp="x", type="cover"){
   pym <- sum(ey*pxz)/sum(pxz)
   pyz <- sum(ey*pxzd)/sum(pxzd)
   pyx <- pym+.1*(sum(ey1*pxz)/sum(pxz)- sum(ey0*pxz)/sum(pxz))
-  (trA <- c(tr.z=pyz,tr.x=pyx)-pym)
+  (trA <- c(tr.z=pyz,tr.x=pyx,tr.q=pym)-pym)
   #cat(paste("truth: ", trA, "\n"))
   tr <- trA[paste0("tr.", exp)]
   res[,nm] <<- switch(type,
@@ -417,20 +388,21 @@ cipow <- function(res, root="TMLE", exp="x", type="cover"){
 
 for(stat in c("cover95", "cover80", "power", "bias", "pctBias")){
   for(estim in c("TMLE", "TMLEX", "IPW", "GCOMP", "lm")){
-    for(var in c("z", "x")){
+    for(var in c("z", "x", "q")){
       cipow(res, estim, var, stat)
     }
   }
 }
 
 
-rm[c("tr.z", "tr.x")]
+rm[c("tr.z", "tr.x", "tr.q")]
 print(apply(res[,  grep("est.", names(res))], 2, function(x) c(mean=mean(x), sd=sd(x))))
 print(apply((res)[,grep("bias", names(res))], 2, function(x) c(bias=mean(x), rmse=sqrt(mean(x^2)), sd.bias=sd(x))))
 print(apply((res)[,grep("pctBias", names(res))], 2, function(x) c(mean=mean(x), median=median(x))))
 print(apply(res[,grep("se[a]*", names(res))], 2, function(x) c(mean=mean(x))))
 print(apply(res[, grep("cover95", names(res))], 2, function(x) c(mean=mean(x))))
 print(apply(res[, grep("cover80", names(res))], 2, function(x) c(mean=mean(x))))
+print(apply(res[, grep("power", names(res))], 2, function(x) c(mean=mean(x))))
 
 
 

@@ -148,7 +148,7 @@
     Lrnr_mean$new(name="mean"),
     Lrnr_glm$new(name="ols", family=gaussian()),
     Lrnr_gam$new(name="gam"),
-    Lrnr_polspline2$new(name="polymars"),
+    Lrnr_polspline_quiet$new(name="polymars"),
     Lrnr_glmnet$new(name="cv_elastic_net", alpha=0.0, family="gaussian"),
     Lrnr_stepwise$new(name="stepwise", family=gaussian()),
     #Lrnr_xgboost$new(),
@@ -173,7 +173,7 @@
   bin_learners=list(
     Lrnr_mean$new(name="mean"),
     Lrnr_glm$new(name="logit", family=binomial()),
-    Lrnr_polspline2$new(name="polymars", family=binomial()),
+    Lrnr_polspline_quiet$new(name="polymars", family=binomial()),
     Lrnr_stepwise$new(name="stepwise", family=binomial()),
     Lrnr_glmnet$new(name="cv_elastic_net", alpha=0.0, family="binomial"),
     #Lrnr_xgboost$new(),

@@ -85,6 +85,7 @@ varimp <- function(X,
                  GCOMP=.varimp_gcomp(      X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin,...),
                  IPW=.varimp_ipw(          X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin,...),
                  TMLE=.varimp_tmle(        X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype,...),
+                 AIPWX=.varimp_aipw(       X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats,...),
                  TMLEX=.varimp_tmle_xfit(  X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, xfitfolds=xfitfolds,foldrepeats=foldrepeats,...)
     )
   } else{
@@ -93,6 +94,7 @@ varimp <- function(X,
                  GCOMP=.varimp_gcomp_boot(      X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
                  IPW=.varimp_ipw_boot(          X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
                  TMLE=.varimp_tmle_boot(        X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, B=B, showProgress=showProgress,...),
+                 AIPWX=.varimp_aipw_boot(       X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...),
                  TMLEX=.varimp_tmle_xfit_boot(  X=X,Y=Y,V=V, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...)
     )
     res$est <- .attach_misc(res$est, scale_continuous=scale_continuous, delta=delta, B=NULL)

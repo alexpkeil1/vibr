@@ -1,5 +1,6 @@
-#' Polyspline - multivariate adaptive polynomial spline regression (polymars)
+#' Polyspline_quiet - multivariate adaptive polynomial spline regression (polymars)
 #'   and polychotomous regression and multiple classification (polyclass)
+#'   This is a copy of Lrnr_polspline modified to supress all outputs
 #'
 #' This learner provides fitting procedures for an adaptive regression procedure
 #' using piecewise linear splines to model the response, using the function
@@ -34,8 +35,8 @@
 #'   }
 #' }
 #
-Lrnr_polspline2 <- R6Class(
-  classname = "Lrnr_polspline2", inherit = Lrnr_base,
+Lrnr_polspline_quiet <- R6Class(
+  classname = "Lrnr_polspline_quiet", inherit = Lrnr_base,
   portable = TRUE, class = TRUE,
   public = list(
     initialize = function(cv = 5, ...) {
