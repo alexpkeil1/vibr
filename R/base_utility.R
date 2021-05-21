@@ -142,7 +142,7 @@
 }
 
 
-#' @import sl3 glmnet polspline stats nnet xgboost stats
+#' @import sl3
 #' @export
 .default_continuous_learners_big <- function(){
   continuous_learners=list(
@@ -168,7 +168,7 @@
   .default_continuous_learners_big()[1:4]
 }
 
-#' @import sl3 glmnet earth stats nnet xgboost stats
+#' @import sl3
 #' @export
 .default_binary_learners_big <- function(){
   bin_learners=list(
@@ -193,7 +193,7 @@
   .default_binary_learners_big()[1:4]
 }
 
-#' @import sl3 glmnet earth stats
+#' @import sl3
 #' @export
 .default_metalearner <- function(type){
   switch(substr(type[1],1,1),
