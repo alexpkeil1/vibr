@@ -37,3 +37,4 @@ private_sims/basic_test.R
 private_sims/bayes_importance.R
 private_sims/nhanes_test.R
 Rplots.pdf
+private_sims/nhanes_test.out

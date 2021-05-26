@@ -1,3 +1,5 @@
+# sbatch --job-name=basic -p general -N 1 --mem 112G -n 64 -t 10-00:00:00 --wrap="Rscript --vanilla basic_test.R > basic_test.txt"
+
 library(mvtnorm)
 library(vibr)
 #library(txshift)
@@ -365,7 +367,7 @@ cipow <- function(res, root="TMLE", exp="x", type="cover"){
   est = res[,paste0(root, "est.", exp)]
   se = res[,paste0(root, "se.", exp)]
   #tr = rm[paste0("tr.", exp)] # truth based on average across simulations
-  dat <- dgm(n=100, delta=0.1,beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-.25,0.25), sigma=1.0))
+  dat <- dgm(n=100, delta=0.1,beta = c(-0.98,0.9,0.01,0.39,0.45,-0.32,0.76,-0.76,0.19,0.8,-0.22,0.94), degree=2, zk = c(-1.5,-.25,0.25), sigma=1.0)
   ztest <- seq(-10,10,.002)
   xtest <- rep(c(0,1), length.out=length(ztest))
   pxz <- dnorm(ztest,0,3)*dbinom(xtest, 1, .2)

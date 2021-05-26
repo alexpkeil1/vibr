@@ -1,12 +1,4 @@
-.logit <- function(p) log(p) - log1p(-p)
-.expit <- function(mu) 1/(1+exp(-mu))
-.identity <- function(x) x
-.invidentity <- .identity
-
-.shift <- function(X,Acol,shift){
-  X[,Acol] = X[,Acol] + shift
-  X
-}
+# sl3 like functions -----------------------------------------------------------
 
 .call_with_args_vibr <- function (fun, args, other_valid = list(), keep_all = FALSE,
                                   silent = FALSE, ignore = c())
@@ -27,9 +19,21 @@
 }
 
 
-################################
-# Data handlers
-################################
+# convenience functions -------------------------------------------------------------
+
+.logit <- function(p){log(p) - log1p(-p)}
+.expit <- function(mu){1/(1+exp(-mu))}
+.identity <- function(x){x}
+.invidentity <- .identity
+
+.shift <- function(X,Acol,shift){
+  X[,Acol] = X[,Acol] + shift
+  X
+}
+
+
+# Data handlers -------------------------------------------------------------
+
 #' @importFrom sl3 sl3_Task variable_type
 .create_tasks <- function(X,Y, V=NULL, delta=0.1, ...){
   X <- as.data.frame(X)
@@ -99,9 +103,8 @@
 }
 
 
-################################
-# default learners
-################################
+# default learners -------------------------------------------------------------
+
 
 
 #' @import sl3
@@ -206,9 +209,8 @@
 
 
 
-################################
-# training functions
-################################
+# training functions -------------------------------------------------------------
+
 
 
 
@@ -326,13 +328,9 @@
 
 }
 
-################################
-## prediction functions ##
-################################
+# prediction functions -------------------------------------------------------------
 
-
-# now create some functions that can automate density prediction for every variable
-#.gfunction <- function(X=NULL,Acol=1,gfits=sl.gfits, ...){
+## covariate density/probability prediction ----
 .gfunction_sl <- function(X=NULL,Acol=1,gfits=NULL, ...){
     if(!is.null(X)){
       XX <- sl3_Task$new(
@@ -350,9 +348,15 @@
   pred
 }
 
+.gfunction <- function(X=NULL,Acol=1,gfits=NULL, ...){
+  #.gfunction_glm(X,Acol,gfits, ...)
+  #.gfunction_glm_density(X,Acol,gfits, ...)
+  .gfunction_sl(X,Acol,gfits, ...)
+}
 
-# outcome prediction
-#.qfunction <- function(X=NULL,Acol=1,qfit=sl.qfit, ...){
+
+
+## outcome prediction ----
 .qfunction_sl <- function(X=NULL,Acol=1,qfit=NULL, ...){
     if(!is.null(X)){
     XX <- sl3_Task$new(
@@ -368,11 +372,6 @@
   pred
 }
 
-.gfunction <- function(X=NULL,Acol=1,gfits=NULL, ...){
-  #.gfunction_glm(X,Acol,gfits, ...)
-  #.gfunction_glm_density(X,Acol,gfits, ...)
-  .gfunction_sl(X,Acol,gfits, ...)
-}
 
 .qfunction <- function(X=NULL,Acol=1,qfit=NULL, ...){
   #.qfunction_glm(X,1,qfit, ...)
@@ -380,11 +379,10 @@
 }
 
 
-################################
-## shared functions of esimators ##
-################################
+# shared functions of esimators -------------------------------------------------------------
 
-# clever covariate/weight continuous
+## clever covariate/weights  ----
+
 .Haw <- function(gn, ga, gb){
   # if intervention would push exposure out of the support of A | W, then don't intervene (potential = observed outcome)
   # g(a-delta) = expected density after probabilistically shifting all individuals to a-delta (continuous)
@@ -425,9 +423,9 @@
 }
 
 
-##########
-# prelim functions
-#########
+# prelim functions -------------------------------------------------------------
+
+
 .prelims <- function(X, Y, V=NULL, whichcols=seq_len(ncol(X)), delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, isbin=NULL, ...){
   #.prelims(X, Y, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
   # basic error checking
@@ -452,7 +450,7 @@
   }
   tasklist <- NULL
   if(doX) tasklist = .create_tasks(X[,whichcols, drop=FALSE],Y,V,delta, ...)
-  if(verbose) cat(paste0("delta = ", delta, "\n")) # TODO: better interpretation
+  if(verbose) cat(paste0("delta = ", delta, "\n"))
   yb = .bound_zero_one(Y)
   Ybound = yb[[1]]
   sl.qfit <- sl.gfits <- NULL
@@ -504,14 +502,28 @@
   obj
 }
 
-################################################################################
-#
-#  cross-fitting functions
-#
-################################################################################
+# cross-fitting functions -----------------------------------------------------
 
+.checkeven <- function(val){
+  !as.logical(val %% 2)
+}
 
-# double cross fitting
+.permn <- function(n){
+  if(n==1){
+    return(matrix(1))
+  } else {
+    sp <- .permn(n-1)
+    p <- nrow(sp)
+    A <- matrix(nrow=n*p,ncol=n)
+    for(i in 1:n){
+      A[(i-1)*p+1:p,] <- cbind(i,sp+(sp>=i))
+    }
+    return(A)
+  }
+}
+
+## double cross fitting ----
+
 .make_xfit_folds <- function(fold, set1, set2, set3){
   fold <- list(fold = fold,
                set1 = set1,
@@ -525,17 +537,25 @@
 {
   nfolds <- length(unique(folds))
   remfolds = (nfolds-1)/2
-  set1 <- which(folds %in% ordermat[1:remfolds,r])
-  set2 <- which(folds %in% ordermat[(remfolds+1):(2*remfolds),r])
+  s1 <- which(folds %in% ordermat[1:remfolds,r])
+  s2 <- which(folds %in% ordermat[(remfolds+1):(2*remfolds),r])
+  if(.checkeven(r)){
+    set1 = s1
+    set2 = s2
+  }
+  if(!.checkeven(r)){
+    set1 = s2
+    set2 = s1
+  }
   set3 <- which(folds == ordermat[nfolds,r])
   .make_xfit_folds(r, set1, set2, set3)
 }
 
-# cross fitting (nothing here yet)
 .xfitsplit <- function(r=1,n, V=5){
   folds <- rep(seq_len(V), length = n)
   folds <- sample(folds)
   combinations <- combn(V,V-1)
+  combinations = apply(combinations, 2, function(x) x[order(runif(V-1))])
   combinations <- rbind(combinations, apply(combinations, 2, function(x) setdiff(1:V,x)))
   if(V>1) foldobj = lapply(1:V, .xfitfolds_from_foldvec, folds=folds, ordermat=combinations)
   # degenerate case where we just average across multiple fits to the same data
@@ -543,12 +563,13 @@
   foldobj
 }
 
-.checkeven <- function(val){
-  !as.logical(val %% 2)
-}
+# foldrepeats=3;xfitfolds=5; n=20
+#lapply(seq_len(foldrepeats), vibr:::.xfitsplit,n=n,V=xfitfolds)
+#V= xfitfolds;fold=1
 
 
-# plug in cross fit estimators
+
+## single cross fitting ----
 .make_xfit_folds_plugin <- function(fold, set1, set2){
   fold <- list(fold = fold,
                set1 = set1,
@@ -560,8 +581,7 @@
 .xfitfolds_from_foldvec_plugin <- function (r, folds, ordermat)
 {
   nfolds <- length(unique(folds))
-  remfolds = (nfolds-1)/2
-  set1 <- which(folds %in% ordermat[1:(remfolds-1),r])
+  set1 <- which(folds %in% ordermat[1:(nfolds-1),r])
   set2 <- which(folds == ordermat[nfolds,r])
   .make_xfit_folds_plugin(r, set1, set2)
 }
@@ -577,3 +597,6 @@
   if(V==1) foldobj = list(.make_xfit_folds_plugin(fold=1, set1 = 1:n, set2 = 1:n))
   foldobj
 }
+# foldrepeats=3;xfitfolds=5; n=20
+#lapply(seq_len(foldrepeats), vibr:::.xfitsplit_plugin,n=n,V=xfitfolds)
+
