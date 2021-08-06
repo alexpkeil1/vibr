@@ -62,7 +62,7 @@
 .scale_continuous <- function(X, isbin_vec=NULL){
   p <- ncol(X)
   if(is.null(isbin_vec[1])){
-    if(p==1) isbin_vec = c(length(unique(x))==2)
+    if(p==1) isbin_vec = c(length(unique(X))==2)
     if(p>1) isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
   }
   for(j in seq_len(p)){
