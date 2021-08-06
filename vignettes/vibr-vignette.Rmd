@@ -2,8 +2,7 @@
 title: "Using VIBR to robustly estimate variable importance vis a vis stochastic interventions"
 author: "Alexander Keil"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette:
-          fig_caption: yes
+output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Using VIBR to robustly estimate variable importance vis a vis stochastic interventions}
   %\VignetteEngine{knitr::knitr}
@@ -22,12 +21,68 @@ knitr::opts_chunk$set(
 ```
 
 # Getting started
-```{r Prelims, eval=FALSE, fig.show='hold', fig.cap = "Place holder"}
+The `vibr` package contains functions to estimate variable importance based on a stochastic intervention to increase each predictor by a small amount (continuous) or increase the probability of a predictor by the same small amount (binary). The underlying methodology is based on papers by Ivan Diaz and Mark van der Laan and some improvements suggested by Haneuse and Rotnitsky. There are also functions to help diagnose potential identifiability issues to ensure, as much as possible, that variable importance is grounded in the context of a small change in exposure that has good support in the data. We start with a quick example using simulated data for a continuous health outcome and a small number of well water contaminants. This package supports doubly robust estimation (Targeted maximum likelihood and augmented inverse probability weighting) as well as modern techniques to reduce bias and speed up convergence (in sample size) of these methods (double cross-fitting and repeated double cross-fitting). The underlying statistical models draw on `sl3`, an R package with a unified framework for machine learning and ensemble machine learning based around the super learner algorithm (stacking).
+
+Because `sl3` is not available via CRAN (so you can't install it with `install.packages`), you have to install it via `install_github` which is available in either the `remotes` or `devtools` packages. CRAN does not allow packages with dependencies outside of CRAN, so `vibr` must be installed similarly unless and until `sl3` is released on CRAN.
+```{r Prelims, eval=FALSE, fig.show='hold'}
 devtools::install_github("tlverse/sl3")
 devtools::install_github("alexpkeil1/vibr")
 ```
 
 ```{r Prelims 2, results='markup', message=FALSE}
 library("vibr")
+library("qgcomp")
+
 ```
+
+
+## Fitting a model using targeted maximum likelihood
+```{r first example}
+    data(metals, package="qgcomp")
+    XYlist = data.frame(metals[,1:23], Y=metals$y+10) # adding constant to Y purely for illustration
+    # split 
+    spldat <- qgcomp::split_data(XYlist)
+    trdat <- spldat$traindata
+    vdat <- spldat$validdata
+    
+    Y_learners = .default_continuous_learners()
+    Xbinary_learners = list(sl3::Lrnr_glm$new(name="logit"))
+    Xdensity_learners = .default_density_learners(n_bins=c(5))
+
+    X = trdat[,c(1:5,23)] # selecting a subset to make the example run faster
+    Y = trdat$Y
+
+    # basic variable importance using targeted maximum likelihood
+    vi <- varimp(X=X, 
+                 Y=Y, 
+                 delta=0.1, 
+                 Y_learners = Y_learners,
+                 Xdensity_learners=Xdensity_learners[1:2],
+                 Xbinary_learners=Xbinary_learners,
+                 estimator="TMLE" # targeted maximum likelihood (AIPW, GCOMP. IPW and cross-vit versions of these are all available)
+                 )
+  vi
+```
+```{r, fig.cap = paste("Visualizing the exposure distribution shift implied by the stochastic intervention:", names(X)[c(1,2)])}
+vibr::plotshift_dens(vi, X, Acol=1, delta = 0.1)
+vibr::plotshift_dens(vi, X, Acol=2, delta = 0.1)
+```
+
+
+```{r, fig.cap = paste("Visualizing bivariate exposure value shifts implied by the stochastic intervention:", names(X)[2], " with ", names(X)[c(3,6)])}
+vibr::plotshift_scatter(vi, Acol=2, Bcol=3, delta = 0.1)
+vibr::plotshift_scatter(vi, Acol=2, Bcol=6, delta = 0.1)
+```
+
+```{r, fig.cap = paste("Visualizing the inverse density of exposure value shift implied by the stochastic intervention:", names(X)[c(4,5)])}
+vibr::plotshift_wt(vi, X, Acol=4, delta = 0.1)
+vibr::plotshift_wt(vi, X, Acol=5, delta = 0.1)
+```
+## Explanation
+
+The basic idea behind variable importance is that one wants to rank predictors based on how strongly they predict the target (e.g. health outcome), conditional on other predictors. Several variable importance algorithms are algorithm specific (e.g. random forest node-purity-based importance, linear model coefficients) and not generally applicable. Others are generally applicable. For example, we could compare the change in the predicted outcome from a population wide change from exposed to unexposed for some binary predictor, but such importance measures often map back to contrasts that simply are not well supported by the data. 
+
+The stochastic intervention approach assesses variable importance via small changes to each continuous predictor or the propensity score of each binary predictor, which assesses variable importance in an area of the predictors that we expect to have good support from the data. Thus, this approach focuses on a measure of variable importance that is heavily tied to the population distribution of predictors at hand. The output looks much like output from a set of linear model coefficients, but represents a generalization of these coefficients. A standard linear model coefficient represents the expected change in the mean target value for a one unit change in the predictor <at all values of other predictors>. Here, we replace "one unit" with "delta", where delta is some small value for which we can reasonably assume support in the data, and we also replace "at all values of other predictors" with "at the observed levels of all other predictors." This formulation allows us to model the target flexibly.
+
+Flexible modeling of the target is farmed out to the `sl3` package, but some defaults are provided in the `vibr` package. The `vibr` package allows assessment of variable importance via inverse probability weighting (which requires additional, possibly flexible, models for each predictor, conditional on all other predictors), g-computation, targeted maximum likelihood estimation and augmented inverse probability weighting (where the latter two require models for the target and the predictors)
 
