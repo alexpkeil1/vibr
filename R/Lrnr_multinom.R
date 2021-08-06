@@ -1,4 +1,4 @@
-#' Feed-Forward Neural Networks and Multinomial Log-Linear Models
+#' sl3 extension: Feed-Forward Neural Networks and Multinomial Log-Linear Models
 #'
 #' This learner provides feed-forward neural networks with a single hidden layer,
 #' and for multinomial log-linear models.

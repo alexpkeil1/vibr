@@ -497,8 +497,15 @@
   obj$scaled = scale_continuous
   obj$delta = delta
   obj$whichcols = whichcols
-  if(is.null(B)) obj$rank = rank(-abs(obj$res$est))
-  if(!is.null(B)) obj$rank = rank(-abs(obj$est$res$est))
+  if(is.null(B)){
+    obj$rank = rank(-abs(obj$res$est))
+    obj$rankz = rank(-abs(obj$res$z))
+  }
+  if(!is.null(B)){
+    obj$rank = rank(-abs(obj$est$res$est))
+    obj$sds = apply(obj$boots,2,sd)
+    obj$rankz = rank(-abs(obj$est$res$est/obj$sds))
+  }
   obj
 }
 
@@ -552,19 +559,23 @@
 }
 
 .xfitsplit <- function(r=1,n, V=5){
-  folds <- rep(seq_len(V), length = n)
-  folds <- sample(folds)
-  combinations <- combn(V,V-1)
-  combinations = apply(combinations, 2, function(x) x[order(runif(V-1))])
-  combinations <- rbind(combinations, apply(combinations, 2, function(x) setdiff(1:V,x)))
-  if(V>1) foldobj = lapply(1:V, .xfitfolds_from_foldvec, folds=folds, ordermat=combinations)
-  # degenerate case where we just average across multiple fits to the same data
-  if(V==1) foldobj = list(.make_xfit_folds(fold=1, set1 = 1:n, set2 = 1:n, set3 = 1:n))
+  if(V>1) {
+    folds <- rep(seq_len(V), length = n)
+    folds <- sample(folds)
+    vm1 = max(1,V-1)
+    combinations <- combn(V,vm1)
+    combinations <- apply(combinations, 2, function(x) x[order(runif(vm1))])
+    combinations <- rbind(combinations, apply(combinations, 2, function(x) setdiff(1:V,x)))
+    foldobj = lapply(1:V, .xfitfolds_from_foldvec, folds=folds, ordermat=combinations)
+  } else if(V==1){
+    # degenerate case where we just average across multiple fits to the same data
+    foldobj = list(.make_xfit_folds(fold=1, set1 = 1:n, set2 = 1:n, set3 = 1:n))
+  }
   foldobj
 }
 
 # foldrepeats=3;xfitfolds=5; n=20
-#lapply(seq_len(foldrepeats), vibr:::.xfitsplit,n=n,V=xfitfolds)
+#lapply(seq_len(foldrepeats), .xfitsplit,n=n,V=xfitfolds)
 #V= xfitfolds;fold=1
 
 
@@ -598,5 +609,5 @@
   foldobj
 }
 # foldrepeats=3;xfitfolds=5; n=20
-#lapply(seq_len(foldrepeats), vibr:::.xfitsplit_plugin,n=n,V=xfitfolds)
+#lapply(seq_len(foldrepeats), .xfitsplit_plugin,n=n,V=xfitfolds)
 

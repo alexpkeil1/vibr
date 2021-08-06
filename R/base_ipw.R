@@ -47,7 +47,7 @@
                    isbin=FALSE,
                    ...){
   # define shifts
-  #X0 <- vibr:::.shift(X,Acol, -X[,Acol])
+  #X0 <- .shift(X,Acol, -X[,Acol])
   #X1 <- .shift(X,Acol,  (1-X[,Acol]))
   g0 <- 1-gfun(NULL,Acol,gfits=gfits)
 
@@ -88,9 +88,9 @@
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
-      dphi <- .DbIPW(n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits,estimand,wt,isbin=isbin, ...)
+      dphi <- .DbIPW(n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=NULL,gfun=gfun,qfit=NULL,gfits=gfits,estimand=estimand,wt=wt,isbin=isbin, ...)
     } else{
-      dphi <- .DcIPW( n,X,Y,Acol,delta,qfun=NULL,gfun,qfit=NULL,gfits,estimand,wt,isbin=isbin, ...)
+      dphi <- .DcIPW( n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=NULL,gfun=gfun,qfit=NULL,gfits=gfits,estimand=estimand,wt=wt,isbin=isbin, ...)
     }
     tm <- .MakeTmleEst(dphi)
     resmat[Acol,] <- tm
@@ -114,7 +114,7 @@
                           estimand,
                           bounded,
                           updatetype){
-  fittable <- .EstEqIPW(n=obj$n,X=X,Y=Y,whichcols=obj$whichcols,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=obj$sl.gfits,estimand, bounded=FALSE,wt=obj$weights,isbin=obj$isbin)
+  fittable <- .EstEqIPW(n=obj$n,X=X,Y=Y,whichcols=obj$whichcols,delta=delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=obj$sl.gfits,estimand, bounded=FALSE,wt=obj$weights,isbin=obj$isbin)
   res <- list(
     res = fittable,
     qfit = NULL,
@@ -141,8 +141,8 @@
                         bounded=FALSE,
                         isbin=FALSE,
                         ...){
-  obj = prelims(X=X, Y=Y, V=V, whichcols=whichcols, delta, Y_learners=NULL, Xbinary_learners, Xdensity_learners, verbose=verbose, isbin=isbin, ...)
-  res = .trained_ipw(obj,X,Y,delta,qfun,gfun,estimand,bounded,updatetype)
+  obj = .prelims(X=X, Y=Y, V=V, whichcols=whichcols, delta=delta, Y_learners=NULL, Xbinary_learners, Xdensity_learners, verbose=verbose, isbin=isbin, ...)
+  res = .trained_ipw(obj=obj,X=X,Y=Y,delta=delta,qfun=qfun,gfun=gfun,estimand=estimand,bounded=bounded,updatetype=updatetype)
   res
 }
 
@@ -165,7 +165,7 @@
                              showProgress=TRUE,
                              ...){
   if(is.null(isbin)) isbin <- as.logical((length(unique(Y))==2))
-  est <- .varimp_ipw(X=X,Y=Y,V=V,whichcols=whichcols,delta,Y_learners,Xdensity_learners,Xbinary_learners,verbose,estimand,bounded, isbin=isbin,...)
+  est <- .varimp_ipw(X=X,Y=Y,V=V,whichcols=whichcols,delta=delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners=Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded, isbin=isbin,...)
   rn <- rownames(est$res)
   n = length(Y)
   ee <- new.env()
@@ -177,7 +177,7 @@
       Xi = X[ridx,,drop=FALSE]
       Yi = Y[ridx]
       Vi = V[ridx,,drop=FALSE]
-      obj = .prelims(X=Xi, Y=Yi, V=Vi, whichcols=whichcols, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, isbin=isbin, ...)
+      obj = .prelims(X=Xi, Y=Yi, V=Vi, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xbinary_learners=Xbinary_learners, Xdensity_learners=Xdensity_learners, verbose=verbose, isbin=isbin, ...)
       fittable <- .EstEqIPW(n=obj$n,X=Xi,Y=Yi,whichcols=obj$whichcols,delta,qfun=NULL,gfun=.gfunction,qfit=NULL,gfits=obj$sl.gfits, estimand,bounded,wt=obj$weights, isbin=obj$isbin)
       fittable$est
     }, seed=TRUE, lazy=TRUE)

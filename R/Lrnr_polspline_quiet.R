@@ -1,6 +1,7 @@
-#' Polyspline_quiet - multivariate adaptive polynomial spline regression (polymars)
+#' sl3 extension: multivariate adaptive polynomial spline regression (polymars)
 #'   and polychotomous regression and multiple classification (polyclass)
-#'   This is a copy of Lrnr_polspline modified to supress all outputs
+#'
+#'   This is a copy of sl3::Lrnr_polspline modified to supress all outputs
 #'
 #' This learner provides fitting procedures for an adaptive regression procedure
 #' using piecewise linear splines to model the response, using the function

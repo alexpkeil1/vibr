@@ -3,7 +3,7 @@
 \docType{class}
 \name{Lrnr_multinom}
 \alias{Lrnr_multinom}
-\title{Feed-Forward Neural Networks and Multinomial Log-Linear Models}
+\title{sl3 extension: Feed-Forward Neural Networks and Multinomial Log-Linear Models}
 \format{
 \code{\link{R6Class}} object.
 }

@@ -1,6 +1,6 @@
 
 
-#' Density Estimation With Mean Model and Homoscedastic normal errors
+#' sl3 extension: Density Estimation With Mean Model and Homoscedastic normal errors
 #'
 #' This learner assumes a mean model with homoscedastic errors: Y ~ E(Y|W) + epsilon. E(Y|W) is fit using a glm,
 #' and then the errors are assumed normally distributed epsilon_i ~ Normal(0, sigma_i) where sigma_i is the estimated standard error of the residual.

@@ -2,16 +2,25 @@
 % Please edit documentation in R/base_identify.R
 \name{plotshift_dens}
 \alias{plotshift_dens}
-\title{Title}
+\title{In progress: visualizing a stochastic intervention}
 \usage{
 plotshift_dens(vibr.fit, X, Acol = 1, delta)
 }
 \arguments{
-\item{delta}{}
+\item{vibr.fit}{a fit from varimp}
+
+\item{X}{predictors from a varimp fit}
+
+\item{Acol}{(integer) which column of X to diagnose}
+
+\item{delta}{(numeric, default=0.01) change in each column of X corresponding to stochastic intervention}
 }
 \value{
-
+ggplot2 plot object
 }
 \description{
-Title
+In progress: visualizing a stochastic intervention
+}
+\examples{
+set.seed(123)
 }

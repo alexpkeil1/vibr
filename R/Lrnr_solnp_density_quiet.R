@@ -1,6 +1,6 @@
-#' Nonlinear Optimization via Augmented Lagrange
+#' sl3 extension: Nonlinear Optimization via Augmented Lagrange
 #'
-#' This version is a copy of Lrnr_solnp with additional consideration
+#' This version is a copy of sl3::Lrnr_solnp with additional consideration
 #' for users that want explicit control over printed output of solnp
 #'
 #' This meta-learner provides fitting procedures for density estimation, finding

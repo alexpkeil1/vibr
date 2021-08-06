@@ -2,16 +2,22 @@
 % Please edit documentation in R/base_identify.R
 \name{plotshift_wt}
 \alias{plotshift_wt}
-\title{Title}
+\title{In progress: diagnosing weight problems}
 \usage{
 plotshift_wt(vibr.fit, X, Acol = 1, delta = 0.01)
 }
 \arguments{
-\item{delta}{}
-}
-\value{
+\item{vibr.fit}{a fit from varimp}
 
+\item{X}{predictors from a varimp fit}
+
+\item{Acol}{(integer) which column of X to diagnose}
+
+\item{delta}{(numeric, default=0.01) change in each column of X corresponding to stochastic intervention}
 }
 \description{
-Title
+In progress: diagnosing weight problems
+}
+\examples{
+set.seed(123)
 }

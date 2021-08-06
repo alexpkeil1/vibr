@@ -1,7 +1,8 @@
+
 # efficient influence curve + estimate from generalized cross fit
 # 3 splits: train IPW, Train GCOMP, fit both
 
-.varimp_aipw_xfit <- function(X,
+.varimp_tmle_xfit <- function(X,
                          Y,
                          V=NULL,
                          whichcols=seq_len(ncol(X)),
@@ -12,6 +13,7 @@
                          verbose=TRUE,
                          estimand="diff",
                          bounded=FALSE,
+                         updatetype="weighted",
                          xfitfolds=3,
                          foldrepeats=10,
                          ...){
@@ -19,7 +21,7 @@
   # todo: ensure that outcome is always typed correctly (isbin should be set locally)
   n = length(Y)
   if(.checkeven(xfitfolds)) stop("xfitfolds must be an odd number >2")
-  if(xfitfolds==1) message("xfitfolds = 1 implies averaging over multiple standard AIPW fits (determined by fold repeats), rather than cross fitting")
+  if(xfitfolds==1) message("xfitfolds = 1 implies averaging over multiple standard TMLE fits (determined by fold repeats), rather than cross fitting")
   allpartitions <- lapply(seq_len(foldrepeats), .xfitsplit,n=n,V=xfitfolds)
   order = list()
   idx = 1
@@ -46,7 +48,7 @@
         obj <- .prelims(X=X3, Y=Y3, V=V3, whichcols=whichcols, delta=delta, Y_learners=NULL, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
         obj$sl.qfit = obj_Y$sl.qfit
         obj$sl.gfits = obj_G$sl.gfits
-        fittable <- .EstEqAIPW(n=obj$n,X=X3,Y=Y3,whichcols=obj$whichcols,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=FALSE,wt=obj$weights,isbin=obj$isbin)
+        fittable <- .EstEqTMLE(n=obj$n,X=X3,Y=Y3,whichcols=obj$whichcols,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=bounded,wt=obj$weights,isbin=obj$isbin, updatetype=updatetype)
         ft <- fittable[,1:2]
         ft[,2] <- obj$n*ft[,2]^2 # asymptotic variance of sqrt(n)(psi_0 - psi_n)
         names(ft)[2] <- "sumd2"
@@ -83,7 +85,7 @@
     qfit = NULL,
     gfits = NULL,
     binomial = NULL,
-    type = "AIPWX",
+    type = "TMLEX",
     weights=NULL,
     ests = ests,
     vars = vars
@@ -94,7 +96,7 @@
 }
 
 
-.varimp_aipw_xfit_boot <- function(X,
+.varimp_tmle_xfit_boot <- function(X,
                               Y,
                               V=NULL,
                               whichcols=seq_len(ncol(X)),
@@ -105,12 +107,13 @@
                               verbose=TRUE,
                               estimand="diff",
                               bounded=FALSE,
+                              updatetype="weighted",
                               foldrepeats=10,
                               xfitfolds=5,
                               B=100,
                               showProgress=TRUE,
                               ...){
-  est <- .varimp_aipw_xfit(X=X,Y=Y,V=V,whichcols=whichcols,delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners=Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded,
+  est <- .varimp_tmle_xfit(X=X,Y=Y,V=V,whichcols=whichcols,delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners=Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded,updatetype=updatetype,
                            foldrepeats=foldrepeats,
                            xfitfolds=xfitfolds, ...)
   rn <- rownames(est$res)
@@ -126,7 +129,7 @@
       Xi = X[ridx,,drop=FALSE]
       Yi = Y[ridx]
       Vi = V[ridx,,drop=FALSE]
-      bootfit <- .varimp_aipw_xfit(X=Xi,Y=Yi,V=Vi,whichcols=whichcols,delta=delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded,foldrepeats=foldrepeats,
+      bootfit <- .varimp_tmle_xfit(X=Xi,Y=Yi,V=Vi,whichcols=whichcols,delta=delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded,updatetype=updatetype,foldrepeats=foldrepeats,
                                    xfitfolds=xfitfolds,...)
       fittable <- bootfit$res
       fittable$est
@@ -140,7 +143,7 @@
     est = est,
     boots = bootests,
     binomial = isbin,
-    type = "AIPWX"
+    type = "TMLEX"
   )
   class(res) <- c("vibr.bootfit", class(res))
   res

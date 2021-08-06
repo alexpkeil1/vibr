@@ -1,15 +1,17 @@
 
-#' Title
+#' In progress: visualizing a stochastic intervention
 #'
-#' @param vibr.fit
-#' @param X
-#' @param Acol
-#' @param delta
+#' @param vibr.fit a fit from varimp
+#' @param X predictors from a varimp fit
+#' @param Acol (integer) which column of X to diagnose
+#' @param delta (numeric, default=0.01) change in each column of X corresponding to stochastic intervention
 #'
-#' @return
+#' @return ggplot2 plot object
 #' @export
+#' @import ggplot2
 #'
 #' @examples
+#' set.seed(123)
 plotshift_dens <- function(vibr.fit, X, Acol=1, delta){
   if(is.null(delta)) delta <- vibr.fit$delta
   if(1==1){
@@ -24,7 +26,7 @@ plotshift_dens <- function(vibr.fit, X, Acol=1, delta){
   X <- data.frame(dat)[,varnms,drop=FALSE]
   ft <- vibr.fit$gfits[[Acol[1]]]
   xnm = names(X)
-  Xc <- vibr:::.shift(X,Acol,shift = -delta)
+  Xc <- .shift(X,Acol,shift = -delta)
   X$set="obs"
   Xc$set="int"
   X2 <- as.data.frame(rbind(X,Xc))
@@ -53,17 +55,18 @@ plotshift_dens <- function(vibr.fit, X, Acol=1, delta){
   invisible(p1)
 }
 
-#' Title
+#' In progress: diagnosing weight problems
 #'
-#' @param vibr.fit
-#' @param X
-#' @param Acol
-#' @param delta
+#' @param vibr.fit a fit from varimp
+#' @param X predictors from a varimp fit
+#' @param Acol (integer) which column of X to diagnose
+#' @param delta (numeric, default=0.01) change in each column of X corresponding to stochastic intervention
 #'
-#' @return
 #' @export
+#' @import ggplot2
 #'
 #' @examples
+#' set.seed(123)
 plotshift_wt <- function(vibr.fit, X, Acol=1, delta=0.01){
   if(is.null(delta)) delta <- vibr.fit$delta
   if(1==1){
@@ -78,7 +81,7 @@ plotshift_wt <- function(vibr.fit, X, Acol=1, delta=0.01){
   ft <- vibr.fit$gfits[[Acol[1]]]
   X <- data.frame(dat)[,varnms,drop=FALSE]
   xnm = names(X)
-  Xc <- vibr:::.shift(X,Acol,shift = -delta)
+  Xc <- .shift(X,Acol,shift = -delta)
   X$set="obs"
   Xc$set="int"
   tsk <- sl3_Task$new(data = X,
@@ -92,7 +95,6 @@ plotshift_wt <- function(vibr.fit, X, Acol=1, delta=0.01){
   xo=order(X$dens)
   X = X[xo,]
   X$wt = X$densshift/X$dens
-
   p1 <-
   ggplot(data = X) + theme_classic() + scale_color_grey() +
     geom_point(aes(x=dens, y=wt), pch=19, size=1, alpha=0.5)+
@@ -102,19 +104,20 @@ plotshift_wt <- function(vibr.fit, X, Acol=1, delta=0.01){
   invisible(p1)
 }
 
-#' Title
+#' In progress: diagnosing fit problems
 #'
 #'
-#' @param vibr.fit
-#' @param X
-#' @param Acol
-#' @param Bcol
-#' @param delta
+#' @param vibr.fit a fit from varimp
+#' @param X predictors from a varimp fit
+#' @param Acol (integer) which column of X to diagnose
+#' @param Bcol (integer) second column of X to diagnose
+#' @param delta (numeric, default=0.01) change in each column of X corresponding to stochastic intervention
 #'
-#' @return
 #' @export
+#' @import ggplot2
 #'
 #' @examples
+#' set.seed(123)
 plotshift_scatter <- function(vibr.fit, Acol, Bcol, delta=NULL, joint=FALSE){
   if(is.null(delta)) delta <- vibr.fit$delta
   if(1==1){
@@ -149,26 +152,25 @@ plotshift_scatter <- function(vibr.fit, Acol, Bcol, delta=NULL, joint=FALSE){
 
 
 
-#' Title
+#' In progress: diagnosing problems in estimating densities
 #'
-#' @param vibr.fit
-#' @param X
-#' @param Acol
-#' @param delta
+#' @param vibr.fit a fit from varimp
+#' @param X predictors from a varimp fit
+#' @param Acol (integer) which column of X to diagnose
+#' @param delta (numeric, default=0.01) change in each column of X corresponding to stochastic intervention
 #'
-#' @return
 #' @export
-#'
 #' @examples
+#' set.seed(123)
 dx_dens <- function(vibr.fit, X, Acol=1, delta=0.01){
   #X = dat[,c(mixturela, "ridageyr")]
   if(vibr.fit$scaled){
-    X = vibr:::.scale_continuous(X)
+    X = .scale_continuous(X)
   }
   ft <- vibr.fit$gfits[[Acol[1]]]
   if(is.null(delta)) delta = vibr.fit$delta
   xnm = names(X)
-  Xc <- vibr:::.shift(X,Acol,shift = -delta)
+  Xc <- .shift(X,Acol,shift = -delta)
   X$set="obs"
   Xc$set="int"
   tsk <- sl3_Task$new(data = X,
@@ -244,37 +246,39 @@ dx_dens <- function(vibr.fit, X, Acol=1, delta=0.01){
 }
 
 
-# Variable importance in cross-sectional data
-#
-# @param X data frame of predictors
-# @param delta change in each column of X corresponding to
-# @param Xdensity_learners list of sl3 learners used to estimate the density of continuous predictors, conditional on all other predictors in X
-# @param Xbinary_learners list of sl3 learners used to estimate the probability mass of continuous predictors, conditional on all other predictors in X
-# @param verbose (logical) print extra information
-# @param ... passed to sl3::make_sl3_Task (e.g. weights)
-#
-# @export
-# @examples
-# \dontrun{
-# data(metals, package="qgcomp")
-# XYlist = list(X=metals[,1:23], Y=metals$y)
-# Xbinary_learners = .default_binary_learners()
-# Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
-# ident <- VI_identify(X=XYlist$X, delta=0.1, Y_learners = Y_learners,
-#        Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
-#        estimator="TMLE", verbose=TRUE)
-# ident
-# }
-#
-#
-#
-VI_identify <- function(X,
-                        delta=0.1,
-                        Xdensity_learners=NULL,
-                        Xbinary_learners=NULL,
-                        verbose=FALSE,
-                        scale_continuous = TRUE,
-                        ...){
+#' In progress: check for identifiability of stochastic interventions
+#'
+#' @param X data frame of predictors
+#' @param delta change in each column of X corresponding to stochastic intervention
+#' @param Xdensity_learners list of sl3 learners used to estimate the density of continuous predictors, conditional on all other predictors in X
+#' @param Xbinary_learners list of sl3 learners used to estimate the probability mass of continuous predictors, conditional on all other predictors in X
+#' @param verbose (logical) print extra information
+#' @param ... passed to sl3::make_sl3_Task (e.g. weights)
+#'
+#' @export
+#' @examples
+#' \dontrun{
+#' data(metals, package="qgcomp")
+#' XYlist = list(X=metals[,1:23], Y=metals$y)
+#' Xbinary_learners = .default_binary_learners()
+#' Xdensity_learners = .default_density_learners(n_bins=c(5, 20))
+#' ident <- check_identification(X=XYlist$X, delta=0.1, Y_learners = Y_learners,
+#'        Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
+#'        estimator="TMLE", verbose=TRUE)
+#' ident
+#' }
+#'
+#'
+#'
+check_identification <- function(
+  X,
+  delta=0.1,
+  Xdensity_learners=NULL,
+  Xbinary_learners=NULL,
+  verbose=FALSE,
+  scale_continuous = TRUE,
+  ...
+){
   # identify the number of observations for which the estimated propensity score is zero
   # in 2x2 grids: identify
   if(scale_continuous){

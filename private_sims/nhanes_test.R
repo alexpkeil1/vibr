@@ -22,7 +22,7 @@ X = dat[,c(mixturela, "ridageyr")]
 V =dat[,c("wtspo2yr"),drop=FALSE]
 V$wtspo2yr = V$wtspo2yr/(mean(V$wtspo2yr))
 #X = data.frame(cbind(log(dat[,c(mixturela)]), ridageyr=dat$ridageyr))
-summary(vibr:::.scale_continuous(X[,2, drop=FALSE]))
+summary(.scale_continuous(X[,2, drop=FALSE]))
 
 Xi = X[,,drop=FALSE]
 glm.fit(cbind(rep(1, length(Y)),Xi),Y,weights=V$wtspo2yr)$coef
@@ -30,7 +30,7 @@ glm.fit(cbind(rep(1, length(Y)),Xi),Y)$coef
 
 pass <- function(){
 
-  vijoint <- vibr:::.varimp_gcomp_joint(X=Xi,Y=Y, V=V,
+  vijoint <- .varimp_gcomp_joint(X=Xi,Y=Y, V=V,
                                          expnms=c(mixturela),
                                         delta=.01,
                                         weights="wtspo2yr",
@@ -38,11 +38,11 @@ pass <- function(){
                           Y_learners = .default_continuous_learners_big()[1:4],
                           Xdensity_learners = NULL,
                           Xbinary_learners = NULL)
-  vijoint <- vibr:::.attach_misc(vijoint, scale_continuous=TRUE, delta=vijoint$delta)
+  vijoint <- .attach_misc(vijoint, scale_continuous=TRUE, delta=vijoint$delta)
   vijoint
 
 
-  vijointb <- vibr:::.varimp_gcomp_joint_boot(X=Xi,Y=Y, V=V,
+  vijointb <- .varimp_gcomp_joint_boot(X=Xi,Y=Y, V=V,
                                              expnms=c(mixturela),
                                              delta=.01,
                                              #weights="wtspo2yr",
@@ -51,7 +51,7 @@ pass <- function(){
                                              Xdensity_learners = NULL,
                                              Xbinary_learners = NULL,
                                              B=200, verbose=FALSE)
-  vijointb$est <- vibr:::.attach_misc(vijointb$est, scale_continuous=TRUE, delta=vijoint$delta)
+  vijointb$est <- .attach_misc(vijointb$est, scale_continuous=TRUE, delta=vijoint$delta)
 
   vijoint
   vijointb

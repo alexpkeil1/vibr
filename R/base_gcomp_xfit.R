@@ -10,12 +10,12 @@
                              Xbinary_learners=NULL,
                              verbose=TRUE,
                              estimand="diff",
+                             isbin=FALSE,
                              bounded=FALSE,
                              xfitfolds=2,
                              foldrepeats=10,
                              ...){
   ee = new.env()
-  # todo: ensure that outcome is always typed correctly (isbin should be set locally)
   n = length(Y)
   if(xfitfolds==1) message("xfitfolds = 1 implies averaging over multiple standard GCOMP fits (determined by fold repeats), rather than cross fitting")
   allpartitions <- lapply(seq_len(foldrepeats), .xfitsplit_plugin,n=n,V=xfitfolds)
@@ -36,8 +36,8 @@
         Y2 = Y[fold$set2]
         V2 = V[fold$set2,,drop=FALSE]
         #obj_G = .prelims(X=X1, Y=Y1, V=V1, whichcols=whichcols, delta=delta, Y_learners=NULL, Xbinary_learners, Xdensity_learners, verbose=verbose, ...)
-        obj_Y = .prelims(X=X1, Y=Y1, V=V1, whichcols=whichcols, delta=delta, Y_learners, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
-        obj <- .prelims(X=X2, Y=Y2, V=V2, whichcols=whichcols, delta=delta, Y_learners=NULL, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
+        obj_Y = .prelims(X=X1, Y=Y1, V=V1, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, ...)
+        obj <- .prelims(X=X2, Y=Y2, V=V2, whichcols=whichcols, delta=delta, Y_learners=NULL, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, isbin=isbin, ...)
         obj$sl.qfit = obj_Y$sl.qfit
         #obj$sl.gfits = obj_G$sl.gfits
         fittable <- .EstimatorGcomp(n=obj$n,X=X2,Y=Y2,whichcols=obj$whichcols,delta=delta,qfun=.qfunction,gfun=NULL,qfit=obj$sl.qfit,gfits=NULL, estimand=estimand,bounded=FALSE,wt=obj$weights,isbin=obj$isbin)
@@ -98,13 +98,14 @@
                                   Xbinary_learners=NULL,
                                   verbose=TRUE,
                                   estimand="diff",
+                                  isbin=FALSE,
                                   bounded=FALSE,
                                   foldrepeats=10,
                                   xfitfolds=5,
                                   B=100,
                                   showProgress=TRUE,
                                   ...){
-  est <- .varimp_gcomp_xfit(X=X,Y=Y,V=V,whichcols=whichcols,delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners=Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded,
+  est <- .varimp_gcomp_xfit(X=X,Y=Y,V=V,whichcols=whichcols,delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners=Xbinary_learners,verbose=verbose,estimand=estimand,isbin=isbin,bounded=bounded,
                           foldrepeats=foldrepeats,
                           xfitfolds=xfitfolds, ...)
   rn <- rownames(est$res)
@@ -120,7 +121,7 @@
       Xi = X[ridx,,drop=FALSE]
       Yi = Y[ridx]
       Vi = V[ridx,,drop=FALSE]
-      bootfit <- .varimp_gcomp_xfit(X=Xi,Y=Yi,V=Vi,whichcols=whichcols,delta=delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners,verbose=verbose,estimand=estimand,bounded=bounded,foldrepeats=foldrepeats,
+      bootfit <- .varimp_gcomp_xfit(X=Xi,Y=Yi,V=Vi,whichcols=whichcols,delta=delta,Y_learners=Y_learners,Xdensity_learners=Xdensity_learners,Xbinary_learners,verbose=verbose,estimand=estimand,isbin=isbin,bounded=bounded,foldrepeats=foldrepeats,
                                   xfitfolds=xfitfolds,...)
       fittable <- bootfit$res
       fittable$est

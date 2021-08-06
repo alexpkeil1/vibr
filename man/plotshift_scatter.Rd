@@ -2,16 +2,24 @@
 % Please edit documentation in R/base_identify.R
 \name{plotshift_scatter}
 \alias{plotshift_scatter}
-\title{Title}
+\title{In progress: diagnosing fit problems}
 \usage{
 plotshift_scatter(vibr.fit, Acol, Bcol, delta = NULL, joint = FALSE)
 }
 \arguments{
-\item{delta}{}
-}
-\value{
+\item{vibr.fit}{a fit from varimp}
 
+\item{Acol}{(integer) which column of X to diagnose}
+
+\item{Bcol}{(integer) second column of X to diagnose}
+
+\item{delta}{(numeric, default=0.01) change in each column of X corresponding to stochastic intervention}
+
+\item{X}{predictors from a varimp fit}
 }
 \description{
-Title
+In progress: diagnosing fit problems
+}
+\examples{
+set.seed(123)
 }

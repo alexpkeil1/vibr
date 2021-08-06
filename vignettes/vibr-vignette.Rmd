@@ -1,0 +1,33 @@
+---
+title: "Using VIBR to robustly estimate variable importance vis a vis stochastic interventions"
+author: "Alexander Keil"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette:
+          fig_caption: yes
+vignette: >
+  %\VignetteIndexEntry{Using VIBR to robustly estimate variable importance vis a vis stochastic interventions}
+  %\VignetteEngine{knitr::knitr}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r invisibles, echo=FALSE, results='markup', message=FALSE}
+library("knitr")
+```
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Getting started
+```{r Prelims, eval=FALSE, fig.show='hold', fig.cap = "Place holder"}
+devtools::install_github("tlverse/sl3")
+devtools::install_github("alexpkeil1/vibr")
+```
+
+```{r Prelims 2, results='markup', message=FALSE}
+library("vibr")
+```
+

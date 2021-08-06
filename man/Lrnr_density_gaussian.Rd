@@ -3,7 +3,7 @@
 \docType{class}
 \name{Lrnr_density_gaussian}
 \alias{Lrnr_density_gaussian}
-\title{Density Estimation With Mean Model and Homoscedastic normal errors}
+\title{sl3 extension: Density Estimation With Mean Model and Homoscedastic normal errors}
 \format{
 \code{\link{R6Class}} object.
 }

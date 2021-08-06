@@ -3,7 +3,7 @@
 \docType{class}
 \name{Lrnr_solnp_density_quiet}
 \alias{Lrnr_solnp_density_quiet}
-\title{Nonlinear Optimization via Augmented Lagrange}
+\title{sl3 extension: Nonlinear Optimization via Augmented Lagrange}
 \format{
 \code{\link{R6Class}} object.
 }
@@ -12,7 +12,7 @@ Learner object with methods for training and prediction. See
 \code{\link{Lrnr_base}} for documentation on learners.
 }
 \description{
-This version is a copy of Lrnr_solnp with additional consideration
+This version is a copy of sl3::Lrnr_solnp with additional consideration
 for users that want explicit control over printed output of solnp
 }
 \details{

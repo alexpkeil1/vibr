@@ -238,7 +238,7 @@
   colnames(resmat) <- names(tm)
   rownames(resmat) <- names(X[,whichcols,drop=FALSE])
   resmat <- data.frame(resmat)
-  resmat$p <- pnorm(-abs(resmat$z))*2
+  resmat$p <- stats::pnorm(-abs(resmat$z))*2
   resmat
 }
 

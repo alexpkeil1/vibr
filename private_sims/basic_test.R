@@ -59,7 +59,7 @@ dgm_ks <- function(n, delta){
     210 + 27.4*Z[,1] + 13.7*Z[,2] + 13.7*Z[,3] + 13.7*Z[,4]
   }
   pxfun <- function(Z){
-    vibr:::.expit(-Z[,1] + 0.5*Z[,2] - 0.25*Z[,3] - 0.1*Z[,4])
+    .expit(-Z[,1] + 0.5*Z[,2] - 0.25*Z[,3] - 0.1*Z[,4])
   }
   y <- pyfun(Z) + yerr
   X[,1] = exp(Z[,1]/2)
@@ -239,7 +239,7 @@ jointtest <- function(){
                estimator="GCOMP",
                Y_learners = c(sl3::Lrnr_glm$new())
   )
-  vij <- vibr:::.varimp_gcomp_joint(
+  vij <- .varimp_gcomp_joint(
     X=data.frame(dat$X),
     Y=dat$y,
     expnms = c("x", "z"),
@@ -248,7 +248,7 @@ jointtest <- function(){
     estimand="diff",
     verbose=FALSE
   )
-  vijb <- vibr:::.varimp_gcomp_joint_boot(
+  vijb <- .varimp_gcomp_joint_boot(
     X=data.frame(dat$X),
     Y=dat$y,
     expnms = c("x", "z"),
@@ -260,9 +260,9 @@ jointtest <- function(){
   vi
   vij
   vijb
-  (coefs <- lm(dat$y~., data = data.frame(vibr:::.scale_continuous(dat$X)))$coefficients[-1]*0.01)
+  (coefs <- lm(dat$y~., data = data.frame(.scale_continuous(dat$X)))$coefficients[-1]*0.01)
   sum(coefs)
-  (coefs <- lm(dat$y~.+.^2, data = data.frame(vibr:::.scale_continuous(dat$X)))$coefficients[-1])
+  (coefs <- lm(dat$y~.+.^2, data = data.frame(.scale_continuous(dat$X)))$coefficients[-1])
 }
 
 

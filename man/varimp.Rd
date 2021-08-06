@@ -64,6 +64,8 @@ varimp(
 
 \item{showProgress}{show progress of bootstrapping (only relevant if B is not NULL)}
 
+\item{scale_continuous}{(logical, default: TRUE) scale all continuous variables in X to have a standard deviation of 0.5}
+
 \item{...}{passed to sl3::make_sl3_Task (e.g. weights)}
 }
 \value{

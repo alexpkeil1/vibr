@@ -20,10 +20,13 @@
 #' @param foldrepeats (integer, default=10) (used for estimator = "TMLEX" only) number of times to repeat cross-fitting (higher numbers = more stable)
 #' @param B (NULL or integer) Number of bootstrap iterations (NULL = asymptotic variance only)
 #' @param showProgress show progress of bootstrapping (only relevant if B is not NULL)
+#' @param scale_continuous (logical, default: TRUE) scale all continuous variables in X to have a standard deviation of 0.5
 #' @param ... passed to sl3::make_sl3_Task (e.g. weights)
 #'
 #' @return vi object
 #' @export
+#' @importFrom stats pnorm gaussian binomial lm median quantile rnorm sd
+#' @importFrom utils combn
 #' @examples
 #' \dontrun{
 #' data(metals, package="qgcomp")
@@ -101,19 +104,19 @@ varimp <- function(X,
   } else{
     res = switch(estimator,
                  # standard estimators
-                 IPW=.varimp_ipw_boot(          X=X,Y=Y,V=V, dewhichcols=whichcols, lta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
+                 IPW=.varimp_ipw_boot(          X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
                  GCOMP=.varimp_gcomp_boot(      X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
                  AIPW=.varimp_aipw_boot(        X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, B=B, showProgress=showProgress,...),
-                 TMLE=.varimp_tmle_boot(        X=X,Y=Y,V=V, whichcols=whichcols, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, B=B, showProgress=showProgress,...),
+                 TMLE=.varimp_tmle_boot(        X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, B=B, showProgress=showProgress,...),
                  # cross fit estimators
-                 IPWX=.varimp_ipw_xfit_boot(    X=X,Y=Y,V=V, dewhichcols=whichcols, lta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...),
+                 IPWX=.varimp_ipw_xfit_boot(    X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...),
                  GCOMPX=.varimp_gcomp_xfit_boot(X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...),
                  AIPWX=.varimp_aipw_xfit_boot(  X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...),
                  TMLEX=.varimp_tmle_xfit_boot(  X=X,Y=Y,V=V, whichcols=whichcols, delta=delta, Y_learners=Y_learners, Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners, verbose=verbose, estimand=estimand, bounded=bounded, isbin=isbin, updatetype=updatetype, xfitfolds=xfitfolds,foldrepeats=foldrepeats, B=B, showProgress=showProgress,...)
     )
     res$est <- .attach_misc(res$est, scale_continuous=scale_continuous, delta=delta, B=NULL, whichcols=whichcols)
   }
-  res <- .attach_misc(res, scale_continuous=scale_continuous, delta=delta, B, whichcols=whichcols)
+  res <- .attach_misc(res, scale_continuous=scale_continuous, delta=delta, B=B, whichcols=whichcols)
   res
 }
 
@@ -134,6 +137,7 @@ varimp <- function(X,
 #'
 #' @return vibr.fit object
 #' @export
+#' @importFrom stats pnorm gaussian binomial
 #' @examples
 #' \dontrun{
 #' data(metals, package="qgcomp")
@@ -215,9 +219,17 @@ varimp_refit <- function(vibr.fit,
 print.vibr.fit <- function(x, ...){
   xr = x$res
   xr$rnk = x$rank
+  xr$rnkz = x$rankz
   cat(paste0("Variable importance estimates (", x$type, "): \n"))
-  names(xr) <- c("Estimate", "Std. Error (asymptotic)", "z value", "Pr(>|z|)", "Rank")
-  printCoefmat(xr, P.values=TRUE, has.Pvalue=TRUE, signif.stars=FALSE, cs.ind=c(1,2), tst.ind=3)
+  names(xr) <- c("Estimate", "Std. Error (asymptotic)", "z value", "Pr(>|z|)", "Rank(|estimate|)", "Rank(|z|)")
+  if(substr(x$type, 1, 5)=="GCOMP"){
+    cat("Note: no valid asymptotic std. error estimates are available for this estimator.\n")
+    xr = xr[c(1,5)]
+    printCoefmat(xr, P.values=FALSE, has.Pvalue=FALSE, signif.stars=FALSE, cs.ind=c(1))
+  } else{
+    printCoefmat(xr, P.values=TRUE, has.Pvalue=TRUE, signif.stars=FALSE, cs.ind=c(1,2), tst.ind=3)
+  }
+
   if(x$scaled){
     cat("\nScaling:\n")
     cat(paste0("  Continuous predictors are scaled by 2*Std. Dev\n"))
@@ -231,16 +243,17 @@ print.vibr.fit <- function(x, ...){
 #' @importFrom stats printCoefmat
 #' @export
 print.vibr.bootfit <- function(x, ...){
-  asest = x$est
-  print(asest)
+  #asest = x$est
+  print(x$est)
   cat("\n")
   #
-  est = asest$res$est
-  rnk = asest$rank
-  sds <- apply(x$boots,2,sd)
+  est = x$est$res$est
+  rnk = x$est$rank
+  rnkz = x$rankz
+  sds <- x$sds# apply(x$boots,2,sd)
   zz <- est/sds
-  xr2 <- as.data.frame(cbind(est, sds, zz, pnorm(-abs(zz))*2, rnk))
-  names(xr2) <- c("Estimate", "Std. Error (bootstrap)", "z value", "Pr(>|z|)", "Rank")
+  xr2 <- as.data.frame(cbind(est, sds, zz, pnorm(-abs(zz))*2, rnk, rnkz))
+  names(xr2) <- c("Estimate", "Std. Error (bootstrap)", "z value", "Pr(>|z|)", "Rank(|estimate|)", "Rank(|z|)")
   printCoefmat(xr2, P.values=TRUE, has.Pvalue=TRUE, signif.stars=FALSE, cs.ind=c(1,2), tst.ind=3)
   invisible(x)
 }

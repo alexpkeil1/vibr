@@ -1,6 +1,7 @@
 Package: vibr
 Title: Variable Importance in Black-Box Regression
-Version: 0.3.0
+Version: 0.0.0.9004
+Date: 05-aug-2021
 Authors@R: 
     person(given = "Alexander",
            family = "Keil",
@@ -9,9 +10,20 @@ Authors@R:
            comment = c(ORCID = "0000-0002-0955-6107"))
 Author: Alexander Keil [aut, cre]
 Maintainer: Alexander Keil <akeil@unc.edu>
-Description: This package implements two variable importance estimators for prediction of binary or continuous target variables. Namely, based on a black-box prediction/regression model fit to the data, this approach yields g-computation and augmented inverse probability weighted estimates of variable importance, both described by Diaz et al (2014), and the targeted maximum likelihood approach described in Diaz and van der Laan (2018). This package relies on black-box prediction from the \code{sl3} package, which, among other things, uses super learning (stacking) to make predictions.
+Description: This package implements two variable importance estimators for 
+    prediction of binary or continuous target variables. Namely, based on a 
+    black-box prediction/regression model fit to the data, this approach yields 
+    g-computation and augmented inverse probability weighted estimates of 
+    variable importance, both described by Diaz et al (2014), and the targeted 
+    maximum likelihood approach described in Diaz and van der Laan (2018). 
+    This package relies on black-box prediction from the \code{sl3} package, 
+    which, among other things, uses super learning (stacking) to make 
+    predictions.
 Depends:  R (>= 3.5), sl3
-Imports:  mvtnorm, qgcomp, Rsolnp, R6, data.table, future, MASS, polspline
+Imports:  mvtnorm, qgcomp, Rsolnp, R6, data.table, future, MASS, polspline, assertthat, ggplot2, devtools
+Suggests:  knitr, markdown
+Remotes: github::tlverse/sl3
+VignetteBuilder: knitr
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true

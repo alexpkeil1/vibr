@@ -13,7 +13,7 @@ Flexible modeling of the target is farmed out to the sl3 package, but some defau
 ## Current capabilities
 - [x] continuous target variables
 - [ ] multivariate target variables
-- [ ] binary target variables
+- [x] binary target variables
 - [x] continuous predictors
 - [ ] categorical predictors
 - [x] binary predictors
@@ -143,7 +143,7 @@ Alternatively, you can clone it locally, open the R project associated with this
     
     # can look at estimates of each repeated run (partition) to get a sense of the 
     # stability of the estimate
-    # here: the estimate is very stable!
+    # here: the estimate is very stable (but cross fit estimate is likely lower bias)!
     vi_sub2avg$ests
     
     # now examine stability with a continuous variable, which ought to be more unstable
@@ -302,3 +302,34 @@ Alternatively, you can clone it locally, open the R project associated with this
        Xbinary_learners=Xbinary_learners,
        estimator="TMLE", weights="wt")
     viw
+
+
+
+# binomial outcome
+    Y = metals$disease_state[spldat$trainidx]
+    Ybinary_learners = list(
+      sl3::Lrnr_glm$new(name="logit"),
+      Lrnr_stepwise$new(name="stepwise"),
+      Lrnr_polspline_quiet$new(name="mars")
+      )
+    vib <- varimp(X=X, 
+                 Y=Y, 
+                 delta=0.1, 
+                 Y_learners = Ybinary_learners,
+                 Xdensity_learners=Xdensity_learners[1:2],
+                 Xbinary_learners=Xbinary_learners,
+                 estimator="TMLE", 
+                 family="binomial"
+                 )
+    vib
+
+    vib2 <- varimp(X=X[,1:3], 
+                 Y=Y, 
+                 delta=0.1, 
+                 Y_learners = Ybinary_learners,
+                 Xdensity_learners=Xdensity_learners[1:2],
+                 Xbinary_learners=Xbinary_learners,
+                 estimator="GCOMP", 
+                 family="binomial"
+                 )
+   vib2

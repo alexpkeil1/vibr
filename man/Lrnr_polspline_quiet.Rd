@@ -3,9 +3,8 @@
 \docType{class}
 \name{Lrnr_polspline_quiet}
 \alias{Lrnr_polspline_quiet}
-\title{Polyspline_quiet - multivariate adaptive polynomial spline regression (polymars)
-and polychotomous regression and multiple classification (polyclass)
-This is a copy of Lrnr_polspline modified to supress all outputs}
+\title{sl3 extension: multivariate adaptive polynomial spline regression (polymars)
+and polychotomous regression and multiple classification (polyclass)}
 \format{
 \code{\link{R6Class}} object.
 }
@@ -14,6 +13,9 @@ Learner object with methods for training and prediction. See
 \code{\link{Lrnr_base}} for documentation on learners.
 }
 \description{
+This is a copy of sl3::Lrnr_polspline modified to supress all outputs
+}
+\details{
 This learner provides fitting procedures for an adaptive regression procedure
 using piecewise linear splines to model the response, using the function
 \code{\link[polspline]{polymars}} or \code{\link[polspline]{polyclass}} from

@@ -78,7 +78,7 @@
     if(isbin_vec[Acol]){
       phi <- .gcb(n=n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=qfun,gfun=NULL,qfit=qfit,gfits=NULL,estimand=estimand, wt=wt, isbin=isbin, ...)
     } else{
-      phi <- .gcc(n=n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=qfun,gfun=NULL,qfit=qfit,gfits=NULL,estimand=estimand, wt=wt, isbin=isbin,...)
+      phi <- .gcc(n=n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=qfun,gfun=NULL,qfit=qfit,gfits=NULL,estimand=estimand, wt=wt, isbin=isbin, ...)
     }
     tm <- .EstGcomp(phi)
     resmat[Acol,] <- tm
@@ -94,15 +94,17 @@
 ################################
 # expert wrappers
 ################################
-.trained_gcomp <- function(obj,
-                         X,
-                         Y,
-                         delta,
-                         qfun,
-                         gfun,
-                         estimand,
-                         bounded,
-                         updatetype){
+.trained_gcomp <- function(
+  obj,
+  X,
+  Y,
+  delta,
+  qfun,
+  gfun,
+  estimand,
+  bounded,
+  updatetype # placeholder here
+){
   fittable <- .EstimatorGcomp(n=obj$n,X=X,Y=Y,whichcols=obj$whichcols,delta,qfun=.qfunction,gfun=NULL,qfit=obj$sl.qfit,gfits=NULL, estimand, bounded,wt=obj$weights, isbin=obj$isbin)
   res <- list(
     res = fittable,
@@ -132,7 +134,8 @@
                           isbin=NULL,
                           ...){
   obj = .prelims(X=X, Y=Y, V=V, whichcols=whichcols, delta, Y_learners, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose, isbin=isbin, ...)
-  res = .trained_gcomp(obj,X,Y,delta,qfun,gfun,estimand,bounded,updatetype)
+  #res = .trained_gcomp(obj,X,Y,delta,qfun,gfun,estimand,bounded,updatetype=NULL)
+  res = .trained_gcomp(obj,X,Y,delta,qfun=.qfunction,gfun=.gfunction,estimand,bounded,updatetype=NULL)
   res
 }
 

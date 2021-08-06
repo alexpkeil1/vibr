@@ -22,7 +22,7 @@ dat <- read.csv("/Users/akeil/EpiProjects/NHANES/pcbs_furans_dioxins/mitro_data_
 Y = dat$telomean
 Xcr = dat[,c(mixturela)]
 X = dat[,c(mixturela, "ridageyr")]
-X = vibr:::.scale_continuous(X)
+X = .scale_continuous(X)
 apply(X, 2, sd)
 
 stanmod <- "

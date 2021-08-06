@@ -1,6 +1,6 @@
 
 
-##' Stepwise generalized linear model regression.
+##' sl3 extension: Stepwise generalized linear model regression.
 ##'
 ##' This learner provides fitting procedures for generalized linear models with
 ##' forward and backword stepwise regression using glm.fit and step.
@@ -28,21 +28,10 @@
 ##'   }
 ##'   \item{\code{family="gaussian"}}{ GLM family passed to stats::glm ("gaussian" or "binomial" only). Vibr will make a guess based on the task outcome type if this is not specified.
 ##'   }
-##'   \item{\code{...}}{ Other parameters passed directly to \code{\link[my_package]{my_ml_fun}}. See its documentation for details.
+##'   \item{\code{...}}{ Other parameters passed directly to \code{\link[stats]{glm}}. See its documentation for details.
 ##'   }
 ##' }
 ##'
-##' @section Methods:
-##' \describe{
-##' \item{\code{special_function(arg_1)}}{
-##'   My learner is special so it has a special function.
-##'
-##'   \itemize{
-##'     \item{\code{arg_1}: A very special argument.
-##'    }
-##'   }
-##'   }
-##' }
 Lrnr_stepwise <- R6Class(
   classname = "Lrnr_stepwise", inherit = Lrnr_base,
   portable = TRUE, class = TRUE,

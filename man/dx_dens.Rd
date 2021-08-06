@@ -2,16 +2,22 @@
 % Please edit documentation in R/base_identify.R
 \name{dx_dens}
 \alias{dx_dens}
-\title{Title}
+\title{In progress: diagnosing problems in estimating densities}
 \usage{
 dx_dens(vibr.fit, X, Acol = 1, delta = 0.01)
 }
 \arguments{
-\item{delta}{}
-}
-\value{
+\item{vibr.fit}{a fit from varimp}
 
+\item{X}{predictors from a varimp fit}
+
+\item{Acol}{(integer) which column of X to diagnose}
+
+\item{delta}{(numeric, default=0.01) change in each column of X corresponding to stochastic intervention}
 }
 \description{
-Title
+In progress: diagnosing problems in estimating densities
+}
+\examples{
+set.seed(123)
 }

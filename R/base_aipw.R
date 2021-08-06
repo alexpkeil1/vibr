@@ -3,20 +3,22 @@
 ## efficient influence functions
 ################################
 
-.DcAIPW <- function(n,
-                X,
-                Y,
-                Acol,
-                delta,
-                qfun,
-                gfun,
-                qfit,
-                gfits,
-                estimand,
-                bounded,
-                wt,
-                isbin=FALSE,
-                ...){
+.DcAIPW <- function(
+  n,
+  X,
+  Y,
+  Acol,
+  delta,
+  qfun,
+  gfun,
+  qfit,
+  gfits,
+  estimand,
+  bounded,
+  wt,
+  isbin=FALSE,
+  ...
+){
   # define shifts
   Xa <- .shift(X,Acol, -delta)
   Xb <- .shift(X,Acol,  delta)
@@ -40,20 +42,21 @@
   as.vector(dc1 + dc2 + dc3)*wt
 }
 
-.DbAIPW <- function(n,
-                X,
-                Y,
-                Acol,
-                delta,
-                qfun,
-                gfun,
-                qfit,
-                gfits,
-                estimand,
-                bounded,
-                wt,
-                isbin=FALSE,
-                ...){
+.DbAIPW <- function(
+  n,
+  X,
+  Y,
+  Acol,
+  delta,
+  qfun,
+  gfun,
+  qfit,
+  gfits,
+  estimand,
+  bounded,
+  wt,
+  isbin=FALSE,
+  ...){
   # define shifts
   X0 <- .shift(X,Acol, -X[,Acol])
   X1 <- .shift(X,Acol,  (1-X[,Acol]))
@@ -112,17 +115,20 @@
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
-      dphi <- .DbAIPW(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand, bounded, wt,isbin=isbin)
+      #dphi <- .DbAIPW(n=n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=qfun,gfun=gfun,qfit=qfit,gfits=gfits,estimand=estimand, bounded=bounded, wt=wt,isbin=isbin)
+      aipwfun = .DbAIPW
     } else{
-      dphi <- .DcAIPW( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand, bounded, wt,isbin=isbin)
+      #dphi <- .DcAIPW(n=n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=qfun,gfun=gfun,qfit=qfit,gfits=gfits,estimand=estimand, bounded=bounded, wt=wt,isbin=isbin)
+      aipwfun = .DcAIPW
     }
+    dphi = aipwfun(n=n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=qfun,gfun=gfun,qfit=qfit,gfits=gfits,estimand=estimand, bounded=bounded, wt=wt,isbin=isbin)
     tm <- .MakeiAipwEst(dphi)
     resmat[Acol,] <- tm
   }
   colnames(resmat) <- names(tm)
   rownames(resmat) <- names(X[,whichcols,drop=FALSE])
   resmat <- data.frame(resmat)
-  resmat$p <- pnorm(-abs(resmat$z))*2
+  resmat$p <- stats::pnorm(-abs(resmat$z))*2
   resmat
 }
 
@@ -132,16 +138,18 @@
 ################################
 
 
-.trained_aipw <- function(obj,
-                          X,
-                          Y,
-                          whichcols = seq_len(ncol(X)),
-                          delta,
-                          qfun,
-                          gfun,
-                          estimand,
-                          bounded,
-                          updatetype){
+.trained_aipw <- function(
+  obj,
+  X,
+  Y,
+#  whichcols = seq_len(ncol(X)),
+  delta,
+  qfun,
+  gfun,
+  estimand,
+  bounded,
+  updatetype # place holder here
+){
   fittable <- .EstEqAIPW(n=obj$n,X=X,Y=Y, whichcols=obj$whichcols,delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand, bounded=FALSE,wt=obj$weights,isbin=obj$isbin)
   res <- list(
     res = fittable,
@@ -156,21 +164,23 @@
 }
 
 #' @export
-.varimp_aipw <- function(X,
-                         Y,
-                         V=NULL,
-                         whichcols=seq_len(ncol(X)),
-                         delta=0.1,
-                         Y_learners=NULL,
-                         Xdensity_learners=NULL,
-                         Xbinary_learners=NULL,
-                         verbose=TRUE,
-                         estimand,
-                         bounded=FALSE,
-                         isbin=FALSE,
-                         ...){
+.varimp_aipw <- function(
+  X,
+  Y,
+  V=NULL,
+  whichcols=seq_len(ncol(X)),
+  delta=0.1,
+  Y_learners=NULL,
+  Xdensity_learners=NULL,
+  Xbinary_learners=NULL,
+  verbose=TRUE,
+  estimand,
+  bounded=FALSE,
+  isbin=FALSE,
+  ...){
   obj = .prelims(X=X, Y=Y, V=V, whichcols=whichcols, delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose,isbin=isbin, ...)
-  res = .trained_aipw(obj,X,Y,delta,qfun,gfun,estimand,bounded,updatetype)
+  #res = .trained_aipw(obj,X,Y,delta,qfun,gfun,estimand,bounded,updatetype)
+  res = .trained_aipw(obj=obj,X=X,Y=Y,delta=delta,qfun=.qfunction,gfun=.gfunction,estimand=estimand,bounded=bounded,updatetype=NULL)
   res
 }
 
@@ -186,6 +196,7 @@
                               Xbinary_learners=NULL,
                               verbose=TRUE,
                               estimand="diff",
+                              isbin=NULL,
                               bounded=FALSE,
                               B=100,
                               showProgress=TRUE,
