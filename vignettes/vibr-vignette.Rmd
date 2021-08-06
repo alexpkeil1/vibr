@@ -63,6 +63,8 @@ library("qgcomp")
                  )
   vi
 ```
+## Visualizing the implied stochastic intervention and diagnosing potential identication and sparsity issues
+
 ```{r, fig.cap = paste("Visualizing the exposure distribution shift implied by the stochastic intervention:", names(X)[c(1,2)])}
 vibr::plotshift_dens(vi, X, Acol=1, delta = 0.1)
 vibr::plotshift_dens(vi, X, Acol=2, delta = 0.1)

@@ -59,10 +59,12 @@
   )
 }
 
-.scale_continuous <- function(X){
+.scale_continuous <- function(X, isbin_vec=NULL){
   p <- ncol(X)
-  isbin_vec = c(TRUE)
-  if(p>1) isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
+  if(is.null(isbin_vec[1])){
+    if(p==1) isbin_vec = c(length(unique(x))==2)
+    if(p>1) isbin_vec <- apply(X, 2, function(x) length(unique(x))==2)
+  }
   for(j in seq_len(p)){
     if(!isbin_vec[j]){
       X[,j] <- X[,j]/(2*sd(X[,j]))
