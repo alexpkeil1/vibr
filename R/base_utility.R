@@ -393,10 +393,12 @@
   Haw <- ifelse(gn>0, ga/gn, 0) + as.numeric(gb == 0)
   if(any(is.na(Haw))){
     cat("Error in weights: Diagnostic info\n")
-    cat("g1\n")
-    print(g1[is.na(Haw)])
-    cat("g0\n")
-    print(g0[is.na(Haw)])
+    cat("gn\n")
+    print(gn[is.na(Haw)])
+    cat("ga\n")
+    print(ga[is.na(Haw)])
+    cat("gb\n")
+    print(gb[is.na(Haw)])
     stop(paste0("",sum(is.na(Haw))/length(Haw), "% of weights (continuous predictor) had missing values\n"))
   }
   if(any(Haw<0)) warning(paste0("",sum(Haw<0), " weights (continuous predictor) were < 0\n"))
