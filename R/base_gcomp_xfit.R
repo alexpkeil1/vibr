@@ -56,7 +56,7 @@
   allvars <- do.call(rbind, lapply(xfitres, function(x) x$sumd2))
   partitions <- as.numeric(gsub("p([0-9]+)_([0-9]+)", "\\1", names(xfitres)))
   # take means of every three rows for estimates and variances
-  ests <- apply(allests, 2, function (x) tapply(x, partitions, mean))
+  ests <- as.matrix(apply(allests, 2, function (x) tapply(x, partitions, mean)))
   vars <- apply(allvars, 2, function (x) tapply(x, partitions, mean)) # each partition has sum IF^2 rather than 1/n*sum IF^2
   ##
   #
