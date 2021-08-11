@@ -642,7 +642,7 @@
 }
 
 .safesweepminus <- function(x, MARGIN, STATS, FUN = "-", check.margin = TRUE, ...){
-  if(!is.null(dim(X))){
+  if(!is.null(dim(x))){
     return(sweep(x, MARGIN, STATS, FUN, check.margin, ...))
   } else{
     return(0)# assumes subtraction
