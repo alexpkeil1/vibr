@@ -641,10 +641,10 @@
   }
 }
 
-.safesweep <- functionsweep(x, MARGIN, STATS, FUN = "-", check.margin = TRUE, ...){
+.safesweepminus <- functionsweep(x, MARGIN, STATS, FUN = "-", check.margin = TRUE, ...){
   if(!is.null(dim(X))){
     return(sweep(x, MARGIN, STATS, FUN, check.margin, ...))
   } else{
-    return(x)
+    return(0)# assumes subtraction
   }
 }

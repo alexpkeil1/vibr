@@ -69,7 +69,7 @@
   est <- .safeapply(ests, 2, median)
   names(est) <- varnm
 
-  resid <- sweep(ests, 2, est, check.margin = FALSE)
+  resid <- .safesweepminus(ests, 2, est, check.margin = FALSE)
   vars <- vars/n + resid^2
 
 
