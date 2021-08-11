@@ -631,3 +631,20 @@
 # foldrepeats=3;xfitfolds=5; n=20
 #lapply(seq_len(foldrepeats), .xfitsplit_plugin,n=n,V=xfitfolds)
 
+
+## safe functions  ----
+.safeapply <- function(X, MARGIN, FUN, ...){
+  if(!is.null(dim(X))){
+    return(apply(X, MARGIN, FUN, ...))
+  } else{
+    return(X)
+  }
+}
+
+.safesweep <- functionsweep(x, MARGIN, STATS, FUN = "-", check.margin = TRUE, ...){
+  if(!is.null(dim(X))){
+    return(sweep(x, MARGIN, STATS, FUN, check.margin, ...))
+  } else{
+    return(x)
+  }
+}

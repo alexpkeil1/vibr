@@ -69,7 +69,7 @@
   #
   #colnames(ests) <- varnm
   #est <- apply(ests, 2, mean) # median also used
-  est <- apply(ests, 2, median)
+  est <- .safeapply(ests, 2, median)
   names(est) <- varnm
 
   resid <- sweep(ests, 2, est, check.margin = FALSE)
