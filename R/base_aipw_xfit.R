@@ -77,7 +77,7 @@
 
 
   #var <-apply(vars, 2, mean)
-  V <- apply(vars, 2, median)
+  V <- .safeapply(vars, 2, median)
   resmat <- data.frame(est=est, se=sqrt(V), z = est/sqrt(V))
   resmat$p <- stats::pnorm(-abs(resmat$z))*2
   res <- list(
