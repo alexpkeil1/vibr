@@ -47,9 +47,15 @@
         obj <- .prelims(X=X3, Y=Y3, V=V3, whichcols=whichcols, delta=delta, Y_learners=NULL, Xbinary_learners=NULL, Xdensity_learners=NULL, verbose=verbose,isbin=isbin, ...)
         obj$sl.qfit = obj_Y$sl.qfit
         obj$sl.gfits = obj_G$sl.gfits
-        fittable <- .EstEqAIPW(n=obj$n,X=X3,Y=Y3,whichcols=obj$whichcols,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=FALSE,wt=obj$weights,isbin=obj$isbin)
-        ft <- fittable[,1:2]
-        ft[,2] <- obj$n*ft[,2]^2 # asymptotic variance of sqrt(n)(psi_0 - psi_n)
+        fittable <- try(
+          .EstEqAIPW(n=obj$n,X=X3,Y=Y3,whichcols=obj$whichcols,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=FALSE,wt=obj$weights,isbin=obj$isbin)
+        )
+        if(class(fittable)=="try-error"){
+          ft <- c(NA,NA)
+        } else{
+          ft <- fittable[,1:2]
+          ft[,2] <- obj$n*ft[,2]^2 # asymptotic variance of sqrt(n)(psi_0 - psi_n)
+        }
         names(ft)[2] <- "sumd2"
         ft
       }, seed=TRUE, lazy=TRUE)
@@ -66,6 +72,20 @@
   ests <- apply(allests, 2, function (x) tapply(x, partitions, mean))
   vars <- apply(allvars, 2, function (x) tapply(x, partitions, mean)) # each partition has sum IF^2 rather than 1/n*sum IF^2
   ##
+  # check for missing
+  if(any(is.na(ests))){
+    if(foldrepeats==1){
+      stop("Error in weight calculation resulted in missing weights for some variables (try using 'W' for potentially problematic variables)")
+    } else{
+      whichmiss = which(is.na(ests[,1]))
+      nmiss = length(whichmiss)
+      if(nmiss==foldrepeats)
+        stop("Error in weight calculation for all partitionings (foldrepeats)")
+      warning(paste0("vibr: Error in weight calculation for ", nmiss, " of ", foldrepeats, " partitionings (foldrepeats) - these are excluded from calculation"))
+      ests = ests[!whichmiss,,drop=FALSE]
+      vars = vars[!whichmiss,,drop=FALSE]
+    }
+  }
   #
   #colnames(ests) <- varnm
   #est <- apply(ests, 2, mean) # median also used

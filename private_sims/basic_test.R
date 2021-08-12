@@ -112,6 +112,17 @@ binary_learners <- function(){
 
 
 
+testerrorhandle <- function(){
+  set.seed(12312)
+  dat = dgm(n=50, delta = 0.05, beta = c(1,0,1), degree=2, zk = c(-1.5, 0, 1.5))
+  dat$tr
+  V = data.frame(wt=rep(1,length(dat$y)))
+  (errtest <- varimp(data.frame(dat$X),Y=dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners()[c(1,2)],
+                 Xdensity_learners=.default_density_learners()[3:4], Xbinary_learners=.default_binary_learners()[c(1,2,4)],
+                 verbose=FALSE, estimator="TMLEX", estimand="diff", weights="wt", scale_continuous = FALSE,
+                 xfitfolds=3, foldrepeats=50))
+}
+
 testtxshift <- function(){
   set.seed(12312)
   dat = dgm( n=200, delta = 0.05, beta = c(1,0,1), degree=2, zk = c(-1.5, 0, 1.5))
@@ -124,6 +135,8 @@ testtxshift <- function(){
   (vi0 <- varimp(data.frame(dat$X),Y=dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
                  Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
                  verbose=FALSE, estimator="TMLE", estimand="diff", weights="wt", scale_continuous = FALSE))
+
+
   (vi01 <- varimp(X=Xsub, W=W,Y=dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
                  Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
                  verbose=FALSE, estimator="TMLE", estimand="diff", weights="wt", scale_continuous = FALSE))
