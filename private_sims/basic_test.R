@@ -120,7 +120,7 @@ testerrorhandle <- function(){
   (errtest <- varimp(data.frame(dat$X),Y=dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners()[c(1,2)],
                  Xdensity_learners=.default_density_learners()[3:4], Xbinary_learners=.default_binary_learners()[c(1,2,4)],
                  verbose=FALSE, estimator="TMLEX", estimand="diff", weights="wt", scale_continuous = FALSE,
-                 xfitfolds=3, foldrepeats=50))
+                 xfitfolds=3, foldrepeats=3))
 }
 
 testtxshift <- function(){

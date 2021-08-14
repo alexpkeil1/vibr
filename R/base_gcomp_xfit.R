@@ -91,6 +91,7 @@
   #var <-apply(vars, 2, mean)
   V <- .safeapply(vars, 2, median)
   resmat <- data.frame(est=est, se=sqrt(V), z = est/sqrt(V))
+  if(any(dim(resmat)==0)) stop("No valid results were generated as a result of errors during estimation")
   resmat$p <- pnorm(-abs(resmat$z))*2
   res <- list(
     res = resmat,

@@ -623,7 +623,7 @@
 ## safe functions  ----
 .safeapply <- function(X, MARGIN, FUN, ...){
   if(!is.null(dim(X))){
-    return(apply(X, MARGIN, FUN, ...))
+    return(apply(X, MARGIN, FUN, na.rm=TRUE, ...))
   } else{
     return(X)
   }
