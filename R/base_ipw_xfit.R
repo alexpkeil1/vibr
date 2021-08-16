@@ -49,7 +49,7 @@
         )
         if(class(fittable)=="try-error"){
           warning(fittable[1])
-          ft <- c(NA,NA)
+          ft <- data.frame(est=NA,sumd2=NA)
         } else{
           ft <- fittable[,1:2]
           ft[,2] <- obj$n*ft[,2]^2 # asymptotic variance of sqrt(n)(psi_0 - psi_n)
