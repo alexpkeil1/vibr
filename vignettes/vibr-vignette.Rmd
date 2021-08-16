@@ -98,10 +98,10 @@ vibr::plotshift_wt(vi, Acol=5, delta = 0.001)
 Rather than jumping into analysis, as we did above. It's worth checking identifiability
 prior to fitting models. This can be done using `precheck_identification`:
 ```{r second example}
-   ident <- precheck_identification(X=X, delta=0.01,
+   suppressWarnings(ident <- precheck_identification(X=X, delta=0.01,
        Xdensity_learners=Xdensity_learners[c(1,2,3)],
        Xbinary_learners=Xbinary_learners, threshold=10,
-       scale_continuous = TRUE)
+       scale_continuous = TRUE))
    ident
 
 ```

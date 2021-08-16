@@ -1,6 +1,6 @@
 Package: vibr
 Title: Variable Importance in Black-Box Regression
-Version: 0.0.0.9005
+Version: 1.0.0
 Date: 16-aug-2021
 Authors@R: 
     person(given = "Alexander",
