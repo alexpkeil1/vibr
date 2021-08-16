@@ -142,8 +142,8 @@ plotshift_scatter <- function(vibr.fit, Acol, Bcol, delta=NULL, joint=FALSE){
   p1 <- ggplot() + theme_classic() +
     geom_point(data = Xint, aes_string(x="x1a",y="x2a", color="col"), size=1) +
     geom_point(data = X,    aes_string(x=varnms[Acol],y=varnms[Bcol], color="col"), size=1) +
-    scale_y_continuous(name=varnms[Acol]) +
-    scale_x_continuous(name=varnms[Bcol]) +
+    scale_x_continuous(name=varnms[Acol]) +
+    scale_y_continuous(name=varnms[Bcol]) +
     scale_color_grey(name = "", start=0, end=.7)+
     theme(legend.position = c(.99,0.01), legend.justification = c(1,0))
   print(p1)

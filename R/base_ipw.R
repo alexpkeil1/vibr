@@ -88,10 +88,17 @@
   resmat <- matrix(NA, nrow=length(isbin_vec), ncol=3)
   for(Acol in seq_len(length(isbin_vec))){
     if(isbin_vec[Acol]){
-      dphi <- .DbIPW(n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=NULL,gfun=gfun,qfit=NULL,gfits=gfits,estimand=estimand,wt=wt,isbin=isbin, ...)
+      dfun <- .DbIPW
+      #dphi <- .DbIPW(n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=NULL,gfun=gfun,qfit=NULL,gfits=gfits,estimand=estimand,wt=wt,isbin=isbin, ...)
     } else{
-      dphi <- .DcIPW( n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=NULL,gfun=gfun,qfit=NULL,gfits=gfits,estimand=estimand,wt=wt,isbin=isbin, ...)
+      dfun <- .DcIPW
+      #dphi <- .DcIPW(n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=NULL,gfun=gfun,qfit=NULL,gfits=gfits,estimand=estimand,wt=wt,isbin=isbin, ...)
     }
+    dphi <- try(dfun( n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=NULL,gfun=gfun,qfit=NULL,gfits=gfits,estimand=estimand,wt=wt,isbin=isbin, ...))
+    if(class(dphi)=="try-error"){
+      stop(paste("(vibr) Error in estimation for ", names(X)[Acol]))
+    }
+
     tm <- .MakeTmleEst(dphi)
     resmat[Acol,] <- tm
   }

@@ -174,9 +174,9 @@
   H0 <- Hawmat[,3]
 
   if(!isbin){
-    QuMat <- .OneStepTmleBin(Y=Y,Qinit=qinit, Q1init=q1init, Q0init=q0init,Haw=Haw,H1=H1,H0=H0,isbin=FALSE, weighted=(updatetype=="weighted"), wt=wt,.link=.identity, .ilink=.invidentity)
+    QuMat <- .OneStepTmleBin(Y=Y,Qinit=qinit,Q1init=q1init,Q0init=q0init,Haw=Haw,H1=H1,H0=H0,isbin=FALSE, weighted=(updatetype=="weighted"),wt=wt,.link=.identity,.ilink=.invidentity)
   } else{
-    QuMat <- .OneStepTmleBin(Y=Y,Qinit=qinit, Q1init=q1init, Q0init=q0init,Haw=Haw,H1=H1,H0=H0,isbin=FALSE, weighted=(updatetype=="weighted"), wt=wt,.link=.logit, .ilink=.expit)
+    QuMat <- .OneStepTmleBin(Y=Y,Qinit=qinit,Q1init=q1init,Q0init=q0init,Haw=Haw,H1=H1,H0=H0,isbin=FALSE, weighted=(updatetype=="weighted"),wt=wt,.link=.logit,.ilink=.expit)
   }
   Qupdate <- QuMat[,1,drop=TRUE]
   Q1update <- QuMat[,2,drop=TRUE]
@@ -228,9 +228,13 @@
   for(Acol in seq_len(length(isbin_vec))){
 
     if(isbin_vec[Acol]){
-      dphi <- .DbTMLE(n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded,wt,updatetype,isbin=isbin)
+      dfun <- .DbTMLE
     } else{
-      dphi <- .DcTMLE( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded,wt,updatetype,isbin=isbin)
+      dfun <- .DcTMLE
+    }
+    dphi <- try(dfun( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded,wt,updatetype,isbin=isbin))
+    if(class(dphi)=="try-error"){
+      stop(paste("(vibr) Error in estimation for ", names(X)[Acol]))
     }
     tm <- .MakeTmleEst(dphi)
     resmat[Acol,] <- tm

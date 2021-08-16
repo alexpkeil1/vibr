@@ -51,6 +51,7 @@
           .EstEqAIPW(n=obj$n,X=X3,Y=Y3,whichcols=obj$whichcols,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=FALSE,wt=obj$weights,isbin=obj$isbin)
         )
         if(class(fittable)=="try-error"){
+          warning(fittable[1])
           ft <- c(NA,NA)
         } else{
           ft <- fittable[,1:2]
