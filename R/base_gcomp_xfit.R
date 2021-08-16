@@ -45,7 +45,8 @@
         )
         if(class(fittable)=="try-error"){
           warning(fittable[1])
-          ft <- data.frame(est=NA,sumd2=NA)
+          fill=rep(NA,length(obj$whichcols))
+          ft <- data.frame(est=fill,se=fill, row.names = names(X)[obj$whichcols])
         } else{
           ft <- fittable[,1:2]
           ft[,2] <- obj$n*ft[,2]^2 # asymptotic variance of sqrt(n)(psi_0 - psi_n)
@@ -74,8 +75,8 @@
       if(nmiss==foldrepeats)
         stop("Error in fit for all partitionings (foldrepeats)")
       warning(paste0("vibr: Error in fit for ", nmiss, " of ", foldrepeats, " partitionings (foldrepeats) - these are excluded from calculation"))
-      ests = ests[!whichmiss,,drop=FALSE]
-      vars = vars[!whichmiss,,drop=FALSE]
+      ests = ests[-whichmiss,,drop=FALSE]
+      vars = vars[-whichmiss,,drop=FALSE]
     }
   }
   ##
