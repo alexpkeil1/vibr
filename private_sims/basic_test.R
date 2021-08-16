@@ -145,7 +145,7 @@ testtxshift <- function(){
                   Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
                   verbose=FALSE, estimator="GCOMPX", estimand="diff", weights="wt", scale_continuous = FALSE,
                   foldrepeats =10, xfitfolds=2))
-  (vi0 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
+  (vi0 <- varimp(data.frame(dat$X),Y=dat$y, V=V, delta=.05, Y_learners=.default_continuous_learners(),
                  Xdensity_learners=.default_density_learners(), Xbinary_learners=.default_binary_learners(),
                  verbose=FALSE, estimator="TMLEX", estimand="diff", weights="wt", scale_continuous = FALSE,
                  foldrepeats =10, xfitfolds=5))
@@ -157,26 +157,26 @@ testtxshift <- function(){
   cor(as.matrix(cbind(tmle=vi0$rank, aipw=vi1$rank, gcomp=vi2$rank, ipw=vi3$rank)))
 
   #
-  (vimp2 <- varimp(data.frame(dat$X),dat$y, V=V, delta=.1, Y_learners=continuous_learners()[1:3],
+  (vimp2 <- varimp(data.frame(dat$X),Y=dat$y, V=V, delta=.1, Y_learners=continuous_learners()[1:3],
                   Xdensity_learners=density_learners()[[1]], Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="TMLE", estimand="diff", B=5, weights="wt"))
   set.seed(123123)
-  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
+  (vimp <- varimp(data.frame(dat$X),Y=dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
                   Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="AIPW", estimand="diff"))
-  (vimp2 <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
+  (vimp2 <- varimp(data.frame(dat$X),Y=dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
                   Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="AIPW", estimand="diff", B=5))
-  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
+  (vimp <- varimp(data.frame(dat$X),Y=dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
                   Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="GCOMP", estimand="diff"))
-  (vimp2 <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
+  (vimp2 <- varimp(data.frame(dat$X),Y=dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
                   Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="GCOMP", estimand="diff", B=5))
-  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
+  (vimp <- varimp(data.frame(dat$X),Y=dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
                   Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="IPW", estimand="diff"))
-  (vimp2 <- varimp(data.frame(dat$X),dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
+  (vimp2 <- varimp(data.frame(dat$X),Y=dat$y, delta=.1, Y_learners=continuous_learners()[1:3],
                   Xdensity_learners=density_learners(), Xbinary_learners=binary_learners(),
                   verbose=FALSE, estimator="IPW", estimand="diff", B=5))
 
@@ -188,11 +188,11 @@ testtxshift <- function(){
 
 stabilitytest <- function(...){
   data(metals, package="qgcomp")
-  dat = list(X=metals[,1:10], y=metals$y) # up t 23
+  dat = list(X=metals[,c(1:5,23)], y=metals$y) # up t 23
 
   set.seed(NULL)
   #set.seed(1231)
-  (vimp <- varimp(data.frame(dat$X),dat$y, delta=.1,
+  (vimp <- varimp(X=data.frame(dat$X),Y=dat$y, delta=.1,
                   Y_learners=.default_continuous_learners(),
                   Xdensity_learners=.default_density_learners(),
                   Xbinary_learners=.default_binary_learners(),
@@ -200,7 +200,7 @@ stabilitytest <- function(...){
 
 
   #set.seed(1231)
-  (vimp2 <- varimp(data.frame(dat$X),dat$y, delta=.1,
+  (vimp2 <- varimp(data.frame(dat$X),Y=dat$y, delta=.1,
                    Y_learners=.default_continuous_learners(),
                    Xdensity_learners=.default_density_learners(),
                    Xbinary_learners=.default_binary_learners(),

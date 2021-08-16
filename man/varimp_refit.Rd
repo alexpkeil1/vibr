@@ -2,10 +2,10 @@
 % Please edit documentation in R/base.R
 \name{varimp_refit}
 \alias{varimp_refit}
-\title{Variable importance in cross-sectional data}
+\title{Efficiently refitting certain vibr models}
 \usage{
 varimp_refit(
-  vibr.fit,
+  vibr_fit,
   X,
   W = NULL,
   Y,
@@ -18,7 +18,7 @@ varimp_refit(
 )
 }
 \arguments{
-\item{vibr.fit}{a vibr.fit object}
+\item{vibr_fit}{a vibr_fit object}
 
 \item{X}{data frame of variables for which variable importance will be estimated}
 
@@ -30,7 +30,7 @@ varimp_refit(
 
 \item{verbose}{(logical) print extra information}
 
-\item{estimator}{(character) "AIPW" (default), "TMLE", "GCOMP", "IPW"}
+\item{estimator}{(character) "AIPW" (default), "TMLE", "GCOMP", "IPW" (note this function does not permit re-fitting cross-fit estimators)}
 
 \item{bounded}{(logical) not used}
 
@@ -39,10 +39,10 @@ varimp_refit(
 \item{estimand}{(character) "diff" (default, estimate mean difference comparing Y under intervention with observed Y), "mean" (estimate mean Y under intervention)}
 }
 \value{
-vibr.fit object
+vibr_fit object
 }
 \description{
-Refitting a variable importance model with outcome regression and propensity scores trained from another model
+Refitting a variable importance model with outcome regression and propensity scores trained from another model. Works for any estimator which does not utilize sample splitting (i.e. cross-fit estimators)
 }
 \examples{
 \dontrun{

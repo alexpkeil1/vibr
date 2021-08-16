@@ -114,7 +114,7 @@
     ests = ests,
     vars = vars
   )
-  class(res) <- c("vibr.fit", class(res))
+  class(res) <- c("vibr_fit", class(res))
   res
 
 }
@@ -169,6 +169,6 @@
     binomial = isbin,
     type = "TMLEX"
   )
-  class(res) <- c("vibr.bootfit", class(res))
+  class(res) <- c("vibr_bootfit", class(res))
   res
 }

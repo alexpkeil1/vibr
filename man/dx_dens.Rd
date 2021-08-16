@@ -2,22 +2,38 @@
 % Please edit documentation in R/base_identify.R
 \name{dx_dens}
 \alias{dx_dens}
-\title{In progress: diagnosing problems in estimating densities}
+\title{Density based numerical identifiability diagnostics}
 \usage{
-dx_dens(vibr.fit, X, Acol = 1, delta = 0.01)
+dx_dens(vibr_fit, Acol = 1, delta = 0.01, quantiles = c(0, 0.1, 0.9, 1))
 }
 \arguments{
-\item{vibr.fit}{a fit from varimp}
+\item{vibr_fit}{a fit from varimp}
+
+\item{Acol}{(integer) which column of predictors in call to varimp to diagnose}
+
+\item{delta}{(numeric, default=0.01) change in each column of predictors in call to varimp corresponding to stochastic intervention}
+
+\item{quantiles}{(numeric vector, default=c(0, 0.1, 0.9, 1)) cutpoints in the closed interval \link{0,1} that correspond to quantiles of the estimated density of observed values of a predictor. The length of this vector determines the size of the table. Using values close to 0 or 1 allows one to track whether "intervened" predictors are pushed toward the extreme of the estimated predictor density, which could indicate lack of support for the scale of the implied intervention (e.g. delta is too big).}
 
 \item{X}{predictors from a varimp fit}
-
-\item{Acol}{(integer) which column of X to diagnose}
-
-\item{delta}{(numeric, default=0.01) change in each column of X corresponding to stochastic intervention}
 }
 \description{
-In progress: diagnosing problems in estimating densities
+Give a numerical (but cruder) version of the diagnostics in plotshift_dens, where one can track the change in estimated exposure mass/density following a stochastic intervention on exposure.
 }
 \examples{
-set.seed(123)
+\dontrun{
+data(metals, package="qgcomp")
+# subset of predictors
+XYlist = list(X=metals[,1:4], Y=metals$y)
+Y_learners = .default_continuous_learners()
+Xbinary_learners = list(Lrnr_stepwise$new(name="SW"))
+Xdensity_learners = .default_density_learners(n_bins=c(10))
+set.seed(1231)
+vi_ipw <- varimp(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners,
+       Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
+       estimator="IPW")
+dx_dens(vi_ipw, Acol=1, delta=0.01)
+# this shows that most observations keep a similar density range
+dx_dens(vi_ipw, Acol=1, delta=0.01, quantiles=c(0, 0.1, 0.3, 0.7, 0.9, 1))
+}
 }

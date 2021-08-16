@@ -2,24 +2,40 @@
 % Please edit documentation in R/base_identify.R
 \name{plotshift_scatter}
 \alias{plotshift_scatter}
-\title{In progress: diagnosing fit problems}
+\title{Visualizing stochastic interventions via bivariate plots}
 \usage{
-plotshift_scatter(vibr.fit, Acol, Bcol, delta = NULL, joint = FALSE)
+plotshift_scatter(vibr_fit, Acol, Bcol, delta = NULL, joint = FALSE)
 }
 \arguments{
-\item{vibr.fit}{a fit from varimp}
+\item{vibr_fit}{a vibr_fit object from varimp}
 
-\item{Acol}{(integer) which column of X to diagnose}
+\item{Acol}{(integer) which column of predictors in call to varimp to diagnose}
 
-\item{Bcol}{(integer) second column of X to diagnose}
+\item{Bcol}{(integer) second column of predictors in call to varimp to diagnose}
 
-\item{delta}{(numeric, default=0.01) change in each column of X corresponding to stochastic intervention}
-
-\item{X}{predictors from a varimp fit}
+\item{delta}{(numeric, default=0.01) change in each column of predictors in call to varimp corresponding to stochastic intervention}
 }
 \description{
-In progress: diagnosing fit problems
+This helps identify some potential identifiability issues that may not be picked up via weight diagnostics. A bivariate plot (where the X-axis variable is plotted with both the observed and "intervened" values). If the intervention implies predictors that are pushed outside the support of the data, this will manifest as shifted observations that are far from the observed observations. This is a low-dimensional way to roughly check identifiability of interventions, though users should be aware that identifiability is much more problematic with larger dimensions (number of predictors).
 }
 \examples{
-set.seed(123)
+\dontrun{
+data(metals, package="qgcomp")
+# subset of predictors
+XYlist = list(X=metals[,1:7], Y=metals$y)
+Y_learners = .default_continuous_learners()
+Xbinary_learners = list(Lrnr_stepwise$new(name="SW"))
+Xdensity_learners = .default_density_learners(n_bins=c(10))
+set.seed(1231)
+vi_ipw <- varimp(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners,
+       Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners,
+       estimator="TMLE")
+plotshift_scatter(vi_ipw, Acol=1, Bcol=2, delta=0.1)
+# delta = 0.1, seems reasonable in two dimensions, but may lead to
+extrapolation in more dimensions. Good to check with other "Bcol" variables
+plotshift_scatter(vi_ipw, Acol=1, Bcol=5, delta=0.1)
+# contrast with an intervention level that leads to obvious extrapolation
+plotshift_scatter(vi_ipw, Acol=1, Bcol=2, delta=1)
+plotshift_scatter(vi_ipw, Acol=1, Bcol=5, delta=1)
+}
 }

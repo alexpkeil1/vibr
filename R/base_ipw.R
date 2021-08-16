@@ -130,7 +130,7 @@
     type = "IPW",
     weights=obj$weights
   )
-  class(res) <- c("vibr.fit", class(res))
+  class(res) <- c("vibr_fit", class(res))
   res
 }
 
@@ -199,6 +199,6 @@
     binomial = isbin,
     type = "IPW"
   )
-  class(res) <- c("vibr.bootfit", class(res))
+  class(res) <- c("vibr_bootfit", class(res))
   res
 }

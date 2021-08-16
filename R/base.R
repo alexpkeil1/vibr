@@ -1,7 +1,8 @@
 # user facing functions
 
-#' Variable importance in cross-sectional data
+#' Stochastic intervention based variable importance in cross-sectional data
 #'
+#' @description Estimate variable importance based on a stochastic intervention to increase each predictor by a small amount (continuous) or increase the probability of a predictor by the same small amount (binary). The underlying methodology is based on papers by Ivan Diaz and Mark van der Laan. This function supports doubly robust estimation (Targeted maximum likelihood and augmented inverse probability weighting) as well as modern techniques to reduce bias and speed up convergence (in sample size) of these methods (double cross-fitting and repeated double cross-fitting). The underlying statistical models draw on \code{sl3}, an R package with a unified framework for machine learning and ensemble machine learning based around the super learner algorithm (stacking).
 #' @param X data frame of variables for which variable importance will be estimated
 #' @param W data frame of covariates (e.g. potential confounders) for which variable importance will not be estimated
 #' @param Y outcome
@@ -11,9 +12,9 @@
 #' @param Xdensity_learners list of sl3 learners used to estimate the density of continuous predictors, conditional on all other predictors in X
 #' @param Xbinary_learners list of sl3 learners used to estimate the probability mass of continuous predictors, conditional on all other predictors in X
 #' @param verbose (logical) print extra information
-#' @param estimator (character) "AIPW" (default), "TMLE", "GCOMP", "IPW", "TMLEX" (cross fit TMLE), "AIPWX" (cross fit AIPW)
-#' @param bounded (logical) not used
-#' @param updatetype (character) (used for estimator = "TMLE" only) "weighted" or any other valid character. If "weighted" then uses weighting by clever covariate in update step of TMLE, otherwise fits a generalized linear model with no intercept and clever covariate as a sole predictor
+#' @param estimator (character) "AIPW" (default), "TMLE", "GCOMP", "IPW", "TMLEX" (cross fit TMLE), "AIPWX" (cross fit AIPW), "GCOMPX" (cross fit GCOMP), "IPWX" (cross fit IPW)
+#' @param bounded (logical) not yet implemented
+#' @param updatetype (character) (used for estimator = "TMLE" only) "weighted" or "predictor." If "weighted" then uses weighting by clever covariate in update step of TMLE, otherwise fits a generalized linear model with no intercept and clever covariate as a sole predictor
 #' @param estimand (character) "diff" (default, estimate mean difference comparing Y under intervention with observed Y), "mean" (estimate mean Y under intervention)
 #' @param family (character or glm families binomial or gaussian, default = gaussian()) Outcome type: can be gaussian(), binomial(), "gaussian" or "binomial"; will be guessed if left NULL
 #' @param xfitfolds (odd integer, default=3) (used for estimator = "TMLEX" only) number of cross-fit folds (must be odd number - last fold is used for validation while the rest of the data are split in two for fitting treatment or outcome models)
@@ -21,9 +22,9 @@
 #' @param B (NULL or integer) Number of bootstrap iterations (NULL = asymptotic variance only)
 #' @param showProgress show progress of bootstrapping (only relevant if B is not NULL)
 #' @param scale_continuous (logical, default: TRUE) scale all continuous variables in X to have a standard deviation of 0.5
-#' @param ... passed to sl3::make_sl3_Task (e.g. weights)
+#' @param ... passed to \code{sl3::make_sl3_Task} (e.g. weights)
 #'
-#' @return vi object
+#' @return vibr_fit object
 #' @export
 #' @importFrom stats pnorm gaussian binomial lm median quantile rnorm sd
 #' @importFrom utils combn
@@ -34,10 +35,12 @@
 #' Y_learners = .default_continuous_learners()
 #' Xbinary_learners = list(Lrnr_stepwise$new(name="SW"))
 #' Xdensity_learners = .default_density_learners(n_bins=c(10))
+#' set.seed(1231)
 #' vi <- varimp(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners,
 #'        Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
 #'        estimator="TMLE")
 #' vi
+#' set.seed(1231)
 #' V = data.frame(wt=runif(nrow(metals)))
 #' viw <- varimp(X=XYlist$X,Y=XYlist$Y, V=V, delta=0.1, Y_learners = Y_learners,
 #'        Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
@@ -121,21 +124,21 @@ varimp <- function(X,
 }
 
 
-#' Variable importance in cross-sectional data
+#' Efficiently refitting certain vibr models
 #'
-#' @description Refitting a variable importance model with outcome regression and propensity scores trained from another model
-#' @param vibr.fit a vibr.fit object
+#' @description Refitting a variable importance model with outcome regression and propensity scores trained from another model. Works for any estimator which does not utilize sample splitting (i.e. cross-fit estimators)
+#' @param vibr_fit a vibr_fit object
 #' @param X data frame of variables for which variable importance will be estimated
 #' @param W data frame of covariates (e.g. potential confounders) for which variable importance will not be estimated
 #' @param Y outcome
 #' @param delta change in each column of X corresponding to
 #' @param verbose (logical) print extra information
-#' @param estimator (character) "AIPW" (default), "TMLE", "GCOMP", "IPW"
+#' @param estimator (character) "AIPW" (default), "TMLE", "GCOMP", "IPW" (note this function does not permit re-fitting cross-fit estimators)
 #' @param bounded (logical) not used
 #' @param updatetype (character) "weighted" or any other valid character. If "weighted" then uses weighting by clever covariate in update step of TMLE, otherwise fits a generalized linear model with no intercept and clever covariate as a fixed effect.
 #' @param estimand (character) "diff" (default, estimate mean difference comparing Y under intervention with observed Y), "mean" (estimate mean Y under intervention)
 #'
-#' @return vibr.fit object
+#' @return vibr_fit object
 #' @export
 #' @importFrom stats pnorm gaussian binomial
 #' @examples
@@ -171,7 +174,7 @@ varimp <- function(X,
 #' plot(metals$total_hardness, vi1$gfits[[21]]$predict()[[1]], pch=19, cex=0.2)
 #' plot(metals$total_hardness, metals$y, pch=19, cex=0.2)
 #' }
-varimp_refit <- function(vibr.fit,
+varimp_refit <- function(vibr_fit,
                          X,
                          W = NULL,
                          Y,
@@ -182,7 +185,7 @@ varimp_refit <- function(vibr.fit,
                          updatetype="weighted",
                          estimand="diff"
                          ){
-  obj <- .ChExstractFit(vibr.fit)
+  obj <- .ChExstractFit(vibr_fit)
   if(obj$scaled){
     if(verbose) cat("Scaling all continuous variables in X by 2*sd\n")
     # divide continuous by 2*sd
@@ -216,7 +219,7 @@ varimp_refit <- function(vibr.fit,
 
 #' @importFrom stats printCoefmat
 #' @export
-print.vibr.fit <- function(x, ...){
+print.vibr_fit <- function(x, ...){
   xr = x$res
   xr$rnk = x$rank
   xr$rnkz = x$rankz
@@ -242,7 +245,7 @@ print.vibr.fit <- function(x, ...){
 
 #' @importFrom stats printCoefmat
 #' @export
-print.vibr.bootfit <- function(x, ...){
+print.vibr_bootfit <- function(x, ...){
   #asest = x$est
   print(x$est)
   cat("\n")

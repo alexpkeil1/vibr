@@ -110,7 +110,7 @@
     type = "GCOMP",
     weights=obj$weights
   )
-  class(res) <- c("vibr.fit", class(res))
+  class(res) <- c("vibr_fit", class(res))
   res
 }
 
@@ -159,7 +159,7 @@
     updatetype=updatetype
   )
   res <- .attach_misc(res, scale_continuous=scale_continuous, delta=delta, B=NULL)
-  class(res) <- c("vibr.fit", class(res))
+  class(res) <- c("vibr_fit", class(res))
   res
 }
 
@@ -254,7 +254,7 @@
   res$est <- .attach_misc(res$est, scale_continuous=scale_continuous, delta=delta, B=NULL)
   res <- .attach_misc(res, scale_continuous=scale_continuous, delta=delta, B=B)
 
-  class(res) <- c("vibr.bootfit", class(res))
+  class(res) <- c("vibr_bootfit", class(res))
   res
 
 }

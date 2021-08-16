@@ -2,25 +2,41 @@
 % Please edit documentation in R/base_identify.R
 \name{plotshift_dens}
 \alias{plotshift_dens}
-\title{In progress: visualizing a stochastic intervention}
+\title{Density based graphical identifiability diagnostics and visualization}
 \usage{
-plotshift_dens(vibr.fit, X, Acol = 1, delta)
+plotshift_dens(vibr_fit, Acol = 1, delta)
 }
 \arguments{
-\item{vibr.fit}{a fit from varimp}
+\item{vibr_fit}{a fit from varimp}
 
-\item{X}{predictors from a varimp fit}
+\item{Acol}{(integer) which column of predictors in call to varimp to diagnose}
 
-\item{Acol}{(integer) which column of X to diagnose}
-
-\item{delta}{(numeric, default=0.01) change in each column of X corresponding to stochastic intervention}
+\item{delta}{(numeric, default=0.01) change in each column of predictors in call to varimp corresponding to stochastic intervention}
 }
 \value{
 ggplot2 plot object
 }
 \description{
-In progress: visualizing a stochastic intervention
+Plot a sorted estimated density function of pre- and post-stochastic-intervention values of a predictor.
+The closer the two functions are for pre- and post-intervention will typically
+mean that the stochastic intervention is better identified for a given column
+of the predictor matrix. This plot will generally give a useful way to visualize
+the implied stochastic intervention and may diagnose some issues with the intervention.
+This can also help diagnose issues with modeling inverse probability weights, when the
+estimated density is close to zero over a large portion of the data.
 }
 \examples{
-set.seed(123)
+\dontrun{
+data(metals, package="qgcomp")
+# subset of predictors
+XYlist = list(X=metals[,1:4], Y=metals$y)
+Y_learners = .default_continuous_learners()
+Xbinary_learners = list(Lrnr_stepwise$new(name="SW"))
+Xdensity_learners = .default_density_learners(n_bins=c(10))
+set.seed(1231)
+vi_ipw <- varimp(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners,
+       Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
+       estimator="TMLE")
+plotshift_dens(vi_ipw, Acol=1, delta=0.01)
+}
 }

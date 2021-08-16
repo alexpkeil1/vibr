@@ -63,23 +63,6 @@ library("qgcomp")
                  )
   vi
 ```
-## Visualizing the implied stochastic intervention and diagnosing potential identication and sparsity issues
-
-```{r, fig.cap = paste("Visualizing the exposure distribution shift implied by the stochastic intervention:", names(X)[c(1,2)])}
-vibr::plotshift_dens(vi, X, Acol=1, delta = 0.1)
-vibr::plotshift_dens(vi, X, Acol=2, delta = 0.1)
-```
-
-
-```{r, fig.cap = paste("Visualizing bivariate exposure value shifts implied by the stochastic intervention:", names(X)[2], " with ", names(X)[c(3,6)])}
-vibr::plotshift_scatter(vi, Acol=2, Bcol=3, delta = 0.1)
-vibr::plotshift_scatter(vi, Acol=2, Bcol=6, delta = 0.1)
-```
-
-```{r, fig.cap = paste("Visualizing the inverse density of exposure value shift implied by the stochastic intervention:", names(X)[c(4,5)])}
-vibr::plotshift_wt(vi, X, Acol=4, delta = 0.1)
-vibr::plotshift_wt(vi, X, Acol=5, delta = 0.1)
-```
 ## Explanation
 
 The basic idea behind variable importance is that one wants to rank predictors based on how strongly they predict the target (e.g. health outcome), conditional on other predictors. Several variable importance algorithms are algorithm specific (e.g. random forest node-purity-based importance, linear model coefficients) and not generally applicable. Others are generally applicable. For example, we could compare the change in the predicted outcome from a population wide change from exposed to unexposed for some binary predictor, but such importance measures often map back to contrasts that simply are not well supported by the data. 
@@ -88,3 +71,103 @@ The stochastic intervention approach assesses variable importance via small chan
 
 Flexible modeling of the target is farmed out to the `sl3` package, but some defaults are provided in the `vibr` package. The `vibr` package allows assessment of variable importance via inverse probability weighting (which requires additional, possibly flexible, models for each predictor, conditional on all other predictors), g-computation, targeted maximum likelihood estimation and augmented inverse probability weighting (where the latter two require models for the target and the predictors)
 
+
+## Visualizing the implied stochastic intervention and diagnosing potential identication and sparsity issues
+
+Regions near zero on this plot reflect observations of predictors (or "shifted" predictors, which are the values of the predictors after applying the hypothetical stochastic intervention) that have low estimated probability from the predictor models. This plot also demonstrates how "far" (informally) the estimated distribution of the observed predictors differs from the estimated distribution of the shifted predictors. One may see whether shifted predictors have much lower density, which could signal poor support for the stochastic interventnion. Large differences between the (sorted) distributions in these plots should indicate caution due to the potential for influential observations, but are not, in themselves, diagnostics of influential observations. Contrast the difference between these two plots with different magnitudes of the stochastic intervention.
+```{r, fig.cap = paste("Visualizing the exposure distribution shift implied by the stochastic intervention:", names(X)[c(1,2)])}
+vibr::plotshift_dens(vi, Acol=1, delta = 0.1)
+vibr::plotshift_dens(vi, Acol=1, delta = 0.01)
+```
+We can also look at the stochastic interventions in terms of changes to the original exposure data and look for evidence of extrapolation in bivariate settings. For expample, if a proposed value of delta pushes the shifted predictors far away from the observed data in a bivariate plot, then the value of delta should probably be reduced. Note that bivariate plots represent a highly optimistic picture of identification, since more extrapolation will occur in higher dimensions. This diagnostic plot is meant as a rough reality check on the size of delta.
+
+```{r, fig.cap = paste("Visualizing bivariate exposure value shifts implied by the stochastic intervention:", names(X)[2], " with ", names(X)[c(3,6)])}
+vibr::plotshift_scatter(vi, Acol=2, Bcol=3, delta = 0.1)
+vibr::plotshift_scatter(vi, Acol=2, Bcol=3, delta = 0.01)
+```
+
+We can further plot the estimated density (horizontal axis) by a ratio of estimated density under a stochastic intervention (intervention exposure = observed exposure -delta) to the estimated density of the observed data. This gives an indication of influential observations (high weights) and allows one to cross-check against estimated density in the observed data. Contrast the two (very different) interventions, where the small intervention (delta = 0.001) implies that only a few observations would have a different probability density estimate for chloride. The second plot indicates that the intervention is relatively small (which will be well supported but also may not be very informative in terms of clinically relevant shifts in predictors).
+
+```{r, fig.cap = paste("Visualizing the inverse density of exposure value shift implied by the stochastic intervention:", names(X)[c(4,5)])}
+vibr::plotshift_wt(vi, Acol=5, delta = 0.1)
+vibr::plotshift_wt(vi, Acol=5, delta = 0.001)
+```
+
+## Fitting a model using augmented inverse probability weighting
+
+Rather than jumping into analysis, as we did above. It's worth checking identifiability
+prior to fitting models. This can be done using `precheck_identification`:
+```{r second example}
+   ident <- precheck_identification(X=X, delta=0.01,
+       Xdensity_learners=Xdensity_learners[c(1,2,3)],
+       Xbinary_learners=Xbinary_learners, threshold=10,
+       scale_continuous = TRUE)
+   ident
+
+```
+
+This analysis tells us that about 1% of weights for barium and choloride exceed 10,
+with some observations being as high as 16.7. This is not necessarily worrisome, but
+it is useful to keep in mind when considering how influential some observations
+may be on the final results. Much higher weights may be more worrisome.
+
+In contrast, a delta of 0.1 would have 11% of observations with a weight for chloride > 10. This suggests that delta = 0.1 is too large.
+```{r second example part 2}
+   ident2 <- precheck_identification(X=X, delta=0.1,
+       Xdensity_learners=Xdensity_learners[c(1,2,3)],
+       Xbinary_learners=Xbinary_learners, threshold=10,
+       scale_continuous = TRUE)
+   ident2
+```
+
+
+A delta of 0.02 seems reasonable - not too large so that weights aren't extreme, but
+also not as small as we could get. This (informally) supports a balance between clinical relevance
+and identifiability. Note that the output of this function also lets us know that some of the learners have failed and can be dropped in subsequent analysis.
+```{r second example part 3}
+   ident3 <- precheck_identification(X=X, delta=0.02,
+       Xdensity_learners=Xdensity_learners[c(1,2,3)],
+       Xbinary_learners=Xbinary_learners, threshold=10,
+       scale_continuous = TRUE)
+   ident3
+```
+
+
+Now we can fit the model with our selected value of delta. 
+```{r second example part 4}
+    # basic variable importance augmented inverse probability weighting
+    vi2 <- varimp(X=X, 
+                 Y=Y, 
+                 delta=0.02, 
+                 Y_learners = Y_learners,
+                 Xdensity_learners=Xdensity_learners[1:2],
+                 Xbinary_learners=Xbinary_learners,
+                 estimator="AIPW"
+                 )
+    vi2
+```
+This result gives roughly the same statistical (and importance) as the TMLE result given above, with a larger intervention. The interpretation is that calcium is the most important predictor of the outcome among this set, both in terms of effect size (`Rank(|estimate|)`: ranking by absolute effect size) and in terms of statistical evidence (`Rank(|z|)`: ranking by Z-score).
+
+If we used the same intervention, TMLE and AIPW will often give very similar answers, so the choice between these approaches is mainly driven by investigator preference rather than objective criteria. 
+
+
+## cross-fitting
+
+Sometimes, it is useful to apply sample-splitting when using highly flexible machine learning algorithms, such as random forest. Here we use 7 fold double cross-fitting (K-fold, where K is an odd number >2). This scheme splits the data into equally sized 5 partitions, and, for each "fold", generalized propensity models (predictor models) are fit in two other folds, and an outcome regression model is fit in the remaining folds. The fitted models are then used to generate predicted outcomes and generalized propensity score in the main fold. This process is repeated for each of the folds, so that each predicted outcome/propensity score is estimated in data that are not used to fit the model. This whole process can be averaged over multiple different 5-way partitionings, which reduces noise due to the random selection of partitions (here it is only done over a single partitionings to reduce computational time via `foldrepeats = 1`). Note that inference for this relatively simple problem is similar to simply using the original TMLE estimator, but cross-fitting may give estimators with better performance in some scenarios (e.g. when estimators of the predictor or outcome models do not meet "Donsker" conditions, which are required for asymptotic variance estimators to be valid). Good general guidance is to simulate, as close as possible, the applied data example of interest and study whether the proposed estimators yield valid inference (approximately unbiased, approximately nominal confidence interval coverage). Cross-fitting is generally safe, but will tend to result in larger standard errors (due to sample splitting - compare standard error estimates from vi2 with those form vi3) and can be extremely time-intensive.
+```{r second example part 5}
+    # basic variable importance from cross-fit TLME
+    #future::plan("multisession")
+    set.seed(12345)
+    vi3 <- varimp(X=X, 
+                 Y=Y, 
+                 delta=0.02, 
+                 Y_learners = c(Y_learners, sl3::Lrnr_randomForest$new()), # added random forest from sl3/randomForest packages
+                 Xdensity_learners=Xdensity_learners[1:2], #dropped one from previous block
+                 Xbinary_learners=Xbinary_learners,
+                 estimator="TMLEX", xfitfolds = 5, foldrepeats = 1
+                 )
+    vi3
+```
+
+
+Note that many combinations of `xfitfolds` and `foldrepeats` are possible. Generally, as both of these increase, the computational demands will also increase. The coding block above (where vi3 is estimated) includes commented code that (if uncommented) would allow parallel processing via the "future" package to reduce computational issues.

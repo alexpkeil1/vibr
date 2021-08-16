@@ -162,9 +162,11 @@
   g0 <- 1-gfun(X,Acol,gfits=gfits)
 
   #
+  #OT = sl3::variable_type(type="binary", levels=c(0,max(X[,Acol])))
   qinit = qfun(X, Acol,qfit=qfit)
   q1init = qfun(X1, Acol,qfit=qfit)
   q0init = qfun(X0, Acol,qfit=qfit)
+
   #
   #ga = .enforce_min_dens(ga,eps=1e-8)
 
@@ -269,7 +271,7 @@
     type = "TMLE",
     weights=obj$weights
     )
-  class(res) <- c("vibr.fit", class(res))
+  class(res) <- c("vibr_fit", class(res))
   res
 }
 
@@ -340,6 +342,6 @@
     binomial = isbin,
     type = "TMLE"
   )
-  class(res) <- c("vibr.bootfit", class(res))
+  class(res) <- c("vibr_bootfit", class(res))
   res
 }

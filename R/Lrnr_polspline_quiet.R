@@ -72,7 +72,7 @@ Lrnr_polspline_quiet <- R6Class(
         capture.output(fit_object <- .call_with_args_vibr(polspline::polyclass, args))
         close(zz)
       } else {
-        stop("Lrnr_polspline does not support the designated outcome type.")
+        stop("Lrnr_polspline_quiet does not support the designated outcome type.")
       }
       return(fit_object)
     },
@@ -81,7 +81,7 @@ Lrnr_polspline_quiet <- R6Class(
       outcome_type <- self$get_outcome_type(task)
       if (outcome_type$type == "continuous") {
         preds <- stats::predict(object = private$.fit_object, x = task$X)
-      } else if (outcome_type$type %in% c("binomial", "categorical")) {
+      } else if (outcome_type$type %in% c("binomial", "categorical", "constant")) {
         preds <- polspline::ppolyclass(
           fit = private$.fit_object,
           cov = task$X

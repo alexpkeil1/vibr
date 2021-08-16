@@ -2,7 +2,7 @@
 % Please edit documentation in R/base.R
 \name{varimp}
 \alias{varimp}
-\title{Variable importance in cross-sectional data}
+\title{Stochastic intervention based variable importance in cross-sectional data}
 \usage{
 varimp(
   X,
@@ -46,11 +46,11 @@ varimp(
 
 \item{verbose}{(logical) print extra information}
 
-\item{estimator}{(character) "AIPW" (default), "TMLE", "GCOMP", "IPW", "TMLEX" (cross fit TMLE), "AIPWX" (cross fit AIPW)}
+\item{estimator}{(character) "AIPW" (default), "TMLE", "GCOMP", "IPW", "TMLEX" (cross fit TMLE), "AIPWX" (cross fit AIPW), "GCOMPX" (cross fit GCOMP), "IPWX" (cross fit IPW)}
 
-\item{bounded}{(logical) not used}
+\item{bounded}{(logical) not yet implemented}
 
-\item{updatetype}{(character) (used for estimator = "TMLE" only) "weighted" or any other valid character. If "weighted" then uses weighting by clever covariate in update step of TMLE, otherwise fits a generalized linear model with no intercept and clever covariate as a sole predictor}
+\item{updatetype}{(character) (used for estimator = "TMLE" only) "weighted" or "predictor." If "weighted" then uses weighting by clever covariate in update step of TMLE, otherwise fits a generalized linear model with no intercept and clever covariate as a sole predictor}
 
 \item{estimand}{(character) "diff" (default, estimate mean difference comparing Y under intervention with observed Y), "mean" (estimate mean Y under intervention)}
 
@@ -66,13 +66,13 @@ varimp(
 
 \item{scale_continuous}{(logical, default: TRUE) scale all continuous variables in X to have a standard deviation of 0.5}
 
-\item{...}{passed to sl3::make_sl3_Task (e.g. weights)}
+\item{...}{passed to \code{sl3::make_sl3_Task} (e.g. weights)}
 }
 \value{
-vi object
+vibr_fit object
 }
 \description{
-Variable importance in cross-sectional data
+Estimate variable importance based on a stochastic intervention to increase each predictor by a small amount (continuous) or increase the probability of a predictor by the same small amount (binary). The underlying methodology is based on papers by Ivan Diaz and Mark van der Laan. This function supports doubly robust estimation (Targeted maximum likelihood and augmented inverse probability weighting) as well as modern techniques to reduce bias and speed up convergence (in sample size) of these methods (double cross-fitting and repeated double cross-fitting). The underlying statistical models draw on \code{sl3}, an R package with a unified framework for machine learning and ensemble machine learning based around the super learner algorithm (stacking).
 }
 \examples{
 \dontrun{
@@ -81,10 +81,12 @@ XYlist = list(X=metals[,1:23], Y=metals$y)
 Y_learners = .default_continuous_learners()
 Xbinary_learners = list(Lrnr_stepwise$new(name="SW"))
 Xdensity_learners = .default_density_learners(n_bins=c(10))
+set.seed(1231)
 vi <- varimp(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners,
        Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
        estimator="TMLE")
 vi
+set.seed(1231)
 V = data.frame(wt=runif(nrow(metals)))
 viw <- varimp(X=XYlist$X,Y=XYlist$Y, V=V, delta=0.1, Y_learners = Y_learners,
        Xdensity_learners=Xdensity_learners[1:2], Xbinary_learners=Xbinary_learners,
