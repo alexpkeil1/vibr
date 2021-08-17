@@ -334,9 +334,11 @@ Alternatively, you can clone it locally, open the R project associated with this
                  estimator="GCOMP", 
                  family="binomial"
                  )
-   vib2
+    vib2
+    
 
-	
+More reading
+
   - Diaz Muñoz I, van der Laan M. Population intervention causal effects based on stochastic interventions. Biometrics. 2012;68(2):541–549. 
   - Diaz I, Hubbard A, Decker A, et al. Variable importance and prediction methods for longitudinal problems with missing variables. PloS one. 2015;10(3):e0120031. 
   - Van der Laan MJ, Rose S. Targeted learning: causal inference for observational and experimental data. Springer Science & Business Media; 2011.
