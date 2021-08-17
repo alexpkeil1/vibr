@@ -31,7 +31,7 @@ Flexible modeling of the target is farmed out to the sl3 package, but some defau
 
 
 ## quick start
-## installation (won't work until the repo is public)
+## installation
     devtools::install_github("tlverse/sl3")
     devtools::install_github("alexpkeil1/vibr")
 
