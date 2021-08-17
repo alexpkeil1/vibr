@@ -33,8 +33,8 @@ note this package is under rapid development: please create an issue if you find
 
 ## quick start
 ## installation
-    devtools::install_github("tlverse/sl3")
-    devtools::install_github("alexpkeil1/vibr")
+    devtools::install_github("tlverse/sl3", build_vignettes = TRUE)
+    devtools::install_github("alexpkeil1/vibr", build_vignettes = TRUE)
 
 Alternatively, you can clone it locally, open the R project associated with this, and, in R studio, install through the "build" tab/menu item.
 
