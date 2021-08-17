@@ -32,7 +32,8 @@ Flexible modeling of the target is farmed out to the sl3 package, but some defau
 
 ## quick start
 ## installation (won't work until the repo is public)
-    devtools::install_github("https://github.com/alexpkeil1/vibr")
+    devtools::install_github("tlverse/sl3")
+    devtools::install_github("alexpkeil1/vibr")
 
 Alternatively, you can clone it locally, open the R project associated with this, and, in R studio, install through the "build" tab/menu item.
 
