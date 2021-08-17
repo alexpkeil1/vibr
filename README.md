@@ -337,7 +337,7 @@ Alternatively, you can clone it locally, open the R project associated with this
    vib2
 
 	
-Diaz Muñoz I, van der Laan M. Population intervention causal effects based on stochastic interventions. Biometrics. 2012;68(2):541–549. 
-Diaz I, Hubbard A, Decker A, et al. Variable importance and prediction methods for longitudinal problems with missing variables. PloS one. 2015;10(3):e0120031. 
-Van der Laan MJ, Rose S. Targeted learning: causal inference for observational and experimental data. Springer Science & Business Media; 2011.
-Haneuse S, Rotnitzky A. Estimation of the effect of interventions that modify the received treatment. Statistics in Medicine. 2013;32(30):5260–5277. 
+  - Diaz Muñoz I, van der Laan M. Population intervention causal effects based on stochastic interventions. Biometrics. 2012;68(2):541–549. 
+  - Diaz I, Hubbard A, Decker A, et al. Variable importance and prediction methods for longitudinal problems with missing variables. PloS one. 2015;10(3):e0120031. 
+  - Van der Laan MJ, Rose S. Targeted learning: causal inference for observational and experimental data. Springer Science & Business Media; 2011.
+  - Haneuse S, Rotnitzky A. Estimation of the effect of interventions that modify the received treatment. Statistics in Medicine. 2013;32(30):5260–5277. 
