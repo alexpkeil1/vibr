@@ -1,6 +1,6 @@
 # vibr
 
-Estimating variable importance based on a stochastic intervention to increase each predictor by a small amount (continuous) or increase the probability of a predictor by the same small amount (binary). The underlying methodology is based on papers by Ivan Diaz and Mark van der Laan and some improvements suggested by Haneuse and Rotnitsky. 
+Estimating variable importance based on a stochastic intervention to increase each predictor by a small amount (continuous) or increase the probability of a predictor by the same small amount (binary). The underlying methodology is based on papers by Ivan Diaz and Mark van der Laan and some improvements suggested by Haneuse and Rotnitzky. 
 
 The basic idea behind variable importance is that one wants to rank predictors based on how strongly they predict the target (e.g. health outcome), conditional on other predictors. Several variable importance algorithms are algorithm specific (e.g. random forest node-purity-based importance, linear model coefficients) and not generally applicable. Others are generally applicable. For example, we could compare the change in the predicted outcome from a population wide change from exposed to unexposed for some binary predictor, but such importance measures often map back to contrasts that simply are not well supported by the data. 
 
