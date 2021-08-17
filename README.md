@@ -9,7 +9,8 @@ The stochastic intervention approach assesses variable importance via small chan
 Flexible modeling of the target is farmed out to the sl3 package, but some defaults are provided in the vibr package. This package allows assessment of variable importance via inverse probability weighting (which requires additional, possibly flexible, models for each predictor, conditional on all other predictors), g-computation, targeted maximum likelihood estimation and augmented inverse probability weighting (where the latter two require models for the target and the predictors)
 
 
-## note this package is under rapid development and is bound to be error prone
+note this package is under rapid development: please create an issue if you find something that looks like an error
+	
 ## Current capabilities
 - [x] continuous target variables
 - [ ] multivariate target variables
