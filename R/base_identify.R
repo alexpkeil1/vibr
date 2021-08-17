@@ -11,6 +11,7 @@
 #' @param vibr_fit a fit from varimp
 #' @param Acol (integer) which column of predictors in call to varimp to diagnose
 #' @param delta (numeric, default=0.01) change in each column of predictors in call to varimp corresponding to stochastic intervention
+#' @param ... not used
 #'
 #' @return ggplot2 plot object
 #' @export
@@ -30,7 +31,7 @@
 #'        estimator="TMLE")
 #' plotshift_dens(vi_ipw, Acol=1, delta=0.01)
 #' }
-plotshift_dens <- function(vibr_fit, Acol=1, delta){
+plotshift_dens <- function(vibr_fit, Acol=1, delta, ...){
   if(is.null(delta)) delta <- vibr_fit$delta
   if(!is.null(vibr_fit$qfit)){
     task <- vibr_fit$qfit$training_task
@@ -64,8 +65,8 @@ plotshift_dens <- function(vibr_fit, Acol=1, delta){
 
   p1 <-
   ggplot() + theme_classic() + scale_color_grey(name="") +
-    geom_step(data=X1,aes(x=ord, y=dens, color="Observed"))+
-    geom_step(data=X2,aes(x=ord, y=densshift, color="Shifted"))+
+    geom_step(data=X1,aes_string(x="ord", y="dens", color='"Observed"'))+
+    geom_step(data=X2,aes_string(x="ord", y="densshift", color='"Shifted"'))+
     scale_y_continuous(name=paste0("density(",xnm[Acol[1]],")"), expand = expansion(0))+
     scale_x_continuous(name="Sorted index", expand = expansion(.01))
   print(p1)
@@ -80,6 +81,7 @@ plotshift_dens <- function(vibr_fit, Acol=1, delta){
 #' @param vibr_fit a vibr_fit object from varimp
 #' @param Acol (integer) which column of predictors in call to varimp to diagnose (can only be continuous column of predictors in call to varimp)
 #' @param delta (numeric, default=0.01) change in each column of predictors in call to varimp corresponding to stochastic intervention
+#' @param ... not used
 #'
 #' @export
 #' @import ggplot2
@@ -110,7 +112,7 @@ plotshift_dens <- function(vibr_fit, Acol=1, delta){
 #' # or density estimation (not very many non-zero weights even with large
 #' # value of delta, or really large weights)
 #' }
-plotshift_wt <- function(vibr_fit, Acol=1, delta=0.01){
+plotshift_wt <- function(vibr_fit, Acol=1, delta=0.01, ...){
   if(is.null(delta)) delta <- vibr_fit$delta
   if(!is.null(vibr_fit$qfit)){
     task <- vibr_fit$qfit$training_task
@@ -120,8 +122,8 @@ plotshift_wt <- function(vibr_fit, Acol=1, delta=0.01){
     varnms <- c(task$nodes$outcome, task$nodes$covariates)
   }
   dat <- task$data
-  ft <- vibr_fit$gfits[[Acol[1]]]
   X <- data.frame(dat)[,varnms,drop=FALSE]
+  ft <- vibr_fit$gfits[[Acol[1]]]
   xnm = names(X)
   Xc <- .shift(X,Acol,shift = -delta)
   X$set="obs"
@@ -139,7 +141,7 @@ plotshift_wt <- function(vibr_fit, Acol=1, delta=0.01){
   X$wt = X$densshift/X$dens
   p1 <-
   ggplot(data = X) + theme_classic() + scale_color_grey() +
-    geom_point(aes(x=dens, y=wt), pch=19, size=1, alpha=0.5)+
+    geom_point(aes_string(x="dens", y="wt"), pch=19, size=1, alpha=0.5)+
     scale_x_continuous(name=paste0("density(observed ",xnm[Acol[1]],")"))+
     scale_y_continuous(name="density(shifted)/density(observed)")
   print(p1)
@@ -153,6 +155,7 @@ plotshift_wt <- function(vibr_fit, Acol=1, delta=0.01){
 #' @param Acol (integer) which column of predictors in call to varimp to diagnose
 #' @param Bcol (integer) second column of predictors in call to varimp to diagnose
 #' @param delta (numeric, default=0.01) change in each column of predictors in call to varimp corresponding to stochastic intervention
+#' @param ... not used
 #'
 #' @export
 #' @import ggplot2
@@ -177,7 +180,7 @@ plotshift_wt <- function(vibr_fit, Acol=1, delta=0.01){
 #' plotshift_scatter(vi_ipw, Acol=1, Bcol=2, delta=1)
 #' plotshift_scatter(vi_ipw, Acol=1, Bcol=5, delta=1)
 #' }
-plotshift_scatter <- function(vibr_fit, Acol, Bcol, delta=NULL, joint=FALSE){
+plotshift_scatter <- function(vibr_fit, Acol, Bcol, delta=NULL, ...){
   if(is.null(delta)) delta <- vibr_fit$delta
   if(!is.null(vibr_fit$qfit)){
     task <- vibr_fit$qfit$training_task
@@ -192,7 +195,7 @@ plotshift_scatter <- function(vibr_fit, Acol, Bcol, delta=NULL, joint=FALSE){
   requireNamespace("ggplot2")
   Xint <- data.frame(
     x1a = X[,Acol]+delta,
-    x2a = X[,Bcol]+ifelse(joint, delta, 0)
+    x2a = X[,Bcol]
   )
   X$col <- "Observed"
   Xint$col <- "Shifted"
@@ -214,10 +217,9 @@ plotshift_scatter <- function(vibr_fit, Acol, Bcol, delta=NULL, joint=FALSE){
 #'
 #' Give a numerical (but cruder) version of the diagnostics in plotshift_dens, where one can track the change in estimated exposure mass/density following a stochastic intervention on exposure.
 #' @param vibr_fit a fit from varimp
-#' @param X predictors from a varimp fit
 #' @param Acol (integer) which column of predictors in call to varimp to diagnose
 #' @param delta (numeric, default=0.01) change in each column of predictors in call to varimp corresponding to stochastic intervention
-#' @param quantiles (numeric vector, default=c(0, 0.1, 0.9, 1)) cutpoints in the closed interval [0,1] that correspond to quantiles of the estimated density of observed values of a predictor. The length of this vector determines the size of the table. Using values close to 0 or 1 allows one to track whether "intervened" predictors are pushed toward the extreme of the estimated predictor density, which could indicate lack of support for the scale of the implied intervention (e.g. delta is too big).
+#' @param quantiles (numeric vector, default=c(0, 0.1, 0.9, 1)) cutpoints in the closed interval \[0,1\] that correspond to quantiles of the estimated density of observed values of a predictor. The length of this vector determines the size of the table. Using values close to 0 or 1 allows one to track whether "intervened" predictors are pushed toward the extreme of the estimated predictor density, which could indicate lack of support for the scale of the implied intervention (e.g. delta is too big).
 #'
 #' @export
 #' @examples
@@ -245,6 +247,8 @@ dx_dens <- function(vibr_fit, Acol=1, delta=0.01, quantiles=c(0, 0.1, 0.9, 1)){
     task <- vibr_fit$gfits[[1]]$training_task
     varnms <- c(task$nodes$outcome, task$nodes$covariates)
   }
+  dat <- task$data
+  X <- data.frame(dat)[,varnms,drop=FALSE]
   ft <- vibr_fit$gfits[[Acol[1]]]
   if(is.null(delta)) delta = vibr_fit$delta
   xnm = names(X)
@@ -337,6 +341,8 @@ dx_dens <- function(vibr_fit, Acol=1, delta=0.01, quantiles=c(0, 0.1, 0.9, 1)){
 #' @param Xdensity_learners list of sl3 learners used to estimate the density of continuous predictors, conditional on all other predictors in X
 #' @param Xbinary_learners list of sl3 learners used to estimate the probability mass of continuous predictors, conditional on all other predictors in X
 #' @param verbose (logical) print extra information
+#' @param scale_continuous (logical) scale continuous variables in X to have standard deviation of 0.5
+#' @param threshold (numeric, default=10) threshold for high weights
 #' @param ... passed to sl3::make_sl3_Task (e.g. weights)
 #'
 #' @export

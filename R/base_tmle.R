@@ -291,7 +291,7 @@
                          isbin=FALSE,
                          ...){
   obj = .prelims(X=X, Y=Y, V=V, whichcols=whichcols, delta=delta, Y_learners, Xbinary_learners, Xdensity_learners, verbose=verbose, isbin=isbin, ...)
-  res = .trained_tmle(obj,X,Y,delta,qfun,gfun,estimand,bounded,updatetype)
+  res = .trained_tmle(obj=obj,X=X, Y=Y,delta=delta,qfun=.qfunction,gfun=.gfunction,estimand=estimand,bounded=bounded,updatetype=updatetype)
   res
 }
 

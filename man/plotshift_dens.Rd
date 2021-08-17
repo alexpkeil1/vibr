@@ -4,7 +4,7 @@
 \alias{plotshift_dens}
 \title{Density based graphical identifiability diagnostics and visualization}
 \usage{
-plotshift_dens(vibr_fit, Acol = 1, delta)
+plotshift_dens(vibr_fit, Acol = 1, delta, ...)
 }
 \arguments{
 \item{vibr_fit}{a fit from varimp}
@@ -12,6 +12,8 @@ plotshift_dens(vibr_fit, Acol = 1, delta)
 \item{Acol}{(integer) which column of predictors in call to varimp to diagnose}
 
 \item{delta}{(numeric, default=0.01) change in each column of predictors in call to varimp corresponding to stochastic intervention}
+
+\item{...}{not used}
 }
 \value{
 ggplot2 plot object

@@ -26,6 +26,10 @@ precheck_identification(
 
 \item{verbose}{(logical) print extra information}
 
+\item{scale_continuous}{(logical) scale continuous variables in X to have standard deviation of 0.5}
+
+\item{threshold}{(numeric, default=10) threshold for high weights}
+
 \item{...}{passed to sl3::make_sl3_Task (e.g. weights)}
 }
 \description{

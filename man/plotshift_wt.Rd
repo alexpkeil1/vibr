@@ -4,7 +4,7 @@
 \alias{plotshift_wt}
 \title{Weight-based graphical identifiability diagnostics and visualization (continuous predictors only)}
 \usage{
-plotshift_wt(vibr_fit, Acol = 1, delta = 0.01)
+plotshift_wt(vibr_fit, Acol = 1, delta = 0.01, ...)
 }
 \arguments{
 \item{vibr_fit}{a vibr_fit object from varimp}
@@ -12,6 +12,8 @@ plotshift_wt(vibr_fit, Acol = 1, delta = 0.01)
 \item{Acol}{(integer) which column of predictors in call to varimp to diagnose (can only be continuous column of predictors in call to varimp)}
 
 \item{delta}{(numeric, default=0.01) change in each column of predictors in call to varimp corresponding to stochastic intervention}
+
+\item{...}{not used}
 }
 \description{
 This produces a plot of estimated density (horizontal axis) by a ratio of estimated density under a stochastic intervention (intervention exposure = observed exposure -delta) over the estimated density of the observed data. This gives an indication of influential observations (high weights) and allows one to cross-check against estimated density in the observed data.

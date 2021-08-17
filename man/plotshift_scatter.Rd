@@ -4,7 +4,7 @@
 \alias{plotshift_scatter}
 \title{Visualizing stochastic interventions via bivariate plots}
 \usage{
-plotshift_scatter(vibr_fit, Acol, Bcol, delta = NULL, joint = FALSE)
+plotshift_scatter(vibr_fit, Acol, Bcol, delta = NULL, ...)
 }
 \arguments{
 \item{vibr_fit}{a vibr_fit object from varimp}
@@ -14,6 +14,8 @@ plotshift_scatter(vibr_fit, Acol, Bcol, delta = NULL, joint = FALSE)
 \item{Bcol}{(integer) second column of predictors in call to varimp to diagnose}
 
 \item{delta}{(numeric, default=0.01) change in each column of predictors in call to varimp corresponding to stochastic intervention}
+
+\item{...}{not used}
 }
 \description{
 This helps identify some potential identifiability issues that may not be picked up via weight diagnostics. A bivariate plot (where the X-axis variable is plotted with both the observed and "intervened" values). If the intervention implies predictors that are pushed outside the support of the data, this will manifest as shifted observations that are far from the observed observations. This is a low-dimensional way to roughly check identifiability of interventions, though users should be aware that identifiability is much more problematic with larger dimensions (number of predictors).

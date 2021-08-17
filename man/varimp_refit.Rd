@@ -45,9 +45,11 @@ vibr_fit object
 Refitting a variable importance model with outcome regression and propensity scores trained from another model. Works for any estimator which does not utilize sample splitting (i.e. cross-fit estimators)
 }
 \examples{
-\dontrun{
+
+library(future)
+plan(multisession) # fit models in parallel
 data(metals, package="qgcomp")
-XYlist = list(X=metals[,c(1:22, 23)], Y=metals$y)
+XYlist = list(X=metals[,c(1:10, 15:23)], Y=metals$y)
 Y_learners = .default_continuous_learners_big()
 Xbinary_learners = .default_binary_learners_big()
 Xdensity_learners = .default_density_learners_big()[c(1:4,6:7)]
@@ -55,6 +57,7 @@ vi <- varimp(X=XYlist$X,Y=XYlist$Y, delta=0.1, Y_learners = Y_learners,
        Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners,
        estimator="TMLE", updatetype="unweighted",estimand="diff")
 vi
+plan(transparent) # go back to standard evaluation
 vi1 <- varimp_refit(vi, X=XYlist$X,Y=XYlist$Y, delta=0.1,
                     estimator="TMLE", updatetype="weighted", estimand="diff")
 vi1
@@ -68,13 +71,23 @@ vi4 <- varimp_refit(vi, X=XYlist$X,Y=XYlist$Y, delta=0.1,
                     estimator="IPW")
 vi4
 
-hist(metals$y)
-hist(metals$calcium)
-hist(metals$total_hardness)
+# find the fit corresponding to calcium
 caidx <- which(names(XYlist$X)=="calcium")
-plot(metals$calcium, vi1$gfits[[4]]$predict()[[1]], pch=19, cex=0.2)
-plot(metals$calcium, metals$y, pch=19, cex=0.2)
-plot(metals$total_hardness, vi1$gfits[[21]]$predict()[[1]], pch=19, cex=0.2)
-plot(metals$total_hardness, metals$y, pch=19, cex=0.2)
-}
+thidx <- which(names(XYlist$X)=="total_hardness")
+# can confirm
+# vi1$gfits[[caidx]]$training_task$nodes$outcome
+calpredict = vi1$gfits[[caidx]]$predict()[[1]]
+thpredict = vi1$gfits[[thidx]]$predict()[[1]]
+# plot predicted density (not predicted value!) against original value,
+# compare with kernel density
+plot(metals$calcium, calpredict/max(calpredict), pch=19, cex=0.2,
+  ylab="scaled conditional density")
+lines(density(metals$calcium))
+plot(metals$total_hardness, thpredict/max(thpredict), pch=19, cex=0.2,
+  ylab="scaled conditional density")
+lines(density(metals$total_hardness))
+# note these are effectively measuring much of the same quantity
+plot(metals$calcium, metals$total_hardness)
+plot(calpredict, thpredict)
+
 }

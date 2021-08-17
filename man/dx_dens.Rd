@@ -13,9 +13,7 @@ dx_dens(vibr_fit, Acol = 1, delta = 0.01, quantiles = c(0, 0.1, 0.9, 1))
 
 \item{delta}{(numeric, default=0.01) change in each column of predictors in call to varimp corresponding to stochastic intervention}
 
-\item{quantiles}{(numeric vector, default=c(0, 0.1, 0.9, 1)) cutpoints in the closed interval \link{0,1} that correspond to quantiles of the estimated density of observed values of a predictor. The length of this vector determines the size of the table. Using values close to 0 or 1 allows one to track whether "intervened" predictors are pushed toward the extreme of the estimated predictor density, which could indicate lack of support for the scale of the implied intervention (e.g. delta is too big).}
-
-\item{X}{predictors from a varimp fit}
+\item{quantiles}{(numeric vector, default=c(0, 0.1, 0.9, 1)) cutpoints in the closed interval [0,1] that correspond to quantiles of the estimated density of observed values of a predictor. The length of this vector determines the size of the table. Using values close to 0 or 1 allows one to track whether "intervened" predictors are pushed toward the extreme of the estimated predictor density, which could indicate lack of support for the scale of the implied intervention (e.g. delta is too big).}
 }
 \description{
 Give a numerical (but cruder) version of the diagnostics in plotshift_dens, where one can track the change in estimated exposure mass/density following a stochastic intervention on exposure.

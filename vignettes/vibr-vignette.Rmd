@@ -75,20 +75,20 @@ Flexible modeling of the target is farmed out to the `sl3` package, but some def
 ## Visualizing the implied stochastic intervention and diagnosing potential identication and sparsity issues
 
 Regions near zero on this plot reflect observations of predictors (or "shifted" predictors, which are the values of the predictors after applying the hypothetical stochastic intervention) that have low estimated probability from the predictor models. This plot also demonstrates how "far" (informally) the estimated distribution of the observed predictors differs from the estimated distribution of the shifted predictors. One may see whether shifted predictors have much lower density, which could signal poor support for the stochastic interventnion. Large differences between the (sorted) distributions in these plots should indicate caution due to the potential for influential observations, but are not, in themselves, diagnostics of influential observations. Contrast the difference between these two plots with different magnitudes of the stochastic intervention.
-```{r, fig.cap = paste("Visualizing the exposure distribution shift implied by the stochastic intervention:", names(X)[c(1,2)])}
+```{r, fig.cap = paste("Visualizing the exposure distribution shift implied by the stochastic intervention:", names(X)[1], ", delta = ", c(0.1, 0.01))}
 vibr::plotshift_dens(vi, Acol=1, delta = 0.1)
 vibr::plotshift_dens(vi, Acol=1, delta = 0.01)
 ```
 We can also look at the stochastic interventions in terms of changes to the original exposure data and look for evidence of extrapolation in bivariate settings. For expample, if a proposed value of delta pushes the shifted predictors far away from the observed data in a bivariate plot, then the value of delta should probably be reduced. Note that bivariate plots represent a highly optimistic picture of identification, since more extrapolation will occur in higher dimensions. This diagnostic plot is meant as a rough reality check on the size of delta.
 
-```{r, fig.cap = paste("Visualizing bivariate exposure value shifts implied by the stochastic intervention:", names(X)[2], " with ", names(X)[c(3,6)])}
+```{r, fig.cap = paste("Visualizing bivariate exposure value shifts implied by the stochastic intervention:", names(X)[2], " with ", names(X)[3], ", delta = ", c(0.1, 0.01))}
 vibr::plotshift_scatter(vi, Acol=2, Bcol=3, delta = 0.1)
 vibr::plotshift_scatter(vi, Acol=2, Bcol=3, delta = 0.01)
 ```
 
 We can further plot the estimated density (horizontal axis) by a ratio of estimated density under a stochastic intervention (intervention exposure = observed exposure -delta) to the estimated density of the observed data. This gives an indication of influential observations (high weights) and allows one to cross-check against estimated density in the observed data. Contrast the two (very different) interventions, where the small intervention (delta = 0.001) implies that only a few observations would have a different probability density estimate for chloride. The second plot indicates that the intervention is relatively small (which will be well supported but also may not be very informative in terms of clinically relevant shifts in predictors).
 
-```{r, fig.cap = paste("Visualizing the inverse density of exposure value shift implied by the stochastic intervention:", names(X)[c(4,5)])}
+```{r, fig.cap = paste("Visualizing the inverse density of exposure value shift implied by the stochastic intervention:", names(X)[5], ", delta = ", c(0.1, 0.001))}
 vibr::plotshift_wt(vi, Acol=5, delta = 0.1)
 vibr::plotshift_wt(vi, Acol=5, delta = 0.001)
 ```
@@ -113,10 +113,10 @@ may be on the final results. Much higher weights may be more worrisome.
 
 In contrast, a delta of 0.1 would have 11% of observations with a weight for chloride > 10. This suggests that delta = 0.1 is too large.
 ```{r second example part 2}
-   ident2 <- precheck_identification(X=X, delta=0.1,
+   suppressWarnings(ident2 <- precheck_identification(X=X, delta=0.1,
        Xdensity_learners=Xdensity_learners[c(1,2,3)],
        Xbinary_learners=Xbinary_learners, threshold=10,
-       scale_continuous = TRUE)
+       scale_continuous = TRUE))
    ident2
 ```
 
@@ -125,10 +125,10 @@ A delta of 0.02 seems reasonable - not too large so that weights aren't extreme,
 also not as small as we could get. This (informally) supports a balance between clinical relevance
 and identifiability. Note that the output of this function also lets us know that some of the learners have failed and can be dropped in subsequent analysis.
 ```{r second example part 3}
-   ident3 <- precheck_identification(X=X, delta=0.02,
+   suppressWarnings(ident3 <- precheck_identification(X=X, delta=0.02,
        Xdensity_learners=Xdensity_learners[c(1,2,3)],
        Xbinary_learners=Xbinary_learners, threshold=10,
-       scale_continuous = TRUE)
+       scale_continuous = TRUE))
    ident3
 ```
 
@@ -174,4 +174,40 @@ Sometimes, it is useful to apply sample-splitting when using highly flexible mac
 Note that many combinations of `xfitfolds` and `foldrepeats` are possible. Generally, as both of these increase, the computational demands will also increase. The coding block above (where vi3 is estimated) includes commented code that (if uncommented) would allow parallel processing via the "future" package to reduce computational issues.
 
 
+## Causal effect estimation
+The big difference between variable importance and causal effects is that variable importance is a purely statistical concept, whereas a causal effects combines a statistical result and causal identification conditions. From a strictly causal perspective, the framework of vibr is not (by default) suited for causal estimation because no consideration is given for causal relationships between variables. For estimators that use generalized propensity scores (IPW, TMLE, AIPW) all exposures are modeled conditional on all other exposures. This may be appropriate in some very limited cases, but in general this approach will be inappropriate (causally speaking) for at least some of the predictors. One way to craft a more thoughtful causal approach using vibr is to consider exposures one at a time and select control variables that are appropriate for each variable for which a causal effect is to be estimated. Here, we use the "W" argument to vibr to declare the control variables (often referred to as confounders in epidemiology) separately from the primary exposure of interest, arsenic. Effectively, this prevents fitting of generalized propensity score models for all variables in W, so it can be much more efficient if you only want a single causal quantity.
+
+In this particular implementation, there is no difference in the modeling approach for arsenic itself, because all of the variables in W were previously in X. In general, approaches to causal effect estimation should be guided by a causal model such as that provided by a directed acyclic graph.
+```{r causal effect estimation}
+    # basic variable importance from cross-fit TLME
+    # library(future)
+    #future::plan("multisession")
+
+   # now focus only on arsenic
+   suppressWarnings(ident4 <- precheck_identification(X=X, delta=0.2,
+       Xdensity_learners=Xdensity_learners[1:2],
+       Xbinary_learners=Xbinary_learners, threshold=10,
+       scale_continuous = TRUE))
+   ident4
+   # .2 or lower seems reasonable for arsenic
+
+
+    set.seed(12345)
+    newX = X[, "arsenic", drop=FALSE] # key: X must still be a data frame
+    W = X[,-which(names(X)=="arsenic")]
+    suppressWarnings(vi3 <- varimp(X=newX,
+                  W=W,
+                 Y=Y, 
+                 delta=0.15, 
+                 Y_learners = c(Y_learners, sl3::Lrnr_randomForest$new()),
+                 Xdensity_learners=Xdensity_learners[1:2],
+                 Xbinary_learners=Xbinary_learners,
+                 estimator="TMLE"
+                 ))
+    vi3
+```
+
+
+
 Many more examples from the vibr package can be seen at https://github.com/alexpkeil1/vibr.
+

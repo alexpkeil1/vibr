@@ -149,7 +149,7 @@
                         isbin=FALSE,
                         ...){
   obj = .prelims(X=X, Y=Y, V=V, whichcols=whichcols, delta=delta, Y_learners=NULL, Xbinary_learners, Xdensity_learners, verbose=verbose, isbin=isbin, ...)
-  res = .trained_ipw(obj=obj,X=X,Y=Y,delta=delta,qfun=qfun,gfun=gfun,estimand=estimand,bounded=bounded,updatetype=updatetype)
+  res = .trained_ipw(obj=obj,X=X,Y=Y,delta=delta,qfun=.qfunction,gfun=.gfunction,estimand=estimand,bounded=bounded,updatetype=NULL)
   res
 }
 
