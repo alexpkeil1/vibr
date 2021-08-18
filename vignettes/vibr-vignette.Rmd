@@ -25,8 +25,8 @@ The `vibr` package contains functions to estimate variable importance based on a
 
 Because `sl3` is not available via CRAN (so you can't install it with `install.packages`), you have to install it via `install_github` which is available in either the `remotes` or `devtools` packages. CRAN does not allow packages with dependencies outside of CRAN, so `vibr` must be installed similarly unless and until `sl3` is released on CRAN.
 ```{r Prelims, eval=FALSE, fig.show='hold'}
-devtools::install_github("tlverse/sl3")
-devtools::install_github("alexpkeil1/vibr")
+devtools::install_github("tlverse/sl3", build_vignettes = TRUE, dependencies = TRUE) # may need to separately install "R.rsp" package
+devtools::install_github("alexpkeil1/vibr", build_vignettes = TRUE)
 ```
 
 ```{r Prelims 2, results='markup', message=FALSE}
