@@ -25,8 +25,8 @@ The `vibr` package contains functions to estimate variable importance based on a
 
 Because `sl3` is not available via CRAN (so you can't install it with `install.packages`), you have to install it via `install_github` which is available in either the `remotes` or `devtools` packages. CRAN does not allow packages with dependencies outside of CRAN, so `vibr` must be installed similarly unless and until `sl3` is released on CRAN.
 ```{r Prelims, eval=FALSE, fig.show='hold'}
-devtools::install_github("tlverse/sl3", build_vignettes = TRUE, dependencies = TRUE) # may need to separately install "R.rsp" package
-devtools::install_github("alexpkeil1/vibr", build_vignettes = TRUE)
+#devtools::install_github("tlverse/sl3", build_vignettes = TRUE, dependencies = TRUE) # may need to separately install "R.rsp" package
+devtools::install_github("alexpkeil1/vibr", build_vignettes = TRUE, dependencies = TRUE) # this will install current version of sl3 if it  not installed
 ```
 
 ```{r Prelims 2, results='markup', message=FALSE}
@@ -112,6 +112,8 @@ it is useful to keep in mind when considering how influential some observations
 may be on the final results. Much higher weights may be more worrisome.
 
 In contrast, a delta of 0.1 would have 11% of observations with a weight for chloride > 10. This suggests that delta = 0.1 is too large.
+
+The weight distribution for mage35 (a binary variable) appears to have a few extreme estimates. We will get to that in a bit.
 ```{r second example part 2}
    suppressWarnings(ident2 <- precheck_identification(X=X, delta=0.1,
        Xdensity_learners=Xdensity_learners[c(1,2,3)],
@@ -132,16 +134,42 @@ and identifiability. Note that the output of this function also lets us know tha
    ident3
 ```
 
+It's not a bad idea to check different learner sets to see possible sensitivity of results. Here, we specify a different list of learners manually - the learner sets are just R lists of sl3 learners. You can learn about how to specify these learners from the sl3 documentation. Superlearner is automatically used with each of these learner libraries, and there is no user control over how that functions (at this time). If you do not wish to use super learner, you can specify a single learner (e.g. X_binary_learners above just uses a main-term logistic model to estimate propensity scores). Since the mage35 weights looked bad, we'll try using super learner to estimate the weights, and include some simpler models ("mean" or an intercept only model, and stepwise regression). The density learners include one learner that first uses principal component analysis to reduce dimensionality than then estimates density based on that reduced set (referred to in the sl3 literature as a 'pipeline', so that the 'learner' is a combination of PCA+gaussian regression). Such an approach may be useful for high dimensional variable sets. As you can see, the weights for mage35 are better behaved (we don't expect these to have a mean of 1.0 like stabilized weights often do).
+```{r second example part 3b}
+Xbl = list(
+  Lrnr_mean$new(name="mean"),
+  Lrnr_glm$new(name="logit"), 
+  Lrnr_stepwise$new()
+)
+Xdl = list(
+  Lrnr_density_gaussian$new(name="ols_dens"),
+  Pipeline$new(Lrnr_pca$new(name="pca"), Lrnr_density_gaussian$new(name="dens_gaussian_glm")),
+  Lrnr_density_semiparametric$new(name="dens_sp_unadj", mean_learner = Lrnr_mean$new(), var_learner = NULL)
+)
 
-Now we can fit the model with our selected value of delta. 
+suppressWarnings(ident3b <- precheck_identification(X=X, delta=0.02,
+       Xdensity_learners=Xdl,
+       Xbinary_learners=Xbl, threshold=10,
+       scale_continuous = TRUE))
+ident3b
+```
+
+
+Now we can fit the model with our selected value of delta after adding some learners for the outcome regression.
 ```{r second example part 4}
+Yl = list(
+  Lrnr_mean$new(name="mean"),
+  Lrnr_glm$new(name="ols"),
+  Pipeline$new(Lrnr_pca$new(name="pca"), Lrnr_glm$new(name="ols", family=gaussian())),
+  Pipeline$new(Lrnr_screener_importance$new(name="rfimpscreen", learner=Lrnr_randomForest$new()), Lrnr_glm$new(name="OLS", family=gaussian()))
+)
     # basic variable importance augmented inverse probability weighting
     vi2 <- varimp(X=X, 
                  Y=Y, 
                  delta=0.02, 
-                 Y_learners = Y_learners,
-                 Xdensity_learners=Xdensity_learners[1:2],
-                 Xbinary_learners=Xbinary_learners,
+                 Y_learners = Yl,
+                 Xdensity_learners=Xdl,
+                 Xbinary_learners=Xbl,
                  estimator="AIPW"
                  )
     vi2
@@ -162,9 +190,9 @@ Sometimes, it is useful to apply sample-splitting when using highly flexible mac
     vi3 <- varimp(X=X, 
                  Y=Y, 
                  delta=0.02, 
-                 Y_learners = c(Y_learners, sl3::Lrnr_randomForest$new()), # added random forest from sl3/randomForest packages
-                 Xdensity_learners=Xdensity_learners[1:2], #dropped one from previous block
-                 Xbinary_learners=Xbinary_learners,
+                 Y_learners = c(Yl, sl3::Lrnr_randomForest$new()), # added random forest from sl3/randomForest packages
+                 Xdensity_learners=Xdl, 
+                 Xbinary_learners=Xbl,
                  estimator="TMLEX", xfitfolds = 5, foldrepeats = 1
                  )
     vi3
@@ -185,8 +213,8 @@ In this particular implementation, there is no difference in the modeling approa
 
    # now focus only on arsenic
    suppressWarnings(ident4 <- precheck_identification(X=X, delta=0.2,
-       Xdensity_learners=Xdensity_learners[1:2],
-       Xbinary_learners=Xbinary_learners, threshold=10,
+       Xdensity_learners=Xdl,
+       Xbinary_learners=Xbl, threshold=10,
        scale_continuous = TRUE))
    ident4
    # .2 or lower seems reasonable for arsenic
@@ -199,9 +227,9 @@ In this particular implementation, there is no difference in the modeling approa
                   W=W,
                  Y=Y, 
                  delta=0.15, 
-                 Y_learners = c(Y_learners, sl3::Lrnr_randomForest$new()),
-                 Xdensity_learners=Xdensity_learners[1:2],
-                 Xbinary_learners=Xbinary_learners,
+                 Y_learners = Yl,
+                 Xdensity_learners=Xdl,
+                 Xbinary_learners=Xbl,
                  estimator="TMLE"
                  ))
     vi3

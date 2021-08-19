@@ -35,9 +35,10 @@
 # Data handlers -------------------------------------------------------------
 
 #' @importFrom sl3 sl3_Task variable_type
-.create_tasks <- function(X,Y, V=NULL, delta=0.1, ...){
+.create_tasks <- function(X,Y, V=NULL, delta=0.1, whichcols=NULL, ...){
   X <- as.data.frame(X)
   p <- ncol(X)
+  if(is.null(whichcols)) whichcols = seq_len(p)
   nm <- names(X)
   slX <- list()
 #  slXpdelta <- list() # X + delta
@@ -45,7 +46,7 @@
   if(!is.null(V[1])){
     X = data.frame(cbind(X, V)) # V can hold weights, offsets, etc.
   }
-  for(j in seq_len(p)){
+  for(j in whichcols){
     isbin = length(unique(X[,j]))==2
     tt = ifelse(isbin, "binomial", "continuous")
     slX[[j]] <- sl3_Task$new(outcome_type=variable_type(type=tt), data=X,
@@ -304,16 +305,21 @@
 #' @import sl3
 #' @importFrom future future value
 #' @export
-.train_allX <- function(X, tasks, bin_learners, density_learners, metalearner=NULL, verbose=TRUE, V=NULL){
+.train_allX <- function(X, tasks, bin_learners, density_learners, metalearner=NULL, verbose=TRUE, V=NULL, whichcols=NULL){
   # TODO: check for data frame X
   p = ncol(X)
-  if(p==1) vartype = ifelse(length(unique(X[,1]))==2, "b", "c")
-  if(p>1) vartype = ifelse(apply(X, 2, function(x) length(unique(x))==2), "b", "c")
+  if(is.null(whichcols)) whichcols = seq_len(p)
+  nvars = length(whichcols)
+  #if(p==1) vartype = ifelse(length(unique(X[,1]))==2, "b", "c")
+  #if(p>1) vartype = ifelse(apply(X, 2, function(x) length(unique(x))==2), "b", "c")
+  if(nvars==1) vartype = ifelse(length(unique(X[,whichcols]))==2, "b", "c")
+  if(nvars>1) vartype = ifelse(apply(X[,whichcols], 2, function(x) length(unique(x))==2), "b", "c")
 
   #trained_models <- list()
   nmseq <- names(X)
   ee <- new.env()
-  for(j in 1:p){
+  #for(j in 1:p){
+  for(j in whichcols){
     if(verbose) cat(paste0("Training: ", names(X)[j], "(", ifelse(vartype[j]=="b", "binomial", "continuous, density"), ")\n"))
     ee[[nmseq[j]]] <- future::future( {
       #trained_models[[j]] <-
@@ -457,7 +463,8 @@
     wt <- wt/mean(wt)
   }
   tasklist <- NULL
-  if(doX) tasklist = .create_tasks(X[,whichcols, drop=FALSE],Y,V,delta, ...)
+  #if(doX) tasklist = .create_tasks(X[,whichcols, drop=FALSE],Y,V,delta, ...)
+  if(doX) tasklist = .create_tasks(X,Y,V,delta,, whichcols=whichcols, ...)
   if(verbose) cat(paste0("delta = ", delta, "\n"))
   yb = .bound_zero_one(Y)
   Ybound = yb[[1]]
