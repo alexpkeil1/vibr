@@ -1,5 +1,5 @@
 <img src="inst/fig/vibrhex.png" alt="vibr" width="200"/>
-### **v**ariable **i**mportance with **b**lack-box **r**egression
+### variable importance with black-box regression
 
 Estimating variable importance based on a stochastic intervention to increase each predictor by a small amount (continuous) or increase the probability of a predictor by the same small amount (binary). The underlying methodology is based on papers by Ivan Diaz and Mark van der Laan and some improvements suggested by Haneuse and Rotnitzky. 
 
