@@ -79,6 +79,7 @@ Regions near zero on this plot reflect observations of predictors (or "shifted" 
 vibr::plotshift_dens(vi, Acol=1, delta = 0.1)
 vibr::plotshift_dens(vi, Acol=1, delta = 0.01)
 ```
+
 We can also look at the stochastic interventions in terms of changes to the original exposure data and look for evidence of extrapolation in bivariate settings. For expample, if a proposed value of delta pushes the shifted predictors far away from the observed data in a bivariate plot, then the value of delta should probably be reduced. Note that bivariate plots represent a highly optimistic picture of identification, since more extrapolation will occur in higher dimensions. This diagnostic plot is meant as a rough reality check on the size of delta.
 
 ```{r, fig.cap = paste("Visualizing bivariate exposure value shifts implied by the stochastic intervention:", names(X)[2], " with ", names(X)[3], ", delta = ", c(0.1, 0.01))}
@@ -207,9 +208,6 @@ The big difference between variable importance and causal effects is that variab
 
 In this particular implementation, there is no difference in the modeling approach for arsenic itself, because all of the variables in W were previously in X. In general, approaches to causal effect estimation should be guided by a causal model such as that provided by a directed acyclic graph.
 ```{r causal effect estimation}
-    # basic variable importance from cross-fit TLME
-    # library(future)
-    #future::plan("multisession")
 
    # now focus only on arsenic
    suppressWarnings(ident4 <- precheck_identification(X=X, delta=0.2,
