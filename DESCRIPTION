@@ -25,13 +25,13 @@ Description: This package implements two variable importance estimators for
     <https://doi.org/10.1371/journal.pone.0120031>
     2) Diaz, I. and van der Laan, M. Stochastic Treatment Regimes. In Targeted Learning in Data Science: 
     Causal Inference for Complex Longitudinal Studies by Mark van der Laan and Sherri Rose.
-Depends:  R (>= 3.5), sl3
-Imports:  mvtnorm, qgcomp, Rsolnp, R6, data.table, future, MASS, polspline, assertthat, ggplot2, devtools
-Suggests:  knitr, markdown
+Depends: R (>= 3.5), sl3
+Imports: mvtnorm, qgcomp, Rsolnp, R6, data.table, future, MASS, polspline, assertthat, ggplot2, devtools
+Suggests: knitr, markdown
 Remotes: github::tlverse/sl3
 VignetteBuilder: knitr
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
