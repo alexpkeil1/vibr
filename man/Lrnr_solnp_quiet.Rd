@@ -61,38 +61,38 @@ Other Learners:
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{
-\item \href{#method-new}{\code{Lrnr_solnp_quiet$new()}}
-\item \href{#method-clone}{\code{Lrnr_solnp_quiet$clone()}}
+\item \href{#method-Lrnr_solnp_quiet-new}{\code{Lrnr_solnp_quiet$new()}}
+\item \href{#method-Lrnr_solnp_quiet-clone}{\code{Lrnr_solnp_quiet$clone()}}
 }
 }
-\if{html}{
-\out{<details ><summary>Inherited methods</summary>}
-\itemize{
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="assert_trained">}\href{../../sl3/html/Lrnr_base.html#method-assert_trained}{\code{sl3::Lrnr_base$assert_trained()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="base_chain">}\href{../../sl3/html/Lrnr_base.html#method-base_chain}{\code{sl3::Lrnr_base$base_chain()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="base_predict">}\href{../../sl3/html/Lrnr_base.html#method-base_predict}{\code{sl3::Lrnr_base$base_predict()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="base_train">}\href{../../sl3/html/Lrnr_base.html#method-base_train}{\code{sl3::Lrnr_base$base_train()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="chain">}\href{../../sl3/html/Lrnr_base.html#method-chain}{\code{sl3::Lrnr_base$chain()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="custom_chain">}\href{../../sl3/html/Lrnr_base.html#method-custom_chain}{\code{sl3::Lrnr_base$custom_chain()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="get_outcome_range">}\href{../../sl3/html/Lrnr_base.html#method-get_outcome_range}{\code{sl3::Lrnr_base$get_outcome_range()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="get_outcome_type">}\href{../../sl3/html/Lrnr_base.html#method-get_outcome_type}{\code{sl3::Lrnr_base$get_outcome_type()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="predict">}\href{../../sl3/html/Lrnr_base.html#method-predict}{\code{sl3::Lrnr_base$predict()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="predict_fold">}\href{../../sl3/html/Lrnr_base.html#method-predict_fold}{\code{sl3::Lrnr_base$predict_fold()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="print">}\href{../../sl3/html/Lrnr_base.html#method-print}{\code{sl3::Lrnr_base$print()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="process_formula">}\href{../../sl3/html/Lrnr_base.html#method-process_formula}{\code{sl3::Lrnr_base$process_formula()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="reparameterize">}\href{../../sl3/html/Lrnr_base.html#method-reparameterize}{\code{sl3::Lrnr_base$reparameterize()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="retrain">}\href{../../sl3/html/Lrnr_base.html#method-retrain}{\code{sl3::Lrnr_base$retrain()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="sample">}\href{../../sl3/html/Lrnr_base.html#method-sample}{\code{sl3::Lrnr_base$sample()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="set_train">}\href{../../sl3/html/Lrnr_base.html#method-set_train}{\code{sl3::Lrnr_base$set_train()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="subset_covariates">}\href{../../sl3/html/Lrnr_base.html#method-subset_covariates}{\code{sl3::Lrnr_base$subset_covariates()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="train">}\href{../../sl3/html/Lrnr_base.html#method-train}{\code{sl3::Lrnr_base$train()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="train_sublearners">}\href{../../sl3/html/Lrnr_base.html#method-train_sublearners}{\code{sl3::Lrnr_base$train_sublearners()}}\out{</span>}
-}
-\out{</details>}
-}
+\if{html}{\out{
+<details><summary>Inherited methods</summary>
+<ul>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="assert_trained"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-assert_trained'><code>sl3::Lrnr_base$assert_trained()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="base_chain"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-base_chain'><code>sl3::Lrnr_base$base_chain()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="base_predict"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-base_predict'><code>sl3::Lrnr_base$base_predict()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="base_train"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-base_train'><code>sl3::Lrnr_base$base_train()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="chain"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-chain'><code>sl3::Lrnr_base$chain()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="custom_chain"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-custom_chain'><code>sl3::Lrnr_base$custom_chain()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="get_outcome_range"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-get_outcome_range'><code>sl3::Lrnr_base$get_outcome_range()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="get_outcome_type"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-get_outcome_type'><code>sl3::Lrnr_base$get_outcome_type()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="predict"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-predict'><code>sl3::Lrnr_base$predict()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="predict_fold"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-predict_fold'><code>sl3::Lrnr_base$predict_fold()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="print"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-print'><code>sl3::Lrnr_base$print()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="process_formula"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-process_formula'><code>sl3::Lrnr_base$process_formula()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="reparameterize"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-reparameterize'><code>sl3::Lrnr_base$reparameterize()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="retrain"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-retrain'><code>sl3::Lrnr_base$retrain()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="sample"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-sample'><code>sl3::Lrnr_base$sample()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="set_train"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-set_train'><code>sl3::Lrnr_base$set_train()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="subset_covariates"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-subset_covariates'><code>sl3::Lrnr_base$subset_covariates()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="train"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-train'><code>sl3::Lrnr_base$train()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="sl3" data-topic="Lrnr_base" data-id="train_sublearners"><a href='../../sl3/html/Lrnr_base.html#method-Lrnr_base-train_sublearners'><code>sl3::Lrnr_base$train_sublearners()</code></a></span></li>
+</ul>
+</details>
+}}
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-new"></a>}}
-\if{latex}{\out{\hypertarget{method-new}{}}}
+\if{html}{\out{<a id="method-Lrnr_solnp_quiet-new"></a>}}
+\if{latex}{\out{\hypertarget{method-Lrnr_solnp_quiet-new}{}}}
 \subsection{Method \code{new()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Lrnr_solnp_quiet$new(
@@ -109,8 +109,8 @@ Other Learners:
 
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-clone}{}}}
+\if{html}{\out{<a id="method-Lrnr_solnp_quiet-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-Lrnr_solnp_quiet-clone}{}}}
 \subsection{Method \code{clone()}}{
 The objects of this class are cloneable with this method.
 \subsection{Usage}{
