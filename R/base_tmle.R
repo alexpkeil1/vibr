@@ -235,7 +235,7 @@
       dfun <- .DcTMLE
     }
     dphi <- try(dfun( n,X,Y,Acol,delta,qfun,gfun,qfit,gfits,estimand,bounded,wt,updatetype,isbin=isbin))
-    if(class(dphi)=="try-error"){
+    if(inherits(dphi,"try-error")){
       stop(paste("(vibr) Error in estimation for ", names(X)[Acol]))
     }
     tm <- .MakeTmleEst(dphi)

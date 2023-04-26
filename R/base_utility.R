@@ -156,7 +156,7 @@
     Lrnr_glm$new(name="ols", family=gaussian()),
     Lrnr_gam$new(name="gam"),
     Lrnr_polspline_quiet$new(name="polymars"),
-    Lrnr_glmnet$new(name="cv_elastic_net", alpha=0.0, family="gaussian"),
+    Lrnr_glmnet$new(name="cv_ridge", alpha=0.0, family="gaussian"),
     Lrnr_stepwise$new(name="stepwise", family=gaussian()),
     #Lrnr_xgboost$new(),
     Lrnr_nnet$new(name="nnet",maxit=200, trace=FALSE),
@@ -164,7 +164,8 @@
     Pipeline$new(Lrnr_pca$new(name="pca"), Lrnr_glm$new(name="ols", family=gaussian())), # PCA plus glm
     #Pipeline$new(Lrnr_screener_coefs$new(name="lassocreen", learner=Lrnr_glmnet$new(name="lasso", alpha=1.0, family="gaussian")), Lrnr_earth$new(name="MARS", family=gaussian())), # screen by coefficient size then OLS
     Pipeline$new(Lrnr_screener_coefs$new(name="coefscreen", learner=Lrnr_glm$new(name="ols", family=gaussian())), Lrnr_glm$new(name="OLS", family=gaussian())), # screen by coefficient size then OLS
-    Pipeline$new(Lrnr_screener_importance$new(name="rfimpscreen", learner=Lrnr_randomForest$new()), Lrnr_glm$new(name="OLS", family=gaussian())) # screen by variable importance then OLS
+    Pipeline$new(Lrnr_screener_importance$new(name="rfimpscreen", learner=Lrnr_randomForest$new()), Lrnr_glm$new(name="OLS", family=gaussian())), # screen by variable importance then OLS
+    Lrnr_glmnet$new(name="cv_elastic_net", alpha=0.5, family="gaussian")
   )
   continuous_learners
 }

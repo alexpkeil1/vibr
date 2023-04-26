@@ -47,7 +47,7 @@
         fittable <- try(
           .EstEqIPW(n=obj$n,X=X2,Y=Y2,whichcols=obj$whichcols,delta=delta,qfun=.qfunction,gfun=.gfunction,qfit=obj$sl.qfit,gfits=obj$sl.gfits, estimand=estimand,bounded=FALSE,wt=obj$weights,isbin=obj$isbin)
         )
-        if(class(fittable)=="try-error"){
+        if(inherits(fittable,"try-error")){
           warning(fittable[1])
           fill=rep(NA,length(obj$whichcols))
           ft <- data.frame(est=fill,se=fill, row.names = names(X)[obj$whichcols])

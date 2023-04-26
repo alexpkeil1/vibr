@@ -123,7 +123,7 @@
       aipwfun = .DcAIPW
     }
     dphi <- try(aipwfun(n=n,X=X,Y=Y,Acol=Acol,delta=delta,qfun=qfun,gfun=gfun,qfit=qfit,gfits=gfits,estimand=estimand, bounded=bounded, wt=wt,isbin=isbin))
-    if(class(dphi)=="try-error"){
+    if(inherits(dphi,"try-error")){
       stop(paste("(vibr) Error in estimation for ", names(X)[Acol]))
     }
     tm <- .MakeiAipwEst(dphi)

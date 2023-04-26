@@ -144,6 +144,7 @@ varimp <- function(X,
 #' @examples
 #'
 #' library(future)
+#' currplan = plan()
 #' plan(multisession) # fit models in parallel
 #' data(metals, package="qgcomp")
 #' XYlist = list(X=metals[,c(1:10, 15:23)], Y=metals$y)
@@ -154,7 +155,7 @@ varimp <- function(X,
 #'        Xdensity_learners=Xdensity_learners, Xbinary_learners=Xbinary_learners,
 #'        estimator="TMLE", updatetype="unweighted",estimand="diff")
 #' vi
-#' plan(transparent) # go back to standard evaluation
+#' plan(currplan) # go back to standard evaluation
 #' vi1 <- varimp_refit(vi, X=XYlist$X,Y=XYlist$Y, delta=0.1,
 #'                     estimator="TMLE", updatetype="weighted", estimand="diff")
 #' vi1
