@@ -19,18 +19,13 @@ Description: This package implements two variable importance estimators for
     This package relies on black-box prediction from the \code{sl3} package, 
     which, among other things, uses super learning (stacking) to make 
     predictions.
-
     References: 
-
     1) Keil, A.P. and O'Brien, K.M. Stat Bioscience (In revision)
-
     2) Diaz, I., Hubbard, A., Decker, A., & Cohen, M. (2015). 
     Variable importance and prediction methods for longitudinal problems with missing variables. 
     <https://doi.org/10.1371/journal.pone.0120031>
-
     3) Diaz, I. and van der Laan, M. Stochastic Treatment Regimes. In Targeted Learning in Data Science: 
     Causal Inference for Complex Longitudinal Studies by Mark van der Laan and Sherri Rose.
-
 Depends: R (>= 3.5), sl3
 Imports: mvtnorm, qgcomp, Rsolnp, R6, data.table, future, MASS, polspline, assertthat, ggplot2, devtools
 Suggests: knitr, markdown
