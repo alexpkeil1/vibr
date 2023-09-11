@@ -1,15 +1,15 @@
 Package: vibr
 Title: Variable Importance in Black-Box Regression
-Version: 1.0.4
-Date: 25-apr-2023
+Version: 1.0.5
+Date: 1-sep-2023
 Authors@R: 
     person(given = "Alexander",
            family = "Keil",
            role = c("aut", "cre"),
-           email = "akeil@unc.edu",
+           email = "alex.keil@nih.gov",
            comment = c(ORCID = "0000-0002-0955-6107"))
 Author: Alexander Keil [aut, cre]
-Maintainer: Alexander Keil <akeil@unc.edu>
+Maintainer: Alexander Keil <alex.keil@nih.gov>
 Description: This package implements two variable importance estimators for 
     prediction of binary or continuous target variables. Namely, based on a 
     black-box prediction/regression model fit to the data, this approach yields 
@@ -19,13 +19,18 @@ Description: This package implements two variable importance estimators for
     This package relies on black-box prediction from the \code{sl3} package, 
     which, among other things, uses super learning (stacking) to make 
     predictions.
+
     References: 
+
     1) Keil, A.P. and O'Brien, K.M. Stat Bioscience (In revision)
+
     2) Diaz, I., Hubbard, A., Decker, A., & Cohen, M. (2015). 
     Variable importance and prediction methods for longitudinal problems with missing variables. 
     <https://doi.org/10.1371/journal.pone.0120031>
+
     3) Diaz, I. and van der Laan, M. Stochastic Treatment Regimes. In Targeted Learning in Data Science: 
     Causal Inference for Complex Longitudinal Studies by Mark van der Laan and Sherri Rose.
+
 Depends: R (>= 3.5), sl3
 Imports: mvtnorm, qgcomp, Rsolnp, R6, data.table, future, MASS, polspline, assertthat, ggplot2, devtools
 Suggests: knitr, markdown
